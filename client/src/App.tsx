@@ -1,0 +1,38 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import MobileContainer from "@/components/mobile-container";
+import DiscoverPage from "@/pages/discover";
+import PatternsPage from "@/pages/patterns";
+import ActivityPage from "@/pages/activity";
+import SettingsPage from "@/pages/settings";
+import NotFound from "@/pages/not-found";
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={DiscoverPage} />
+      <Route path="/patterns" component={PatternsPage} />
+      <Route path="/activity" component={ActivityPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <MobileContainer>
+          <Router />
+        </MobileContainer>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
