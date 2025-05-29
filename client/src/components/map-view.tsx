@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapPin, Plus, Minus, Navigation, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,17 +13,114 @@ interface MapViewProps {
 export default function MapView({ currentLocation, patterns, onPatternSelect }: MapViewProps) {
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showLocationDetails, setShowLocationDetails] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+
+  // Initialize OpenStreetMap
+  useEffect(() => {
+    if (!mapContainerRef.current || mapLoaded) return;
+
+    // Create Leaflet map using CDN
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+
+      // Initialize map
+      const L = (window as any).L;
+      if (L && mapContainerRef.current) {
+        const map = L.map(mapContainerRef.current, {
+          center: currentLocation ? [currentLocation.lat, currentLocation.lng] : [37.7749, -122.4194],
+          zoom: zoomLevel,
+          zoomControl: false
+        });
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(map);
+
+        // Add current location marker
+        if (currentLocation) {
+          const marker = L.marker([currentLocation.lat, currentLocation.lng], {
+            icon: L.divIcon({
+              className: 'custom-location-marker',
+              html: '<div class="w-4 h-4 bg-secondary rounded-full border-2 border-white shadow-lg"></div>',
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
+            })
+          }).addTo(map);
+
+          marker.on('click', () => {
+            setShowLocationDetails(!showLocationDetails);
+          });
+        }
+
+        // Add pattern markers
+        patterns.forEach((pattern, index) => {
+          const patternMarker = L.marker([
+            currentLocation ? currentLocation.lat + (Math.random() - 0.5) * 0.01 : 37.7749 + (Math.random() - 0.5) * 0.01,
+            currentLocation ? currentLocation.lng + (Math.random() - 0.5) * 0.01 : -122.4194 + (Math.random() - 0.5) * 0.01
+          ], {
+            icon: L.divIcon({
+              className: 'custom-pattern-marker',
+              html: `<div class="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
+                       <span class="text-white text-xs font-semibold">${Math.round(pattern.confidence / 20)}</span>
+                     </div>`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+            })
+          }).addTo(map);
+
+          patternMarker.on('click', () => {
+            onPatternSelect(pattern);
+          });
+        });
+
+        mapRef.current = map;
+        setMapLoaded(true);
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+      }
+    };
+  }, [currentLocation, patterns, mapLoaded]);
+
+  // Update map when location changes
+  useEffect(() => {
+    if (mapRef.current && currentLocation) {
+      mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+    }
+  }, [currentLocation, zoomLevel]);
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 1, 18));
+    const newZoom = Math.min(zoomLevel + 1, 18);
+    setZoomLevel(newZoom);
+    if (mapRef.current) {
+      mapRef.current.setZoom(newZoom);
+    }
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 1, 8));
+    const newZoom = Math.max(zoomLevel - 1, 8);
+    setZoomLevel(newZoom);
+    if (mapRef.current) {
+      mapRef.current.setZoom(newZoom);
+    }
   };
 
   const handleRecenter = () => {
-    if (currentLocation) {
+    if (currentLocation && mapRef.current) {
+      mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
       setShowLocationDetails(!showLocationDetails);
     }
   };
@@ -61,90 +158,62 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
   return (
     <div className="relative">
       {/* Interactive Map Area */}
-      <div className="relative h-64 bg-gradient-to-br from-blue-100 to-green-100 overflow-hidden">
-        {/* Map tiles simulation */}
+      <div className="relative h-64 overflow-hidden">
+        {/* Leaflet Map Container */}
         <div 
-          className="w-full h-full map-container relative transition-all duration-300"
-          style={{ 
-            backgroundSize: `${100 + (zoomLevel - 13) * 20}%`,
-            backgroundPosition: currentLocation ? 'center' : '50% 50%'
-          }}
-        >
-          
-          {/* Pattern cluster indicators - positioned based on patterns */}
-          {patterns.map((pattern, index) => (
-            <div 
-              key={pattern.id}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2`}
-              style={{
-                top: `${30 + index * 15}%`,
-                left: `${40 + index * 20}%`
-              }}
-            >
-              <button 
-                className="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-200 animate-pulse"
-                onClick={() => onPatternSelect(pattern)}
-                title={pattern.name}
-              >
-                <span className="text-white text-xs font-semibold">
-                  {Math.round(pattern.confidence / 20)}
-                </span>
-              </button>
+          ref={mapContainerRef}
+          className="w-full h-full"
+          style={{ background: '#e5e7eb' }}
+        />
+
+        {/* Loading indicator */}
+        {!mapLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <span className="text-sm text-neutral-600">Loading interactive map...</span>
             </div>
-          ))}
-
-          {/* Current location indicator */}
-          {currentLocation && (
-            <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
-              <button
-                onClick={handleRecenter}
-                className="relative hover:scale-110 transition-transform"
-              >
-                <div className="w-4 h-4 bg-secondary rounded-full border-2 border-white shadow-lg location-pin"></div>
-                <div className="absolute inset-0 w-4 h-4 bg-secondary rounded-full border-2 border-white opacity-30 animate-ping"></div>
-              </button>
-            </div>
-          )}
-
-          {/* Zoom level indicator */}
-          <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs">
-            Zoom: {zoomLevel}
           </div>
+        )}
 
-          {/* Navigation controls */}
-          <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
-              onClick={handleZoomIn}
-              disabled={zoomLevel >= 18}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
-              onClick={handleZoomOut}
-              disabled={zoomLevel <= 8}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
-              onClick={handleRecenter}
-              disabled={!currentLocation}
-            >
-              <Crosshair className="w-4 h-4" />
-            </Button>
-          </div>
+        {/* Zoom level indicator */}
+        <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs z-[1000]">
+          Zoom: {zoomLevel}
+        </div>
+
+        {/* Navigation controls */}
+        <div className="absolute bottom-4 right-4 flex flex-col space-y-2 z-[1000]">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            onClick={handleZoomIn}
+            disabled={zoomLevel >= 18}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            onClick={handleZoomOut}
+            disabled={zoomLevel <= 8}
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            onClick={handleRecenter}
+            disabled={!currentLocation}
+          >
+            <Crosshair className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Location permission banner */}
-        <div className="absolute top-0 left-0 right-0 bg-primary text-white px-4 py-2 text-sm">
+        <div className="absolute top-0 left-0 right-0 bg-primary text-white px-4 py-2 text-sm z-[1000]">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Navigation className="w-4 h-4 mr-2" />

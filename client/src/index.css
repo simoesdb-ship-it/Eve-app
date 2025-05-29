@@ -142,3 +142,37 @@
 .bottom-nav {
   padding-bottom: max(env(safe-area-inset-bottom), 1rem);
 }
+
+/* Leaflet map styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+.custom-location-marker,
+.custom-pattern-marker {
+  background: transparent;
+  border: none;
+}
+
+.custom-location-marker div,
+.custom-pattern-marker div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Override default leaflet styles */
+.leaflet-control-container {
+  display: none;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  pointer-events: none;
+}
+
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+  border: none;
+}
