@@ -43,13 +43,13 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
           const IconComponent = tab.icon;
           
           return (
-            <Link key={tab.id} href={tab.path}>
-              <a className={`flex flex-col items-center py-2 px-3 ${
+            <Link key={tab.id} href={tab.path} asChild>
+              <button className={`flex flex-col items-center py-2 px-3 ${
                 isActive ? 'text-primary' : 'text-neutral-400'
               }`}>
                 <IconComponent className="w-5 h-5 mb-1" />
                 <span className="text-xs font-medium">{tab.label}</span>
-              </a>
+              </button>
             </Link>
           );
         })}

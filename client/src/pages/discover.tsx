@@ -185,7 +185,12 @@ export default function DiscoverPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-neutral-800">EVE Mobile</h1>
-              <p className="text-xs text-neutral-400">Downtown Pattern Discovery</p>
+              <p className="text-xs text-neutral-400">
+                {currentLocation ? 
+                  `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}` : 
+                  "Getting location..."
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -222,7 +227,12 @@ export default function DiscoverPage() {
       <div className="flex-1 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-800">Suggested for This Location</h2>
-          <Button variant="ghost" size="sm" className="text-primary">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary"
+            onClick={() => window.location.href = '/patterns'}
+          >
             View All
           </Button>
         </div>
@@ -248,7 +258,7 @@ export default function DiscoverPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {patterns.map((pattern) => (
+            {patterns.map((pattern: PatternWithVotes) => (
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
@@ -279,6 +289,35 @@ export default function DiscoverPage() {
       <Button
         className="fixed bottom-20 right-4 w-14 h-14 rounded-full shadow-lg"
         size="icon"
+        onClick={() => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords;
+                setCurrentLocation({ lat: latitude, lng: longitude });
+                
+                createLocationMutation.mutate({
+                  latitude: latitude.toString(),
+                  longitude: longitude.toString(),
+                  name: "Updated Location",
+                  sessionId
+                });
+                
+                toast({
+                  title: "Location Updated",
+                  description: "Refreshed your current location and patterns",
+                });
+              },
+              (error) => {
+                toast({
+                  title: "Location Error",
+                  description: "Unable to get your current location",
+                  variant: "destructive"
+                });
+              }
+            );
+          }
+        }}
       >
         <Plus className="w-6 h-6" />
       </Button>
