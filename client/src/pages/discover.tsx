@@ -12,12 +12,32 @@ import { Button } from "@/components/ui/button";
 import { Plus, Wifi, WifiOff, Shield } from "lucide-react";
 import type { PatternWithVotes, Activity } from "@shared/schema";
 
+// Helper function to calculate distance between two coordinates
+function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000; // Radius of the earth in meters
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c; // Distance in meters
+  return d;
+}
+
+function deg2rad(deg: number) {
+  return deg * (Math.PI/180);
+}
+
 export default function DiscoverPage() {
   const [sessionId] = useState(() => generateSessionId());
   const [selectedPattern, setSelectedPattern] = useState<PatternWithVotes | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationHistory, setLocationHistory] = useState<Array<{lat: number, lng: number, timestamp: Date}>>([]);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [watchId, setWatchId] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Monitor online status
@@ -34,13 +54,22 @@ export default function DiscoverPage() {
     };
   }, []);
 
-  // Get user's current location
+  // Continuous location tracking
   useEffect(() => {
     if (navigator.geolocation) {
+      // Get initial position
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
+          const newLocation = { lat: latitude, lng: longitude };
+          setCurrentLocation(newLocation);
+          
+          // Add to location history
+          setLocationHistory(prev => [...prev, { 
+            lat: latitude, 
+            lng: longitude, 
+            timestamp: new Date() 
+          }]);
           
           // Create location entry
           createLocationMutation.mutate({
@@ -52,18 +81,70 @@ export default function DiscoverPage() {
         },
         (error) => {
           console.error("Geolocation error:", error);
-          // Fallback to demo location (San Francisco)
-          const demoLocation = { lat: 37.7749, lng: -122.4194 };
-          setCurrentLocation(demoLocation);
-          createLocationMutation.mutate({
-            latitude: demoLocation.lat.toString(),
-            longitude: demoLocation.lng.toString(),
-            name: "Demo Location",
-            sessionId
+          toast({
+            title: "Location Access Required",
+            description: "Please enable location services to track your movement and discover patterns",
+            variant: "destructive"
           });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 60000
         }
       );
+      
+      // Set up continuous tracking
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = { lat: latitude, lng: longitude };
+          
+          // Only update if location has changed significantly (more than ~10 meters)
+          if (currentLocation) {
+            const distance = getDistanceFromLatLonInM(
+              currentLocation.lat, currentLocation.lng,
+              latitude, longitude
+            );
+            if (distance < 10) return; // Skip small movements
+          }
+          
+          setCurrentLocation(newLocation);
+          
+          // Add to location history
+          setLocationHistory(prev => [...prev, { 
+            lat: latitude, 
+            lng: longitude, 
+            timestamp: new Date() 
+          }]);
+          
+          // Create location entry for significant movements
+          createLocationMutation.mutate({
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
+            name: "Tracked Location",
+            sessionId
+          });
+        },
+        (error) => {
+          console.warn("Continuous tracking error:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000
+        }
+      );
+      
+      setWatchId(id);
     }
+    
+    // Cleanup function
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
   }, [sessionId]);
 
   // Create location mutation

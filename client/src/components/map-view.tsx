@@ -6,11 +6,12 @@ import type { PatternWithVotes } from "@shared/schema";
 
 interface MapViewProps {
   currentLocation: {lat: number, lng: number} | null;
+  locationHistory: Array<{lat: number, lng: number, timestamp: Date}>;
   patterns: PatternWithVotes[];
   onPatternSelect: (pattern: PatternWithVotes) => void;
 }
 
-export default function MapView({ currentLocation, patterns, onPatternSelect }: MapViewProps) {
+export default function MapView({ currentLocation, locationHistory, patterns, onPatternSelect }: MapViewProps) {
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -69,6 +70,35 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
             });
           } catch (error) {
             console.warn('Failed to add location marker:', error);
+          }
+        }
+
+        // Add location history path
+        if (locationHistory && locationHistory.length > 1 && !cleanup) {
+          try {
+            const pathCoordinates = locationHistory.map(loc => [loc.lat, loc.lng]);
+            const polyline = L.polyline(pathCoordinates, {
+              color: '#3B82F6',
+              weight: 3,
+              opacity: 0.7,
+              smoothFactor: 1
+            }).addTo(map);
+
+            // Add small markers for historical points
+            locationHistory.forEach((loc, index) => {
+              if (index === locationHistory.length - 1) return; // Skip current location
+              
+              L.circleMarker([loc.lat, loc.lng], {
+                radius: 3,
+                fillColor: '#1E40AF',
+                color: '#ffffff',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+              }).addTo(map);
+            });
+          } catch (error) {
+            console.warn('Failed to add location path:', error);
           }
         }
 
