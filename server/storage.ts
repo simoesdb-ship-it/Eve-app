@@ -160,7 +160,11 @@ export class MemStorage implements IStorage {
 
   async createPattern(insertPattern: InsertPattern): Promise<Pattern> {
     const id = this.currentId.patterns++;
-    const pattern: Pattern = { ...insertPattern, id };
+    const pattern: Pattern = { 
+      ...insertPattern, 
+      id,
+      moodColor: insertPattern.moodColor || "blue"
+    };
     this.patterns.set(id, pattern);
     return pattern;
   }
@@ -181,7 +185,8 @@ export class MemStorage implements IStorage {
     const location: Location = { 
       ...insertLocation, 
       id, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      name: insertLocation.name ?? null
     };
     this.locations.set(id, location);
     return location;
@@ -275,7 +280,12 @@ export class MemStorage implements IStorage {
   // Activity methods
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const id = this.currentId.activities++;
-    const activity: Activity = { ...insertActivity, id, createdAt: new Date() };
+    const activity: Activity = { 
+      ...insertActivity, 
+      id, 
+      createdAt: new Date(),
+      locationId: insertActivity.locationId ?? null
+    };
     this.activities.set(id, activity);
     return activity;
   }
