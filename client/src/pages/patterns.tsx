@@ -34,15 +34,19 @@ export default function PatternsPage() {
     }
   });
 
-  // Filter patterns based on search
-  const filteredPatterns = patterns.filter((pattern: Pattern) =>
-    pattern.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pattern.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pattern.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pattern.keywords.some(keyword => 
-      keyword.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  // Filter patterns based on search and mood color
+  const filteredPatterns = patterns.filter((pattern: Pattern) => {
+    const matchesSearch = pattern.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pattern.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pattern.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pattern.keywords.some(keyword => 
+        keyword.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    
+    const matchesMoodFilter = !selectedMoodFilter || pattern.moodColor === selectedMoodFilter;
+    
+    return matchesSearch && matchesMoodFilter;
+  });
 
   // Group patterns by category
   const groupedPatterns = filteredPatterns.reduce((acc: { [key: string]: Pattern[] }, pattern: Pattern) => {
@@ -81,17 +85,42 @@ export default function PatternsPage() {
         </div>
       </header>
 
-      {/* Search */}
+      {/* Search and Filters */}
       <div className="px-4 py-3 bg-white border-b border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            type="text"
-            placeholder="Search patterns..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search patterns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Pattern Mood Filters */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedMoodFilter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedMoodFilter(null)}
+              className="text-xs"
+            >
+              All Moods
+            </Button>
+            {getAllMoodColors().map(({ color, description, colors }) => (
+              <Button
+                key={color}
+                variant={selectedMoodFilter === color ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedMoodFilter(color)}
+                className={`text-xs ${colors.badge}`}
+              >
+                {description}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
