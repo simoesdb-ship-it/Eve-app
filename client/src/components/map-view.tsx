@@ -69,30 +69,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
           }
         }
 
-        // Add pattern markers with error handling
-        patterns.forEach((pattern, index) => {
-          if (cleanup) return;
-          
-          try {
-            const lat = currentLocation ? currentLocation.lat + (Math.random() - 0.5) * 0.01 : 37.7749 + (Math.random() - 0.5) * 0.01;
-            const lng = currentLocation ? currentLocation.lng + (Math.random() - 0.5) * 0.01 : -122.4194 + (Math.random() - 0.5) * 0.01;
-            
-            const patternMarker = L.marker([lat, lng], {
-              icon: L.divIcon({
-                className: 'custom-pattern-marker',
-                html: `<div style="width: 32px; height: 32px; background: #2563EB; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;">${Math.round(pattern.confidence / 20)}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-              })
-            }).addTo(map);
-
-            patternMarker.on('click', () => {
-              onPatternSelect(pattern);
-            });
-          } catch (error) {
-            console.warn('Failed to add pattern marker:', error);
-          }
-        });
+        // Pattern markers removed from map display
 
         mapRef.current = map;
         setMapLoaded(true);

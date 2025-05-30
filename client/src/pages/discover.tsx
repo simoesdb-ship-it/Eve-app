@@ -164,15 +164,10 @@ export default function DiscoverPage() {
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
       {/* Status Bar */}
-      <div className="safe-area-top bg-primary text-white px-4 py-2 flex justify-between items-center text-sm">
+      <div className="safe-area-top bg-primary text-white px-4 py-2 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
           <span>Anonymous Session</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <Shield className="w-3 h-3" />
-          {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-          <span>87%</span>
         </div>
       </div>
 
