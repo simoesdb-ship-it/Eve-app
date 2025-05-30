@@ -83,7 +83,8 @@ export class MemStorage implements IStorage {
         fullDescription: "The street café provides a place where people can sit lazily, legitimately, be on view, and watch the world go by. When people are in a street café, they become part of the life of the street.",
         category: "Public Spaces",
         keywords: ["cafe", "restaurant", "outdoor", "seating", "street", "sidewalk"],
-        iconName: "utensils"
+        iconName: "utensils",
+        moodColor: "amber" // Warm, social gathering
       },
       {
         number: 100,
@@ -92,7 +93,8 @@ export class MemStorage implements IStorage {
         fullDescription: "The pedestrian street is a street given over primarily to pedestrians and their activities. It may allow some vehicular traffic, but the balance is clearly in favor of the pedestrian.",
         category: "Transportation",
         keywords: ["pedestrian", "walking", "car-free", "street", "plaza"],
-        iconName: "walking"
+        iconName: "walking",
+        moodColor: "green" // Natural, movement, health
       },
       {
         number: 61,
@@ -101,7 +103,8 @@ export class MemStorage implements IStorage {
         fullDescription: "Small public squares are essential to create community. They must be frequent, small, and intimate - not vast civic spaces that overwhelm human scale.",
         category: "Community",
         keywords: ["square", "plaza", "gathering", "community", "public space"],
-        iconName: "users"
+        iconName: "users",
+        moodColor: "purple" // Community, gathering, social
       },
       {
         number: 30,
@@ -110,7 +113,8 @@ export class MemStorage implements IStorage {
         fullDescription: "Activity nodes are the local centers of activity and energy. They draw people together and support the intensity of human contact.",
         category: "Community",
         keywords: ["activity", "center", "services", "community", "node"],
-        iconName: "map-pin"
+        iconName: "map-pin",
+        moodColor: "red" // Energy, activity, intensity
       },
       {
         number: 52,
@@ -119,7 +123,8 @@ export class MemStorage implements IStorage {
         fullDescription: "Cars and pedestrians work best when their paths form two overlapping networks, connected but separate, each one serving different aspects of movement.",
         category: "Transportation",
         keywords: ["paths", "cars", "pedestrian", "network", "transportation"],
-        iconName: "route"
+        iconName: "route",
+        moodColor: "blue" // Structure, connection, flow
       }
     ];
 

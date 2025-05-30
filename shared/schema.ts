@@ -17,6 +17,7 @@ export const patterns = pgTable("patterns", {
   category: text("category").notNull(),
   keywords: text("keywords").array().notNull(),
   iconName: text("icon_name").notNull(),
+  moodColor: text("mood_color").notNull().default("blue"), // Pattern mood color
 });
 
 export const locations = pgTable("locations", {
