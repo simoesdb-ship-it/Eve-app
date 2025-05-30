@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import MapView from "@/components/map-view";
-import SimpleMap from "@/components/simple-map";
+import TrackingDisplay from "@/components/tracking-display";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
@@ -272,8 +271,8 @@ export default function DiscoverPage() {
         </div>
       </header>
 
-      {/* Map Container */}
-      <SimpleMap 
+      {/* Tracking Display */}
+      <TrackingDisplay 
         currentLocation={currentLocation}
         locationHistory={locationHistory}
         patterns={patterns}
@@ -300,65 +299,17 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Pattern Suggestions */}
-      <div className="flex-1 px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-neutral-800">Suggested for This Location</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-primary"
-            onClick={() => window.location.href = '/patterns'}
-          >
-            View All
-          </Button>
-        </div>
-
-        {patternsLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        ) : patterns.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-neutral-600">No patterns suggested for this location yet.</p>
-              <p className="text-sm text-neutral-400 mt-2">
-                Try moving to a different area or check back later.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {patterns.map((pattern: PatternWithVotes) => (
-              <PatternCard
-                key={pattern.id}
-                pattern={pattern}
-                onVote={handleVote}
-                onViewDetails={() => setSelectedPattern(pattern)}
-                isVoting={voteMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Recent Activity */}
-        <div className="mt-6 py-4 bg-gray-50 -mx-4 px-4">
-          <h3 className="text-sm font-semibold text-neutral-800 mb-3">Recent Community Activity</h3>
-          <div className="space-y-2">
-            {activities.map((activity: Activity) => (
-              <div key={activity.id} className="flex items-center space-x-3 text-sm">
-                <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                <span className="text-neutral-600">{activity.description}</span>
-                <span className="text-neutral-400 ml-auto">{formatTimeAgo(activity.createdAt.toString())}</span>
-              </div>
-            ))}
-          </div>
+      {/* Recent Activity */}
+      <div className="px-4 py-4 bg-gray-50 border-t border-gray-100">
+        <h3 className="text-sm font-semibold text-neutral-800 mb-3">Recent Community Activity</h3>
+        <div className="space-y-2">
+          {activities.map((activity: Activity) => (
+            <div key={activity.id} className="flex items-center space-x-3 text-sm">
+              <div className="w-2 h-2 bg-secondary rounded-full"></div>
+              <span className="text-neutral-600">{activity.description}</span>
+              <span className="text-neutral-400 ml-auto">{formatTimeAgo(activity.createdAt.toString())}</span>
+            </div>
+          ))}
         </div>
       </div>
 
