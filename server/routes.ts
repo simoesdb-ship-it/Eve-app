@@ -2,7 +2,82 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema } from "@shared/schema";
+import type { Location, PatternWithVotes } from "@shared/schema";
 import { z } from "zod";
+
+// Movement pattern analysis function
+async function analyzeMovementPatterns(locations: Location[], storage: any): Promise<PatternWithVotes[]> {
+  if (locations.length < 4) return [];
+
+  const patterns = await storage.getAllPatterns();
+  const movementPatterns: PatternWithVotes[] = [];
+
+  // Calculate movement metrics
+  const distances = [];
+  const timeIntervals = [];
+  for (let i = 1; i < locations.length; i++) {
+    const prev = locations[i - 1];
+    const curr = locations[i];
+    
+    // Calculate distance between points
+    const distance = calculateDistance(
+      parseFloat(prev.latitude), parseFloat(prev.longitude),
+      parseFloat(curr.latitude), parseFloat(curr.longitude)
+    );
+    distances.push(distance);
+    
+    // Calculate time interval
+    const timeDiff = curr.createdAt.getTime() - prev.createdAt.getTime();
+    timeIntervals.push(timeDiff);
+  }
+
+  const avgDistance = distances.reduce((a, b) => a + b, 0) / distances.length;
+  const totalDistance = distances.reduce((a, b) => a + b, 0);
+  const avgSpeed = totalDistance / (timeIntervals.reduce((a, b) => a + b, 0) / 1000); // km/s
+
+  // Suggest patterns based on movement behavior
+  for (const pattern of patterns) {
+    let confidence = 0;
+    let suggestionId = Math.floor(Math.random() * 10000); // Mock suggestion ID
+
+    // Pattern matching based on movement characteristics
+    if (pattern.name.includes("Network") && totalDistance > 1000) {
+      confidence = 0.8; // Strong match for network patterns with long movements
+    } else if (pattern.name.includes("Pedestrian") && avgSpeed < 0.001) {
+      confidence = 0.7; // Walking speed patterns
+    } else if (pattern.name.includes("Small Public") && distances.some(d => d < 100)) {
+      confidence = 0.6; // Small area exploration
+    } else if (pattern.name.includes("Activity") && locations.length > 6) {
+      confidence = 0.75; // High activity patterns
+    } else if (pattern.name.includes("Street") && avgDistance < 200) {
+      confidence = 0.65; // Local area patterns
+    }
+
+    if (confidence > 0.5) {
+      movementPatterns.push({
+        ...pattern,
+        upvotes: 0,
+        downvotes: 0,
+        confidence: confidence * 100,
+        suggestionId,
+        userVote: null
+      });
+    }
+  }
+
+  return movementPatterns.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+}
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -71,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get patterns for a location
+  // Get patterns based on movement analysis (not individual locations)
   app.get("/api/locations/:id/patterns", async (req, res) => {
     try {
       const locationId = parseInt(req.params.id);
@@ -81,10 +156,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Session ID is required" });
       }
 
-      const patterns = await storage.getPatternsForLocation(locationId, sessionId);
-      res.json(patterns);
+      // Get user's location history to analyze movement patterns
+      const userLocations = await storage.getLocationsBySession(sessionId);
+      
+      // Only suggest patterns if we have enough movement data (at least 4 points)
+      if (userLocations.length < 4) {
+        return res.json([]);
+      }
+
+      // Analyze movement patterns instead of individual location patterns
+      const movementPatterns = await analyzeMovementPatterns(userLocations, storage);
+      res.json(movementPatterns);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch patterns for location" });
+      res.status(500).json({ message: "Failed to analyze movement patterns" });
     }
   });
 

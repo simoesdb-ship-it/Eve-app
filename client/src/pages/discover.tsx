@@ -38,7 +38,7 @@ export default function DiscoverPage() {
   const [locationHistory, setLocationHistory] = useState<Array<{lat: number, lng: number, timestamp: Date}>>([]);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [watchId, setWatchId] = useState<number | null>(null);
+  const [watchId, setWatchId] = useState<any>(null);
   const { toast } = useToast();
 
   // Monitor online status
@@ -95,55 +95,54 @@ export default function DiscoverPage() {
         }
       );
       
-      // Set up continuous tracking
-      const id = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { lat: latitude, lng: longitude };
-          
-          // Only update if location has changed significantly (more than ~10 meters)
-          if (currentLocation) {
-            const distance = getDistanceFromLatLonInM(
-              currentLocation.lat, currentLocation.lng,
-              latitude, longitude
-            );
-            if (distance < 10) return; // Skip small movements
+      // Set up time-based tracking (every 3 minutes)
+      const trackingInterval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const newLocation = { lat: latitude, lng: longitude };
+            
+            // Always update current location
+            setCurrentLocation(newLocation);
+            
+            // Add to location history with timestamp
+            setLocationHistory(prev => {
+              const newHistory = [...prev, { 
+                lat: latitude, 
+                lng: longitude, 
+                timestamp: new Date() 
+              }];
+              
+              // Only keep last 20 tracking points (1 hour of data)
+              return newHistory.slice(-20);
+            });
+            
+            // Record location in database every time
+            createLocationMutation.mutate({
+              latitude: latitude.toString(),
+              longitude: longitude.toString(),
+              name: "Movement Track",
+              sessionId
+            });
+          },
+          (error) => {
+            console.warn("Tracking interval error:", error);
+          },
+          {
+            enableHighAccuracy: false, // Use less battery
+            timeout: 15000,
+            maximumAge: 180000 // 3 minutes cache
           }
-          
-          setCurrentLocation(newLocation);
-          
-          // Add to location history
-          setLocationHistory(prev => [...prev, { 
-            lat: latitude, 
-            lng: longitude, 
-            timestamp: new Date() 
-          }]);
-          
-          // Create location entry for significant movements
-          createLocationMutation.mutate({
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-            name: "Tracked Location",
-            sessionId
-          });
-        },
-        (error) => {
-          console.warn("Continuous tracking error:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 30000
-        }
-      );
+        );
+      }, 180000); // 3 minutes = 180000ms
       
-      setWatchId(id);
+      setWatchId(trackingInterval);
     }
     
     // Cleanup function
     return () => {
       if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
+        clearInterval(watchId);
       }
     };
   }, [sessionId]);

@@ -33,20 +33,24 @@ export default function SimpleMap({ currentLocation, locationHistory, patterns, 
     ctx.fillStyle = '#e5e7eb';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid pattern
+    // Draw street-like grid pattern
     ctx.strokeStyle = '#d1d5db';
-    ctx.lineWidth = 0.5;
-    const gridSize = 20;
-    for (let x = 0; x < canvas.width; x += gridSize) {
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    
+    // Vertical "streets"
+    for (let x = gridSize; x < canvas.offsetWidth; x += gridSize) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
+      ctx.lineTo(x, canvas.offsetHeight);
       ctx.stroke();
     }
-    for (let y = 0; y < canvas.height; y += gridSize) {
+    
+    // Horizontal "streets"
+    for (let y = gridSize; y < canvas.offsetHeight; y += gridSize) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.lineTo(canvas.offsetWidth, y);
       ctx.stroke();
     }
 
