@@ -167,7 +167,7 @@ export default function DiscoverPage() {
       <div className="safe-area-top bg-primary text-white px-4 py-2 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-          <span>Anonymous Session</span>
+          <span>Guest User</span>
         </div>
       </div>
 
