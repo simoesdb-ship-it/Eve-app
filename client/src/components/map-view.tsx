@@ -40,18 +40,29 @@ export default function MapView({ currentLocation, locationHistory, patterns, on
           center: currentLocation ? [currentLocation.lat, currentLocation.lng] : [37.7749, -122.4194],
           zoom: zoomLevel,
           zoomControl: false,
-          attributionControl: false
+          attributionControl: false,
+          preferCanvas: true,
+          renderer: L.canvas()
         });
 
-        // Add OpenStreetMap tiles with cross-browser compatibility
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Add OpenStreetMap tiles with fallback options
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19,
+          minZoom: 8,
           crossOrigin: true,
-          errorTileUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE2Ij5NYXAgVGlsZTwvdGV4dD48L3N2Zz4=',
-          // Fallback tile servers for better cross-browser compatibility
-          subdomains: ['a', 'b', 'c']
-        }).addTo(map);
+          subdomains: ['a', 'b', 'c'],
+          detectRetina: true,
+          updateWhenIdle: false,
+          updateWhenZooming: false,
+          keepBuffer: 2
+        });
+        
+        tileLayer.on('tileerror', function(error) {
+          console.warn('Tile loading error:', error);
+        });
+        
+        tileLayer.addTo(map);
 
         // Add current location marker with error handling
         if (currentLocation && !cleanup) {
@@ -114,16 +125,24 @@ export default function MapView({ currentLocation, locationHistory, patterns, on
 
     // Load Leaflet if not already loaded
     if (!(window as any).L) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
+      // Check if CSS is already loaded
+      if (!document.querySelector('link[href*="leaflet.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+        link.crossOrigin = '';
+        document.head.appendChild(link);
+      }
 
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
       script.onload = () => {
         if (!cleanup) {
-          setTimeout(initializeMap, 100);
+          // Wait a bit longer for styles to load
+          setTimeout(initializeMap, 300);
         }
       };
       script.onerror = () => {
@@ -132,7 +151,7 @@ export default function MapView({ currentLocation, locationHistory, patterns, on
       };
       document.head.appendChild(script);
     } else {
-      setTimeout(initializeMap, 100);
+      setTimeout(initializeMap, 300);
     }
 
     return () => {
@@ -158,23 +177,35 @@ export default function MapView({ currentLocation, locationHistory, patterns, on
   const handleZoomIn = () => {
     const newZoom = Math.min(zoomLevel + 1, 18);
     setZoomLevel(newZoom);
-    if (mapRef.current) {
-      mapRef.current.setZoom(newZoom);
+    if (mapRef.current && mapRef.current.setZoom) {
+      try {
+        mapRef.current.setZoom(newZoom);
+      } catch (error) {
+        console.warn('Zoom in failed:', error);
+      }
     }
   };
 
   const handleZoomOut = () => {
     const newZoom = Math.max(zoomLevel - 1, 8);
     setZoomLevel(newZoom);
-    if (mapRef.current) {
-      mapRef.current.setZoom(newZoom);
+    if (mapRef.current && mapRef.current.setZoom) {
+      try {
+        mapRef.current.setZoom(newZoom);
+      } catch (error) {
+        console.warn('Zoom out failed:', error);
+      }
     }
   };
 
   const handleRecenter = () => {
-    if (currentLocation && mapRef.current) {
-      mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
-      setShowLocationDetails(!showLocationDetails);
+    if (currentLocation && mapRef.current && mapRef.current.setView) {
+      try {
+        mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+        setShowLocationDetails(!showLocationDetails);
+      } catch (error) {
+        console.warn('Recenter failed:', error);
+      }
     }
   };
 

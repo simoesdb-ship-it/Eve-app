@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import MapView from "@/components/map-view";
+import SimpleMap from "@/components/simple-map";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
@@ -273,7 +274,7 @@ export default function DiscoverPage() {
       </header>
 
       {/* Map Container */}
-      <MapView 
+      <SimpleMap 
         currentLocation={currentLocation}
         locationHistory={locationHistory}
         patterns={patterns}
