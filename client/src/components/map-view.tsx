@@ -21,79 +21,122 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
   useEffect(() => {
     if (!mapContainerRef.current || mapLoaded) return;
 
-    // Create Leaflet map using CDN
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
+    let cleanup = false;
 
-      // Initialize map
-      const L = (window as any).L;
-      if (L && mapContainerRef.current) {
+    const initializeMap = () => {
+      try {
+        const L = (window as any).L;
+        if (!L || !mapContainerRef.current || cleanup) return;
+
+        // Clear any existing map
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+
+        // Initialize map with error handling
         const map = L.map(mapContainerRef.current, {
           center: currentLocation ? [currentLocation.lat, currentLocation.lng] : [37.7749, -122.4194],
           zoom: zoomLevel,
-          zoomControl: false
+          zoomControl: false,
+          attributionControl: false
         });
 
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
+          maxZoom: 19,
+          errorTileUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE2Ij5NYXAgVGlsZTwvdGV4dD48L3N2Zz4='
         }).addTo(map);
 
-        // Add current location marker
-        if (currentLocation) {
-          const marker = L.marker([currentLocation.lat, currentLocation.lng], {
-            icon: L.divIcon({
-              className: 'custom-location-marker',
-              html: '<div class="w-4 h-4 bg-secondary rounded-full border-2 border-white shadow-lg"></div>',
-              iconSize: [16, 16],
-              iconAnchor: [8, 8]
-            })
-          }).addTo(map);
+        // Add current location marker with error handling
+        if (currentLocation && !cleanup) {
+          try {
+            const marker = L.marker([currentLocation.lat, currentLocation.lng], {
+              icon: L.divIcon({
+                className: 'custom-location-marker',
+                html: '<div style="width: 16px; height: 16px; background: #10B981; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+              })
+            }).addTo(map);
 
-          marker.on('click', () => {
-            setShowLocationDetails(!showLocationDetails);
-          });
+            marker.on('click', () => {
+              setShowLocationDetails(prev => !prev);
+            });
+          } catch (error) {
+            console.warn('Failed to add location marker:', error);
+          }
         }
 
-        // Add pattern markers
+        // Add pattern markers with error handling
         patterns.forEach((pattern, index) => {
-          const patternMarker = L.marker([
-            currentLocation ? currentLocation.lat + (Math.random() - 0.5) * 0.01 : 37.7749 + (Math.random() - 0.5) * 0.01,
-            currentLocation ? currentLocation.lng + (Math.random() - 0.5) * 0.01 : -122.4194 + (Math.random() - 0.5) * 0.01
-          ], {
-            icon: L.divIcon({
-              className: 'custom-pattern-marker',
-              html: `<div class="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
-                       <span class="text-white text-xs font-semibold">${Math.round(pattern.confidence / 20)}</span>
-                     </div>`,
-              iconSize: [32, 32],
-              iconAnchor: [16, 16]
-            })
-          }).addTo(map);
+          if (cleanup) return;
+          
+          try {
+            const lat = currentLocation ? currentLocation.lat + (Math.random() - 0.5) * 0.01 : 37.7749 + (Math.random() - 0.5) * 0.01;
+            const lng = currentLocation ? currentLocation.lng + (Math.random() - 0.5) * 0.01 : -122.4194 + (Math.random() - 0.5) * 0.01;
+            
+            const patternMarker = L.marker([lat, lng], {
+              icon: L.divIcon({
+                className: 'custom-pattern-marker',
+                html: `<div style="width: 32px; height: 32px; background: #2563EB; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;">${Math.round(pattern.confidence / 20)}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+              })
+            }).addTo(map);
 
-          patternMarker.on('click', () => {
-            onPatternSelect(pattern);
-          });
+            patternMarker.on('click', () => {
+              onPatternSelect(pattern);
+            });
+          } catch (error) {
+            console.warn('Failed to add pattern marker:', error);
+          }
         });
 
         mapRef.current = map;
         setMapLoaded(true);
+      } catch (error) {
+        console.error('Map initialization failed:', error);
+        setMapLoaded(false);
       }
     };
-    document.head.appendChild(script);
+
+    // Load Leaflet if not already loaded
+    if (!(window as any).L) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => {
+        if (!cleanup) {
+          setTimeout(initializeMap, 100);
+        }
+      };
+      script.onerror = () => {
+        console.error('Failed to load Leaflet library');
+        setMapLoaded(false);
+      };
+      document.head.appendChild(script);
+    } else {
+      setTimeout(initializeMap, 100);
+    }
 
     return () => {
+      cleanup = true;
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.remove();
+        } catch (error) {
+          console.warn('Error removing map:', error);
+        }
+        mapRef.current = null;
       }
     };
-  }, [currentLocation, patterns, mapLoaded]);
+  }, [currentLocation, patterns.length]);
 
   // Update map when location changes
   useEffect(() => {
