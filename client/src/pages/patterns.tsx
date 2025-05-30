@@ -5,7 +5,9 @@ import PatternDetailsModal from "@/components/pattern-details-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Compass, Users, MapPin, Route, Utensils, Footprints } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Compass, Users, MapPin, Route, Utensils, Footprints, Filter } from "lucide-react";
+import { getPatternMoodColors, getPatternMoodDescription, getAllMoodColors } from "@/lib/pattern-colors";
 import type { Pattern } from "@shared/schema";
 
 const iconMap: { [key: string]: any } = {
@@ -20,6 +22,7 @@ const iconMap: { [key: string]: any } = {
 export default function PatternsPage() {
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMoodFilter, setSelectedMoodFilter] = useState<string | null>(null);
 
   // Fetch all patterns
   const { data: patterns = [], isLoading } = useQuery({

@@ -1,7 +1,9 @@
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Utensils, Footprints, Users, MapPin, Route, Compass } from "lucide-react";
+import { getPatternMoodColors, getPatternMoodDescription } from "@/lib/pattern-colors";
 import type { PatternWithVotes } from "@shared/schema";
 
 const iconMap: { [key: string]: any } = {
@@ -32,6 +34,8 @@ interface PatternCardProps {
 export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }: PatternCardProps) {
   const IconComponent = iconMap[pattern.iconName] || Compass;
   const gradientClass = gradientMap[pattern.iconName] || "from-primary to-blue-300";
+  const moodColors = getPatternMoodColors(pattern.moodColor || 'blue');
+  const moodDescription = getPatternMoodDescription(pattern.moodColor || 'blue');
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,11 +52,16 @@ export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }
   };
 
   return (
-    <Card className="animate-slide-up pattern-card cursor-pointer" onClick={onViewDetails}>
+    <Card className={`animate-slide-up pattern-card cursor-pointer ${moodColors.background} ${moodColors.border} border`} onClick={onViewDetails}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h3 className="font-semibold text-neutral-800 mb-1">{pattern.name}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className={`font-semibold ${moodColors.text}`}>{pattern.name}</h3>
+              <Badge variant="secondary" className={`text-xs ${moodColors.badge}`}>
+                {moodDescription}
+              </Badge>
+            </div>
             <p className="text-sm text-neutral-600 mb-2">{pattern.description}</p>
             <div className="flex items-center space-x-2 text-xs text-neutral-400">
               <span>#{pattern.number}</span>
@@ -63,8 +72,8 @@ export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }
             </div>
           </div>
           <div className="ml-3">
-            <div className={`w-12 h-12 bg-gradient-to-br ${gradientClass} rounded-lg flex items-center justify-center`}>
-              <IconComponent className="w-5 h-5 text-white" />
+            <div className={`w-12 h-12 bg-gradient-to-br ${gradientClass} rounded-lg flex items-center justify-center border-2 ${moodColors.border}`}>
+              <IconComponent className={`w-5 h-5 text-white`} />
             </div>
           </div>
         </div>
