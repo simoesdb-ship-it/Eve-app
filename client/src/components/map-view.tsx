@@ -146,7 +146,7 @@ export default function MapView({ currentLocation, locationHistory, patterns, on
         mapRef.current = null;
       }
     };
-  }, [currentLocation, patterns.length]);
+  }, [currentLocation, locationHistory.length, patterns.length]);
 
   // Update map when location changes
   useEffect(() => {

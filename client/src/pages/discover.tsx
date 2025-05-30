@@ -275,6 +275,7 @@ export default function DiscoverPage() {
       {/* Map Container */}
       <MapView 
         currentLocation={currentLocation}
+        locationHistory={locationHistory}
         patterns={patterns}
         onPatternSelect={setSelectedPattern}
       />
