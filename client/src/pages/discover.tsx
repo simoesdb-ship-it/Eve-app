@@ -6,6 +6,7 @@ import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
 import { generateSessionId } from "@/lib/geolocation";
+import { startGlobalTracking, stopGlobalTracking } from "@/lib/movement-tracker";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,31 @@ export default function DiscoverPage() {
       );
     }
   }, [sessionId]);
+
+  // Start movement tracking when page loads
+  useEffect(() => {
+    const initializeTracking = async () => {
+      try {
+        await startGlobalTracking(sessionId);
+        console.log('Movement tracking started for session:', sessionId);
+      } catch (error) {
+        console.warn('Failed to start movement tracking:', error);
+        toast({
+          title: "Tracking Notice",
+          description: "Location tracking is optional and helps improve pattern suggestions",
+          variant: "default"
+        });
+      }
+    };
+
+    initializeTracking();
+
+    // Cleanup tracking on unmount
+    return () => {
+      stopGlobalTracking();
+      console.log('Movement tracking stopped');
+    };
+  }, [sessionId, toast]);
 
   // Create location mutation
   const createLocationMutation = useMutation({
@@ -198,6 +224,7 @@ export default function DiscoverPage() {
         currentLocation={currentLocation}
         patterns={patterns}
         onPatternSelect={setSelectedPattern}
+        sessionId={sessionId}
       />
 
       {/* Quick Stats */}

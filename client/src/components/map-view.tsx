@@ -12,10 +12,11 @@ interface MapViewProps {
   sessionId: string;
 }
 
-export default function MapView({ currentLocation, patterns, onPatternSelect }: MapViewProps) {
+export default function MapView({ currentLocation, patterns, onPatternSelect, sessionId }: MapViewProps) {
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
 
@@ -89,7 +90,34 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
           }
         }
 
-        // Pattern markers removed for cleaner map display
+        // Add tracking points as tiny dots to show movement patterns
+        trackingPoints.forEach((point, index) => {
+          if (cleanup) return;
+          
+          try {
+            const lat = Number(point.latitude);
+            const lng = Number(point.longitude);
+            
+            const trackingDot = L.marker([lat, lng], {
+              icon: L.divIcon({
+                className: 'custom-tracking-dot',
+                html: '<div style="width: 4px; height: 4px; background: #3B82F6; border: 1px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>',
+                iconSize: [4, 4],
+                iconAnchor: [2, 2]
+              })
+            }).addTo(map);
+
+            // Add tooltip showing timestamp
+            trackingDot.bindTooltip(`Tracked: ${new Date(point.timestamp).toLocaleTimeString()}`, {
+              permanent: false,
+              direction: 'top'
+            });
+            
+            markers.push(trackingDot);
+          } catch (error) {
+            console.warn('Failed to add tracking dot:', error);
+          }
+        });
 
         mapRef.current = map;
         setMapLoaded(true);
@@ -145,7 +173,27 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
       }
       setMapLoaded(false);
     };
-  }, [currentLocation, patterns.length]);
+  }, [currentLocation, patterns.length, trackingPoints.length]);
+
+  // Fetch tracking points for this session
+  useEffect(() => {
+    const fetchTrackingPoints = async () => {
+      try {
+        const tracker = getMovementTracker(sessionId);
+        const points = await tracker.getTrackingPoints();
+        setTrackingPoints(points);
+      } catch (error) {
+        console.warn('Failed to fetch tracking points:', error);
+      }
+    };
+
+    if (sessionId) {
+      fetchTrackingPoints();
+      // Refresh tracking points every 30 seconds
+      const interval = setInterval(fetchTrackingPoints, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionId]);
 
   // Update map when location changes
   useEffect(() => {
