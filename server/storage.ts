@@ -68,6 +68,7 @@ export class MemStorage implements IStorage {
     this.patternSuggestions = new Map();
     this.votes = new Map();
     this.activities = new Map();
+    this.trackingPoints = new Map();
     this.currentId = {
       users: 1,
       patterns: 1,
@@ -75,6 +76,7 @@ export class MemStorage implements IStorage {
       patternSuggestions: 1,
       votes: 1,
       activities: 1,
+      trackingPoints: 1,
     };
 
     // Initialize with Christopher Alexander patterns
@@ -323,6 +325,37 @@ export class MemStorage implements IStorage {
       votesContributed: userVotes.length,
       offlinePatterns: this.patterns.size
     };
+  }
+
+  // Tracking methods
+  async createTrackingPoint(insertPoint: InsertTrackingPoint): Promise<TrackingPoint> {
+    const id = this.currentId.trackingPoints++;
+    const trackingPoint: TrackingPoint = {
+      ...insertPoint,
+      id,
+      timestamp: new Date(),
+      accuracy: insertPoint.accuracy ?? null,
+      speed: insertPoint.speed ?? null,
+      heading: insertPoint.heading ?? null,
+    };
+    this.trackingPoints.set(id, trackingPoint);
+    return trackingPoint;
+  }
+
+  async getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]> {
+    return Array.from(this.trackingPoints.values())
+      .filter(point => point.sessionId === sessionId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]> {
+    return Array.from(this.trackingPoints.values())
+      .filter(point => {
+        if (point.sessionId !== sessionId) return false;
+        const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
+        return distance <= radiusKm;
+      })
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 }
 

@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { MapPin, Plus, Minus, Navigation, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { PatternWithVotes } from "@shared/schema";
+import { getMovementTracker } from "@/lib/movement-tracker";
+import type { PatternWithVotes, TrackingPoint } from "@shared/schema";
 
 interface MapViewProps {
   currentLocation: {lat: number, lng: number} | null;
   patterns: PatternWithVotes[];
   onPatternSelect: (pattern: PatternWithVotes) => void;
+  sessionId: string;
 }
 
 export default function MapView({ currentLocation, patterns, onPatternSelect }: MapViewProps) {

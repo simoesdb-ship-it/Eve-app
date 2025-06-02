@@ -164,6 +164,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tracking endpoints
+  app.post('/api/tracking', async (req, res) => {
+    try {
+      const trackingPoint = await storage.createTrackingPoint(req.body);
+      res.json(trackingPoint);
+    } catch (error) {
+      console.error('Error creating tracking point:', error);
+      res.status(500).json({ error: 'Failed to create tracking point' });
+    }
+  });
+
+  app.get('/api/tracking/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const trackingPoints = await storage.getTrackingPointsBySession(sessionId);
+      res.json(trackingPoints);
+    } catch (error) {
+      console.error('Error fetching tracking points:', error);
+      res.status(500).json({ error: 'Failed to fetch tracking points' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
