@@ -55,6 +55,17 @@ export const activity = pgTable("activity", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const trackingPoints = pgTable("tracking_points", {
+  id: serial("id").primaryKey(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 8 }).notNull(),
+  sessionId: text("session_id").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  accuracy: decimal("accuracy", { precision: 5, scale: 2 }),
+  speed: decimal("speed", { precision: 5, scale: 2 }),
+  heading: decimal("heading", { precision: 5, scale: 2 }),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -84,6 +95,11 @@ export const insertActivitySchema = createInsertSchema(activity).omit({
   createdAt: true,
 });
 
+export const insertTrackingPointSchema = createInsertSchema(trackingPoints).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -102,6 +118,9 @@ export type InsertVote = z.infer<typeof insertVoteSchema>;
 
 export type Activity = typeof activity.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+export type TrackingPoint = typeof trackingPoints.$inferSelect;
+export type InsertTrackingPoint = z.infer<typeof insertTrackingPointSchema>;
 
 // Extended types for API responses
 export type PatternWithVotes = Pattern & {

@@ -1,8 +1,9 @@
 import { 
-  users, patterns, locations, patternSuggestions, votes, activity,
+  users, patterns, locations, patternSuggestions, votes, activity, trackingPoints,
   type User, type InsertUser, type Pattern, type InsertPattern,
   type Location, type InsertLocation, type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote, type Activity, type InsertActivity,
+  type TrackingPoint, type InsertTrackingPoint,
   type PatternWithVotes, type LocationWithPatterns
 } from "@shared/schema";
 
@@ -43,6 +44,11 @@ export interface IStorage {
     votesContributed: number;
     offlinePatterns: number;
   }>;
+
+  // Tracking methods
+  createTrackingPoint(point: InsertTrackingPoint): Promise<TrackingPoint>;
+  getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]>;
+  getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -52,6 +58,7 @@ export class MemStorage implements IStorage {
   private patternSuggestions: Map<number, PatternSuggestion>;
   private votes: Map<number, Vote>;
   private activities: Map<number, Activity>;
+  private trackingPoints: Map<number, TrackingPoint>;
   private currentId: { [key: string]: number };
 
   constructor() {
