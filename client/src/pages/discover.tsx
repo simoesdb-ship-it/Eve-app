@@ -9,7 +9,8 @@ import { generateSessionId } from "@/lib/geolocation";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Wifi, WifiOff, Shield } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Wifi, WifiOff, Shield, ChevronDown, ChevronUp } from "lucide-react";
 import type { PatternWithVotes, Activity } from "@shared/schema";
 
 export default function DiscoverPage() {
@@ -18,6 +19,7 @@ export default function DiscoverPage() {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(false);
   const { toast } = useToast();
 
   // Monitor online status
@@ -220,50 +222,62 @@ export default function DiscoverPage() {
 
       {/* Pattern Suggestions */}
       <div className="flex-1 px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-neutral-800">Suggested for This Location</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-primary"
-            onClick={() => window.location.href = '/patterns'}
-          >
-            View All
-          </Button>
-        </div>
-
-        {patternsLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        <Collapsible open={!isPatternsCollapsed} onOpenChange={setIsPatternsCollapsed}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between mb-4 cursor-pointer">
+              <h2 className="text-lg font-semibold text-neutral-800">Suggested for This Location</h2>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = '/patterns';
+                  }}
+                >
+                  View All
+                </Button>
+                {isPatternsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               </div>
-            ))}
-          </div>
-        ) : patterns.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-neutral-600">No patterns suggested for this location yet.</p>
-              <p className="text-sm text-neutral-400 mt-2">
-                Try moving to a different area or check back later.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {patterns.map((pattern: PatternWithVotes) => (
-              <PatternCard
-                key={pattern.id}
-                pattern={pattern}
-                onVote={handleVote}
-                onViewDetails={() => setSelectedPattern(pattern)}
-                isVoting={voteMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
+            </div>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            {patternsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            ) : patterns.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-neutral-600">No patterns suggested for this location yet.</p>
+                  <p className="text-sm text-neutral-400 mt-2">
+                    Try moving to a different area or check back later.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {patterns.map((pattern: PatternWithVotes) => (
+                  <PatternCard
+                    key={pattern.id}
+                    pattern={pattern}
+                    onVote={handleVote}
+                    onViewDetails={() => setSelectedPattern(pattern)}
+                    isVoting={voteMutation.isPending}
+                  />
+                ))}
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Recent Activity */}
         <div className="mt-6 py-4 bg-gray-50 -mx-4 px-4">
