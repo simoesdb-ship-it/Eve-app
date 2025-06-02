@@ -125,7 +125,7 @@ export class MovementTracker {
         heading: heading ? heading.toString() : null,
       };
 
-      await apiRequest('/api/tracking', 'POST', trackingPoint);
+      await apiRequest('POST', '/api/tracking', trackingPoint);
       
       this.lastPosition = currentPos;
       this.lastTrackingTime = Date.now();
