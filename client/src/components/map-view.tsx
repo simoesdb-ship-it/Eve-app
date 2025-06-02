@@ -19,20 +19,33 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
 
   // Initialize OpenStreetMap
   useEffect(() => {
-    if (!mapContainerRef.current || mapLoaded) return;
+    if (!mapContainerRef.current) return;
 
     let cleanup = false;
+    let markers: any[] = [];
 
     const initializeMap = () => {
       try {
         const L = (window as any).L;
         if (!L || !mapContainerRef.current || cleanup) return;
 
-        // Clear any existing map
+        // Clear any existing map and markers
         if (mapRef.current) {
-          mapRef.current.remove();
+          try {
+            mapRef.current.remove();
+          } catch (error) {
+            console.warn('Error removing existing map:', error);
+          }
           mapRef.current = null;
         }
+        markers.forEach(marker => {
+          try {
+            marker.remove();
+          } catch (error) {
+            console.warn('Error removing marker:', error);
+          }
+        });
+        markers = [];
 
         // Initialize map with error handling
         const map = L.map(mapContainerRef.current, {
@@ -55,7 +68,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
         // Add current location marker with error handling
         if (currentLocation && !cleanup) {
           try {
-            const marker = L.marker([currentLocation.lat, currentLocation.lng], {
+            const locationMarker = L.marker([currentLocation.lat, currentLocation.lng], {
               icon: L.divIcon({
                 className: 'custom-location-marker',
                 html: '<div style="width: 16px; height: 16px; background: #10B981; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
@@ -64,9 +77,11 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
               })
             }).addTo(map);
 
-            marker.on('click', () => {
+            locationMarker.on('click', () => {
               setShowLocationDetails(prev => !prev);
             });
+            
+            markers.push(locationMarker);
           } catch (error) {
             console.warn('Failed to add location marker:', error);
           }
@@ -103,6 +118,8 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
             patternMarker.on('click', () => {
               onPatternSelect(pattern);
             });
+            
+            markers.push(patternMarker);
           } catch (error) {
             console.warn('Failed to add pattern marker:', error);
           }
@@ -141,6 +158,17 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
 
     return () => {
       cleanup = true;
+      // Clean up markers first
+      markers.forEach(marker => {
+        try {
+          marker.remove();
+        } catch (error) {
+          console.warn('Error removing marker:', error);
+        }
+      });
+      markers = [];
+      
+      // Then clean up map
       if (mapRef.current) {
         try {
           mapRef.current.remove();
@@ -149,21 +177,54 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
         }
         mapRef.current = null;
       }
+      setMapLoaded(false);
     };
   }, [currentLocation, patterns.length]);
 
   // Update map when location changes
   useEffect(() => {
     if (mapRef.current && currentLocation) {
-      mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+      try {
+        mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+      } catch (error) {
+        console.warn('Error updating map view:', error);
+        // Trigger map reload if update fails
+        setMapLoaded(false);
+      }
     }
   }, [currentLocation, zoomLevel]);
+
+  // Periodic map health check to maintain functionality
+  useEffect(() => {
+    const healthCheckInterval = setInterval(() => {
+      if (mapRef.current && mapLoaded) {
+        try {
+          // Test basic map functionality
+          const center = mapRef.current.getCenter();
+          if (!center) {
+            console.warn('Map lost center, triggering reload');
+            setMapLoaded(false);
+          }
+        } catch (error) {
+          console.warn('Map health check failed, triggering reload:', error);
+          setMapLoaded(false);
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(healthCheckInterval);
+  }, [mapLoaded]);
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoomLevel + 1, 18);
     setZoomLevel(newZoom);
     if (mapRef.current) {
-      mapRef.current.setZoom(newZoom);
+      try {
+        mapRef.current.setZoom(newZoom);
+      } catch (error) {
+        console.warn('Error zooming in:', error);
+        setMapLoaded(false);
+      }
     }
   };
 
@@ -171,14 +232,24 @@ export default function MapView({ currentLocation, patterns, onPatternSelect }: 
     const newZoom = Math.max(zoomLevel - 1, 8);
     setZoomLevel(newZoom);
     if (mapRef.current) {
-      mapRef.current.setZoom(newZoom);
+      try {
+        mapRef.current.setZoom(newZoom);
+      } catch (error) {
+        console.warn('Error zooming out:', error);
+        setMapLoaded(false);
+      }
     }
   };
 
   const handleRecenter = () => {
     if (currentLocation && mapRef.current) {
-      mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
-      setShowLocationDetails(!showLocationDetails);
+      try {
+        mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+        setShowLocationDetails(!showLocationDetails);
+      } catch (error) {
+        console.warn('Error recentering map:', error);
+        setMapLoaded(false);
+      }
     }
   };
 
