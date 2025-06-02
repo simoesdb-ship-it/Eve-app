@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import TrackingDisplay from "@/components/tracking-display";
+import MapView from "@/components/map-view";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
@@ -12,32 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, Wifi, WifiOff, Shield } from "lucide-react";
 import type { PatternWithVotes, Activity } from "@shared/schema";
 
-// Helper function to calculate distance between two coordinates
-function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371000; // Radius of the earth in meters
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const d = R * c; // Distance in meters
-  return d;
-}
-
-function deg2rad(deg: number) {
-  return deg * (Math.PI/180);
-}
-
 export default function DiscoverPage() {
   const [sessionId] = useState(() => generateSessionId());
   const [selectedPattern, setSelectedPattern] = useState<PatternWithVotes | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [locationHistory, setLocationHistory] = useState<Array<{lat: number, lng: number, timestamp: Date}>>([]);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [watchId, setWatchId] = useState<any>(null);
   const { toast } = useToast();
 
   // Monitor online status
@@ -54,22 +34,13 @@ export default function DiscoverPage() {
     };
   }, []);
 
-  // Continuous location tracking
+  // Get user's current location
   useEffect(() => {
     if (navigator.geolocation) {
-      // Get initial position
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          const newLocation = { lat: latitude, lng: longitude };
-          setCurrentLocation(newLocation);
-          
-          // Add to location history
-          setLocationHistory(prev => [...prev, { 
-            lat: latitude, 
-            lng: longitude, 
-            timestamp: new Date() 
-          }]);
+          setCurrentLocation({ lat: latitude, lng: longitude });
           
           // Create location entry
           createLocationMutation.mutate({
@@ -81,69 +52,18 @@ export default function DiscoverPage() {
         },
         (error) => {
           console.error("Geolocation error:", error);
-          toast({
-            title: "Location Access Required",
-            description: "Please enable location services to track your movement and discover patterns",
-            variant: "destructive"
+          // Fallback to demo location (San Francisco)
+          const demoLocation = { lat: 37.7749, lng: -122.4194 };
+          setCurrentLocation(demoLocation);
+          createLocationMutation.mutate({
+            latitude: demoLocation.lat.toString(),
+            longitude: demoLocation.lng.toString(),
+            name: "Demo Location",
+            sessionId
           });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 60000
         }
       );
-      
-      // Set up time-based tracking (every 3 minutes)
-      const trackingInterval = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            const newLocation = { lat: latitude, lng: longitude };
-            
-            // Always update current location
-            setCurrentLocation(newLocation);
-            
-            // Add to location history with timestamp
-            setLocationHistory(prev => {
-              const newHistory = [...prev, { 
-                lat: latitude, 
-                lng: longitude, 
-                timestamp: new Date() 
-              }];
-              
-              // Only keep last 20 tracking points (1 hour of data)
-              return newHistory.slice(-20);
-            });
-            
-            // Record location in database every time
-            createLocationMutation.mutate({
-              latitude: latitude.toString(),
-              longitude: longitude.toString(),
-              name: "Movement Track",
-              sessionId
-            });
-          },
-          (error) => {
-            console.warn("Tracking interval error:", error);
-          },
-          {
-            enableHighAccuracy: false, // Use less battery
-            timeout: 15000,
-            maximumAge: 180000 // 3 minutes cache
-          }
-        );
-      }, 180000); // 3 minutes = 180000ms
-      
-      setWatchId(trackingInterval);
     }
-    
-    // Cleanup function
-    return () => {
-      if (watchId !== null) {
-        clearInterval(watchId);
-      }
-    };
   }, [sessionId]);
 
   // Create location mutation
@@ -271,10 +191,9 @@ export default function DiscoverPage() {
         </div>
       </header>
 
-      {/* Tracking Display */}
-      <TrackingDisplay 
+      {/* Map Container */}
+      <MapView 
         currentLocation={currentLocation}
-        locationHistory={locationHistory}
         patterns={patterns}
         onPatternSelect={setSelectedPattern}
       />
@@ -299,17 +218,65 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Recent Activity */}
-      <div className="px-4 py-4 bg-gray-50 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-neutral-800 mb-3">Recent Community Activity</h3>
-        <div className="space-y-2">
-          {activities.map((activity: Activity) => (
-            <div key={activity.id} className="flex items-center space-x-3 text-sm">
-              <div className="w-2 h-2 bg-secondary rounded-full"></div>
-              <span className="text-neutral-600">{activity.description}</span>
-              <span className="text-neutral-400 ml-auto">{formatTimeAgo(activity.createdAt.toString())}</span>
-            </div>
-          ))}
+      {/* Pattern Suggestions */}
+      <div className="flex-1 px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-neutral-800">Suggested for This Location</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary"
+            onClick={() => window.location.href = '/patterns'}
+          >
+            View All
+          </Button>
+        </div>
+
+        {patternsLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : patterns.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-neutral-600">No patterns suggested for this location yet.</p>
+              <p className="text-sm text-neutral-400 mt-2">
+                Try moving to a different area or check back later.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {patterns.map((pattern: PatternWithVotes) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                onVote={handleVote}
+                onViewDetails={() => setSelectedPattern(pattern)}
+                isVoting={voteMutation.isPending}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Recent Activity */}
+        <div className="mt-6 py-4 bg-gray-50 -mx-4 px-4">
+          <h3 className="text-sm font-semibold text-neutral-800 mb-3">Recent Community Activity</h3>
+          <div className="space-y-2">
+            {activities.map((activity: Activity) => (
+              <div key={activity.id} className="flex items-center space-x-3 text-sm">
+                <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                <span className="text-neutral-600">{activity.description}</span>
+                <span className="text-neutral-400 ml-auto">{formatTimeAgo(activity.createdAt.toString())}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
