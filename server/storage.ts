@@ -1,10 +1,11 @@
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 import { 
   users, patterns, locations, patternSuggestions, votes, activity, trackingPoints,
-  type User, type InsertUser, type Pattern, type InsertPattern,
+  type User, type InsertUser, type Pattern, type InsertPattern, 
   type Location, type InsertLocation, type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote, type Activity, type InsertActivity,
-  type TrackingPoint, type InsertTrackingPoint,
-  type PatternWithVotes, type LocationWithPatterns
+  type TrackingPoint, type InsertTrackingPoint, type PatternWithVotes
 } from "@shared/schema";
 
 export interface IStorage {
@@ -51,166 +52,110 @@ export interface IStorage {
   getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private patterns: Map<number, Pattern>;
-  private locations: Map<number, Location>;
-  private patternSuggestions: Map<number, PatternSuggestion>;
-  private votes: Map<number, Vote>;
-  private activities: Map<number, Activity>;
-  private trackingPoints: Map<number, TrackingPoint>;
-  private currentId: { [key: string]: number };
-
-  constructor() {
-    this.users = new Map();
-    this.patterns = new Map();
-    this.locations = new Map();
-    this.patternSuggestions = new Map();
-    this.votes = new Map();
-    this.activities = new Map();
-    this.trackingPoints = new Map();
-    this.currentId = {
-      users: 1,
-      patterns: 1,
-      locations: 1,
-      patternSuggestions: 1,
-      votes: 1,
-      activities: 1,
-      trackingPoints: 1,
-    };
-
-    // Initialize with Christopher Alexander patterns
-    this.initializePatterns();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
-  private initializePatterns() {
-    const alexanderPatterns: InsertPattern[] = [
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getAllPatterns(): Promise<Pattern[]> {
+    // Initialize patterns if database is empty
+    const existingPatterns = await db.select().from(patterns);
+    if (existingPatterns.length === 0) {
+      await this.initializePatterns();
+      return await db.select().from(patterns);
+    }
+    return existingPatterns;
+  }
+
+  private async initializePatterns(): Promise<void> {
+    const initialPatterns = [
       {
-        number: 88,
-        name: "Street Café",
-        description: "Encourage outdoor eating and street life through sidewalk cafés",
-        fullDescription: "The street café provides a place where people can sit lazily, legitimately, be on view, and watch the world go by. When people are in a street café, they become part of the life of the street.",
-        category: "Public Spaces",
-        keywords: ["cafe", "restaurant", "outdoor", "seating", "street", "sidewalk"],
-        iconName: "utensils",
-        moodColor: "amber" // Warm, social gathering
-      },
-      {
-        number: 100,
-        name: "Pedestrian Street",
-        description: "Create car-free zones that prioritize walking and community interaction",
-        fullDescription: "The pedestrian street is a street given over primarily to pedestrians and their activities. It may allow some vehicular traffic, but the balance is clearly in favor of the pedestrian.",
-        category: "Transportation",
-        keywords: ["pedestrian", "walking", "car-free", "street", "plaza"],
-        iconName: "walking",
-        moodColor: "green" // Natural, movement, health
+        number: 52,
+        name: "Network of Paths and Cars",
+        description: "Cars are dangerous to pedestrians; yet activities and people's movement patterns on foot are incompatible with the grid of streets and roads that this movement requires.",
+        keywords: ["pedestrian", "walkway", "traffic", "safety", "urban"],
+        moodColor: "structured"
       },
       {
         number: 61,
         name: "Small Public Squares",
-        description: "Create intimate gathering spaces at the intersections of paths",
-        fullDescription: "Small public squares are essential to create community. They must be frequent, small, and intimate - not vast civic spaces that overwhelm human scale.",
-        category: "Community",
-        keywords: ["square", "plaza", "gathering", "community", "public space"],
-        iconName: "users",
-        moodColor: "purple" // Community, gathering, social
+        description: "A town needs public squares; they are the largest, most public rooms, that the town has.",
+        keywords: ["plaza", "gathering", "public", "community", "center"],
+        moodColor: "community"
       },
       {
-        number: 30,
-        name: "Activity Nodes",
-        description: "Concentrate community services and activities in strategic locations",
-        fullDescription: "Activity nodes are the local centers of activity and energy. They draw people together and support the intensity of human contact.",
-        category: "Community",
-        keywords: ["activity", "center", "services", "community", "node"],
-        iconName: "map-pin",
-        moodColor: "red" // Energy, activity, intensity
+        number: 88,
+        name: "Street Café",
+        description: "The street café provides a unique setting, special to the activity of drinking.",
+        keywords: ["cafe", "outdoor", "seating", "social", "dining"],
+        moodColor: "warm"
       },
       {
-        number: 52,
-        name: "Network of Paths and Cars",
-        description: "Create a hierarchy of paths that separates pedestrians from vehicles",
-        fullDescription: "Cars and pedestrians work best when their paths form two overlapping networks, connected but separate, each one serving different aspects of movement.",
-        category: "Transportation",
-        keywords: ["paths", "cars", "pedestrian", "network", "transportation"],
-        iconName: "route",
-        moodColor: "blue" // Structure, connection, flow
+        number: 100,
+        name: "Pedestrian Street",
+        description: "In the right circumstances, a street closed to traffic can become a wonderful place for people.",
+        keywords: ["pedestrian", "walkway", "no-cars", "public", "street"],
+        moodColor: "active"
+      },
+      {
+        number: 106,
+        name: "Positive Outdoor Space",
+        description: "Outdoor spaces which are merely 'left over' between buildings will, in general, not be used.",
+        keywords: ["outdoor", "space", "landscape", "design", "natural"],
+        moodColor: "natural"
       }
     ];
 
-    alexanderPatterns.forEach(pattern => {
-      this.createPattern(pattern);
-    });
-  }
-
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId.users++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  // Pattern methods
-  async getAllPatterns(): Promise<Pattern[]> {
-    return Array.from(this.patterns.values());
+    for (const pattern of initialPatterns) {
+      await db.insert(patterns).values(pattern);
+    }
   }
 
   async getPattern(id: number): Promise<Pattern | undefined> {
-    return this.patterns.get(id);
+    const [pattern] = await db.select().from(patterns).where(eq(patterns.id, id));
+    return pattern || undefined;
   }
 
   async createPattern(insertPattern: InsertPattern): Promise<Pattern> {
-    const id = this.currentId.patterns++;
-    const pattern: Pattern = { 
-      ...insertPattern, 
-      id,
-      moodColor: insertPattern.moodColor || "blue"
-    };
-    this.patterns.set(id, pattern);
+    const [pattern] = await db.insert(patterns).values(insertPattern).returning();
     return pattern;
   }
 
   async searchPatterns(keywords: string[]): Promise<Pattern[]> {
-    return Array.from(this.patterns.values()).filter(pattern =>
-      keywords.some(keyword =>
-        pattern.keywords.some(pk => pk.toLowerCase().includes(keyword.toLowerCase())) ||
-        pattern.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        pattern.description.toLowerCase().includes(keyword.toLowerCase())
+    const allPatterns = await db.select().from(patterns);
+    return allPatterns.filter(pattern => 
+      keywords.some(keyword => 
+        pattern.name.toLowerCase().includes(keyword) ||
+        pattern.description.toLowerCase().includes(keyword) ||
+        pattern.keywords.some(k => k.toLowerCase().includes(keyword))
       )
     );
   }
 
-  // Location methods
   async createLocation(insertLocation: InsertLocation): Promise<Location> {
-    const id = this.currentId.locations++;
-    const location: Location = { 
-      ...insertLocation, 
-      id, 
-      createdAt: new Date(),
-      name: insertLocation.name ?? null
-    };
-    this.locations.set(id, location);
+    const [location] = await db.insert(locations).values(insertLocation).returning();
     return location;
   }
 
   async getLocationsBySession(sessionId: string): Promise<Location[]> {
-    return Array.from(this.locations.values()).filter(loc => loc.sessionId === sessionId);
+    return await db.select().from(locations).where(eq(locations.sessionId, sessionId));
   }
 
   async getNearbyLocations(lat: number, lng: number, radiusKm: number): Promise<Location[]> {
-    return Array.from(this.locations.values()).filter(location => {
-      const distance = this.calculateDistance(
-        lat, lng, 
-        parseFloat(location.latitude), parseFloat(location.longitude)
-      );
+    const allLocations = await db.select().from(locations);
+    return allLocations.filter(location => {
+      const distance = this.calculateDistance(lat, lng, Number(location.latitude), Number(location.longitude));
       return distance <= radiusKm;
     });
   }
@@ -226,92 +171,81 @@ export class MemStorage implements IStorage {
     return R * c;
   }
 
-  // Pattern suggestion methods
   async createPatternSuggestion(insertSuggestion: InsertPatternSuggestion): Promise<PatternSuggestion> {
-    const id = this.currentId.patternSuggestions++;
-    const suggestion: PatternSuggestion = { 
-      ...insertSuggestion, 
-      id, 
-      createdAt: new Date() 
-    };
-    this.patternSuggestions.set(id, suggestion);
+    const [suggestion] = await db.insert(patternSuggestions).values(insertSuggestion).returning();
     return suggestion;
   }
 
   async getSuggestionsForLocation(locationId: number): Promise<PatternSuggestion[]> {
-    return Array.from(this.patternSuggestions.values()).filter(s => s.locationId === locationId);
+    return await db.select().from(patternSuggestions).where(eq(patternSuggestions.locationId, locationId));
   }
 
   async getPatternsForLocation(locationId: number, sessionId: string): Promise<PatternWithVotes[]> {
-    const suggestions = await this.getSuggestionsForLocation(locationId);
+    const suggestions = await db
+      .select({
+        suggestion: patternSuggestions,
+        pattern: patterns
+      })
+      .from(patternSuggestions)
+      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+      .where(eq(patternSuggestions.locationId, locationId));
+
     const patternsWithVotes: PatternWithVotes[] = [];
 
-    for (const suggestion of suggestions) {
-      const pattern = await this.getPattern(suggestion.patternId);
-      if (pattern) {
-        const votes = await this.getVotesForSuggestion(suggestion.id);
-        const upvotes = votes.filter(v => v.voteType === 'up').length;
-        const downvotes = votes.filter(v => v.voteType === 'down').length;
-        const userVote = await this.getUserVoteForSuggestion(suggestion.id, sessionId);
+    for (const { suggestion, pattern } of suggestions) {
+      const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
+      const userVote = await db.select().from(votes)
+        .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
+        .limit(1);
 
-        patternsWithVotes.push({
-          ...pattern,
-          upvotes,
-          downvotes,
-          confidence: parseFloat(suggestion.confidence),
-          suggestionId: suggestion.id,
-          userVote: userVote?.voteType as 'up' | 'down' | undefined || null
-        });
-      }
+      const upvotes = allVotes.filter(v => v.voteType === 'up').length;
+      const downvotes = allVotes.filter(v => v.voteType === 'down').length;
+
+      patternsWithVotes.push({
+        ...pattern,
+        upvotes,
+        downvotes,
+        confidence: Number(suggestion.confidence),
+        suggestionId: suggestion.id,
+        userVote: userVote[0]?.voteType as 'up' | 'down' || null
+      });
     }
 
-    return patternsWithVotes.sort((a, b) => b.confidence - a.confidence);
+    return patternsWithVotes;
   }
 
-  // Voting methods
   async createVote(insertVote: InsertVote): Promise<Vote> {
-    const id = this.currentId.votes++;
-    const vote: Vote = { ...insertVote, id, createdAt: new Date() };
-    this.votes.set(id, vote);
+    const [vote] = await db.insert(votes).values(insertVote).returning();
     return vote;
   }
 
   async getVotesForSuggestion(suggestionId: number): Promise<Vote[]> {
-    return Array.from(this.votes.values()).filter(v => v.suggestionId === suggestionId);
+    return await db.select().from(votes).where(eq(votes.suggestionId, suggestionId));
   }
 
   async getUserVoteForSuggestion(suggestionId: number, sessionId: string): Promise<Vote | undefined> {
-    return Array.from(this.votes.values()).find(v => 
-      v.suggestionId === suggestionId && v.sessionId === sessionId
-    );
+    const [vote] = await db.select().from(votes)
+      .where(and(eq(votes.suggestionId, suggestionId), eq(votes.sessionId, sessionId)));
+    return vote || undefined;
   }
 
-  // Activity methods
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const id = this.currentId.activities++;
-    const activity: Activity = { 
-      ...insertActivity, 
-      id, 
-      createdAt: new Date(),
-      locationId: insertActivity.locationId ?? null
-    };
-    this.activities.set(id, activity);
-    return activity;
+    const [activityRecord] = await db.insert(activity).values(insertActivity).returning();
+    return activityRecord;
   }
 
   async getRecentActivity(limit: number): Promise<Activity[]> {
-    return Array.from(this.activities.values())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
+    return await db.select().from(activity)
+      .orderBy(sql`${activity.createdAt} DESC`)
+      .limit(limit);
   }
 
-  // Statistics
   async getStats(sessionId: string): Promise<{
     suggestedPatterns: number;
     votesContributed: number;
     offlinePatterns: number;
   }> {
-    const userVotes = Array.from(this.votes.values()).filter(v => v.sessionId === sessionId);
+    const userVotes = await db.select().from(votes).where(eq(votes.sessionId, sessionId));
     const userLocations = await this.getLocationsBySession(sessionId);
     
     let suggestedPatterns = 0;
@@ -320,43 +254,35 @@ export class MemStorage implements IStorage {
       suggestedPatterns += suggestions.length;
     }
 
+    const allPatterns = await db.select().from(patterns);
+
     return {
       suggestedPatterns,
       votesContributed: userVotes.length,
-      offlinePatterns: this.patterns.size
+      offlinePatterns: allPatterns.length
     };
   }
 
-  // Tracking methods
   async createTrackingPoint(insertPoint: InsertTrackingPoint): Promise<TrackingPoint> {
-    const id = this.currentId.trackingPoints++;
-    const trackingPoint: TrackingPoint = {
-      ...insertPoint,
-      id,
-      timestamp: new Date(),
-      accuracy: insertPoint.accuracy ?? null,
-      speed: insertPoint.speed ?? null,
-      heading: insertPoint.heading ?? null,
-    };
-    this.trackingPoints.set(id, trackingPoint);
+    const [trackingPoint] = await db.insert(trackingPoints).values(insertPoint).returning();
     return trackingPoint;
   }
 
   async getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]> {
-    return Array.from(this.trackingPoints.values())
-      .filter(point => point.sessionId === sessionId)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return await db.select().from(trackingPoints)
+      .where(eq(trackingPoints.sessionId, sessionId))
+      .orderBy(trackingPoints.timestamp);
   }
 
   async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]> {
-    return Array.from(this.trackingPoints.values())
-      .filter(point => {
-        if (point.sessionId !== sessionId) return false;
-        const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
-        return distance <= radiusKm;
-      })
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const allPoints = await db.select().from(trackingPoints)
+      .where(eq(trackingPoints.sessionId, sessionId));
+    
+    return allPoints.filter(point => {
+      const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
+      return distance <= radiusKm;
+    }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

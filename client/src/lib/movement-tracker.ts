@@ -14,6 +14,8 @@ export class MovementTracker {
   private readonly TRACKING_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
   private readonly MIN_DISTANCE_METERS = 10; // Only track if moved at least 10 meters
   private lastPosition: { lat: number; lng: number } | null = null;
+  private pendingPoints: InsertTrackingPoint[] = [];
+  private syncInterval: NodeJS.Timeout | null = null;
 
   constructor(sessionId?: string) {
     this.sessionId = sessionId || generateSessionId();
