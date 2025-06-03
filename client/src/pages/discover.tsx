@@ -52,18 +52,58 @@ export default function DiscoverPage() {
             name: "Current Location",
             sessionId
           });
+          
+          console.log(`Using real GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
         },
-        (error) => {
+        async (error) => {
           console.error("Geolocation error:", error);
-          // Fallback to demo location (San Francisco)
-          const demoLocation = { lat: 37.7749, lng: -122.4194 };
-          setCurrentLocation(demoLocation);
+          
+          // Try to get the latest tracked location from database
+          try {
+            const response = await fetch(`/api/tracking/${sessionId}`);
+            if (response.ok) {
+              const trackingPoints = await response.json();
+              
+              if (trackingPoints.length > 0) {
+                // Use the most recent tracking point
+                const lastPoint = trackingPoints[trackingPoints.length - 1];
+                const lastLocation = {
+                  lat: Number(lastPoint.latitude),
+                  lng: Number(lastPoint.longitude)
+                };
+                
+                setCurrentLocation(lastLocation);
+                createLocationMutation.mutate({
+                  latitude: lastLocation.lat.toString(),
+                  longitude: lastLocation.lng.toString(),
+                  name: "Last Known Location",
+                  sessionId
+                });
+                
+                console.log(`Using last tracked location: ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
+                return;
+              }
+            }
+          } catch (trackingError) {
+            console.warn('Failed to get last tracked location:', trackingError);
+          }
+          
+          // Only use fallback if no tracked location exists
+          const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
+          setCurrentLocation(fallbackLocation);
           createLocationMutation.mutate({
-            latitude: demoLocation.lat.toString(),
-            longitude: demoLocation.lng.toString(),
-            name: "Demo Location",
+            latitude: fallbackLocation.lat.toString(),
+            longitude: fallbackLocation.lng.toString(),
+            name: "Default Location",
             sessionId
           });
+          
+          console.log('Using fallback location (Minneapolis)');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000
         }
       );
     }
