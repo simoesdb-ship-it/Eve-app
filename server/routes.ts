@@ -186,6 +186,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location analysis endpoint - fetches real geographic data
+  app.get('/api/location-analysis', async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ error: 'Latitude and longitude are required' });
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+
+      // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+      
+      const nominatimResponse = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'PatternLanguageApp/1.0'
+        }
+      });
+
+      if (!nominatimResponse.ok) {
+        throw new Error('Failed to fetch location data from Nominatim');
+      }
+
+      const nominatimData = await nominatimResponse.json();
+
+      // Use Open-Elevation API for elevation data (free, no API key needed)
+      const elevationUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${latitude},${longitude}`;
+      
+      let elevation = 0;
+      try {
+        const elevationResponse = await fetch(elevationUrl);
+        if (elevationResponse.ok) {
+          const elevationData = await elevationResponse.json();
+          elevation = elevationData.results[0]?.elevation || 0;
+        }
+      } catch (error) {
+        console.warn('Failed to fetch elevation data:', error);
+      }
+
+      // Extract timezone using coordinates (approximate)
+      const timezone = getTimezoneFromCoordinates(latitude, longitude);
+
+      const locationData = {
+        coordinates: {
+          latitude,
+          longitude
+        },
+        address: nominatimData.display_name || 'Unknown address',
+        neighborhood: nominatimData.address?.neighbourhood || nominatimData.address?.suburb || 'Unknown',
+        city: nominatimData.address?.city || nominatimData.address?.town || nominatimData.address?.village || 'Unknown',
+        country: nominatimData.address?.country || 'Unknown',
+        elevation: Math.round(elevation),
+        timezone
+      };
+
+      res.json(locationData);
+    } catch (error) {
+      console.error('Error in location analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze location' });
+    }
+  });
+
+  // Contextual analysis endpoint - analyzes urban context
+  app.get('/api/contextual-analysis', async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ error: 'Latitude and longitude are required' });
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+
+      // Use Overpass API to get OpenStreetMap data for contextual analysis
+      const overpassQuery = `
+        [out:json][timeout:25];
+        (
+          way(around:500,${latitude},${longitude})[highway];
+          way(around:500,${latitude},${longitude})[building];
+          way(around:500,${latitude},${longitude})[amenity];
+          way(around:500,${latitude},${longitude})[shop];
+          way(around:500,${latitude},${longitude})[leisure];
+          way(around:500,${latitude},${longitude})[landuse];
+          node(around:500,${latitude},${longitude})[amenity];
+          node(around:500,${latitude},${longitude})[shop];
+          node(around:500,${latitude},${longitude})[public_transport];
+        );
+        out geom;
+      `;
+
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+      const overpassResponse = await fetch(overpassUrl, {
+        method: 'POST',
+        body: overpassQuery,
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      });
+
+      if (!overpassResponse.ok) {
+        throw new Error('Failed to fetch contextual data from Overpass API');
+      }
+
+      const overpassData = await overpassResponse.json();
+      
+      // Analyze the data to extract contextual information
+      const analysis = analyzeContextualData(overpassData.elements);
+
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error in contextual analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze contextual data' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

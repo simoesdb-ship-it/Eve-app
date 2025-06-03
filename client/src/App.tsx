@@ -8,6 +8,7 @@ import DiscoverPage from "@/pages/discover";
 import PatternsPage from "@/pages/patterns";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
+import LocationAnalysisPage from "@/pages/location-analysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/patterns" component={PatternsPage} />
       <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/location-analysis" component={LocationAnalysisPage} />
       <Route component={NotFound} />
     </Switch>
   );
