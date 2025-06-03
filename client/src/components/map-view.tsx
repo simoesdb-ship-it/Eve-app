@@ -92,7 +92,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           }
         }
 
-        // Add tracking points as tiny dots to show movement patterns
+        // Add tracking points as persistent dots to show movement patterns
         trackingPoints.forEach((point, index) => {
           if (cleanup) return;
           
@@ -100,19 +100,37 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
             const lat = Number(point.latitude);
             const lng = Number(point.longitude);
             
+            // Create more visible tracking dots that accumulate over time
+            const dotAge = Date.now() - new Date(point.timestamp).getTime();
+            const isRecent = dotAge < 3600000; // Less than 1 hour old
+            
             const trackingDot = L.marker([lat, lng], {
               icon: L.divIcon({
                 className: 'custom-tracking-dot',
-                html: '<div style="width: 4px; height: 4px; background: #3B82F6; border: 1px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>',
-                iconSize: [4, 4],
-                iconAnchor: [2, 2]
+                html: `<div style="
+                  width: ${isRecent ? '6px' : '4px'}; 
+                  height: ${isRecent ? '6px' : '4px'}; 
+                  background: ${isRecent ? '#10B981' : '#3B82F6'}; 
+                  border: 1px solid white; 
+                  border-radius: 50%; 
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+                  opacity: ${isRecent ? '1' : '0.8'};
+                "></div>`,
+                iconSize: [isRecent ? 6 : 4, isRecent ? 6 : 4],
+                iconAnchor: [isRecent ? 3 : 2, isRecent ? 3 : 2]
               })
             }).addTo(map);
 
-            // Add tooltip showing timestamp
-            trackingDot.bindTooltip(`Tracked: ${new Date(point.timestamp).toLocaleTimeString()}`, {
+            // Add detailed tooltip with tracking information
+            const timeAgo = Math.floor(dotAge / 60000); // minutes ago
+            trackingDot.bindTooltip(`
+              Tracked: ${new Date(point.timestamp).toLocaleString()}<br>
+              ${timeAgo < 60 ? `${timeAgo} minutes ago` : `${Math.floor(timeAgo / 60)} hours ago`}<br>
+              Coords: ${lat.toFixed(6)}, ${lng.toFixed(6)}
+            `, {
               permanent: false,
-              direction: 'top'
+              direction: 'top',
+              className: 'tracking-tooltip'
             });
             
             markers.push(trackingDot);
@@ -177,13 +195,16 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
     };
   }, [currentLocation, patterns.length, trackingPoints.length]);
 
-  // Fetch tracking points for this session
+  // Fetch tracking points for this session and update continuously
   useEffect(() => {
     const fetchTrackingPoints = async () => {
       try {
-        const tracker = getMovementTracker(sessionId);
-        const points = await tracker.getTrackingPoints();
-        setTrackingPoints(points);
+        const response = await fetch(`/api/tracking/${sessionId}`);
+        if (response.ok) {
+          const points = await response.json();
+          setTrackingPoints(points);
+          console.log(`Loaded ${points.length} tracking points for visualization`);
+        }
       } catch (error) {
         console.warn('Failed to fetch tracking points:', error);
       }
@@ -191,10 +212,34 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
 
     if (sessionId) {
       fetchTrackingPoints();
-      // Refresh tracking points every 30 seconds
-      const interval = setInterval(fetchTrackingPoints, 30000);
+      // Refresh tracking points every 10 seconds to show new dots quickly
+      const interval = setInterval(fetchTrackingPoints, 10000);
       return () => clearInterval(interval);
     }
+  }, [sessionId]);
+
+  // Listen for real-time tracking point additions
+  useEffect(() => {
+    const handleTrackingPointAdded = () => {
+      // Immediately refresh tracking points when a new one is added
+      const fetchLatestPoints = async () => {
+        try {
+          const response = await fetch(`/api/tracking/${sessionId}`);
+          if (response.ok) {
+            const points = await response.json();
+            setTrackingPoints(points);
+            console.log(`Updated to ${points.length} tracking points after new addition`);
+          }
+        } catch (error) {
+          console.warn('Failed to fetch latest tracking points:', error);
+        }
+      };
+      
+      fetchLatestPoints();
+    };
+
+    window.addEventListener('trackingPointAdded', handleTrackingPointAdded);
+    return () => window.removeEventListener('trackingPointAdded', handleTrackingPointAdded);
   }, [sessionId]);
 
   // Update map when location changes

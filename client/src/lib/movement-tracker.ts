@@ -12,7 +12,7 @@ export class MovementTracker {
   private isTracking: boolean = false;
   private lastTrackingTime: number = 0;
   private readonly TRACKING_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
-  private readonly MIN_DISTANCE_METERS = 10; // Only track if moved at least 10 meters
+  private readonly MIN_DISTANCE_METERS = 5; // Only track if moved at least 5 meters (reduced for testing)
   private lastPosition: { lat: number; lng: number } | null = null;
   private pendingPoints: InsertTrackingPoint[] = [];
   private syncInterval: NodeJS.Timeout | null = null;
@@ -207,6 +207,11 @@ export class MovementTracker {
     try {
       await apiRequest('POST', '/api/tracking', trackingPoint);
       console.log(`Tracking point recorded: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      
+      // Trigger map update by dispatching a custom event
+      window.dispatchEvent(new CustomEvent('trackingPointAdded', {
+        detail: trackingPoint
+      }));
     } catch (error) {
       this.pendingPoints.push(trackingPoint);
       console.warn('Added tracking point to pending queue (offline)');
