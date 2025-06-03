@@ -50,6 +50,11 @@ export class MovementTracker {
         this.requestLocationUpdate();
       }, this.TRACKING_INTERVAL_MS);
 
+      // Set up periodic sync for offline points
+      this.syncInterval = setInterval(() => {
+        this.syncPendingPoints();
+      }, 30000); // Sync every 30 seconds
+
       this.isTracking = true;
       console.log('Movement tracking started - recording every 3 minutes');
       resolve();
@@ -68,8 +73,77 @@ export class MovementTracker {
       this.trackingInterval = null;
     }
 
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+
+    // Sync any pending points before stopping
+    this.syncPendingPoints();
+
     this.isTracking = false;
     console.log('Movement tracking stopped');
+  }
+
+  // Sync pending points with offline support
+  private async syncPendingPoints(): Promise<void> {
+    if (this.pendingPoints.length === 0) return;
+
+    try {
+      const pointsToSync = [...this.pendingPoints];
+      this.pendingPoints = [];
+
+      for (const point of pointsToSync) {
+        await apiRequest('POST', '/api/tracking', point);
+      }
+      
+      console.log(`Synced ${pointsToSync.length} tracking points`);
+    } catch (error) {
+      // Re-add failed points back to pending queue
+      this.pendingPoints.unshift(...this.pendingPoints);
+      console.warn('Failed to sync tracking points, will retry later');
+    }
+  }
+
+  // Enhanced local storage for web persistence
+  private saveToLocalStorage(point: InsertTrackingPoint): void {
+    try {
+      const key = `tracking_${this.sessionId}`;
+      const existing = localStorage.getItem(key);
+      const points = existing ? JSON.parse(existing) : [];
+      points.push({
+        ...point,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Keep only last 100 points locally
+      if (points.length > 100) {
+        points.splice(0, points.length - 100);
+      }
+      
+      localStorage.setItem(key, JSON.stringify(points));
+    } catch (error) {
+      console.warn('Failed to save tracking point to local storage');
+    }
+  }
+
+  // Load tracking points from local storage
+  getLocalTrackingPoints(): TrackingPoint[] {
+    try {
+      const key = `tracking_${this.sessionId}`;
+      const stored = localStorage.getItem(key);
+      if (!stored) return [];
+      
+      const points = JSON.parse(stored);
+      return points.map((p: any, index: number) => ({
+        id: `local_${index}`,
+        ...p,
+        timestamp: new Date(p.timestamp)
+      }));
+    } catch (error) {
+      console.warn('Failed to load tracking points from local storage');
+      return [];
+    }
   }
 
   // Handle position updates from watch
@@ -117,25 +191,29 @@ export class MovementTracker {
       }
     }
 
-    try {
-      const trackingPoint: InsertTrackingPoint = {
-        latitude: latitude.toString(),
-        longitude: longitude.toString(),
-        sessionId: this.sessionId,
-        accuracy: accuracy ? accuracy.toString() : null,
-        speed: speed ? speed.toString() : null,
-        heading: heading ? heading.toString() : null,
-      };
+    const trackingPoint: InsertTrackingPoint = {
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      sessionId: this.sessionId,
+      accuracy: accuracy ? accuracy.toString() : null,
+      speed: speed ? speed.toString() : null,
+      heading: heading ? heading.toString() : null,
+    };
 
+    // Save to local storage immediately for offline persistence
+    this.saveToLocalStorage(trackingPoint);
+
+    // Try to sync to server, add to pending queue if fails
+    try {
       await apiRequest('POST', '/api/tracking', trackingPoint);
-      
-      this.lastPosition = currentPos;
-      this.lastTrackingTime = Date.now();
-      
       console.log(`Tracking point recorded: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
     } catch (error) {
-      console.error('Failed to record tracking point:', error);
+      this.pendingPoints.push(trackingPoint);
+      console.warn('Added tracking point to pending queue (offline)');
     }
+    
+    this.lastPosition = currentPos;
+    this.lastTrackingTime = Date.now();
   }
 
   // Calculate distance between two points in meters
