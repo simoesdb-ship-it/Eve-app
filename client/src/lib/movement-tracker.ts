@@ -11,8 +11,8 @@ export class MovementTracker {
   private sessionId: string;
   private isTracking: boolean = false;
   private lastTrackingTime: number = 0;
-  private readonly TRACKING_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
-  private readonly MIN_DISTANCE_METERS = 5; // Only track if moved at least 5 meters (reduced for testing)
+  private readonly TRACKING_INTERVAL_MS = 30 * 1000; // 30 seconds for testing accumulation
+  private readonly MIN_DISTANCE_METERS = 1; // 1 meter for testing clustering
   private lastPosition: { lat: number; lng: number } | null = null;
   private pendingPoints: InsertTrackingPoint[] = [];
   private syncInterval: NodeJS.Timeout | null = null;

@@ -6,6 +6,67 @@ import { useLocation } from "wouter";
 import { getMovementTracker } from "@/lib/movement-tracker";
 import type { PatternWithVotes, TrackingPoint } from "@shared/schema";
 
+// Cluster tracking points by proximity to show visit frequency
+function clusterTrackingPoints(points: TrackingPoint[], radiusMeters = 20): Array<{
+  latitude: string;
+  longitude: string;
+  count: number;
+  latestTimestamp: string;
+}> {
+  const clusters: Array<{
+    latitude: string;
+    longitude: string;
+    count: number;
+    latestTimestamp: string;
+    points: TrackingPoint[];
+  }> = [];
+
+  points.forEach(point => {
+    const lat = Number(point.latitude);
+    const lng = Number(point.longitude);
+    
+    // Find existing cluster within radius
+    const existingCluster = clusters.find(cluster => {
+      const clusterLat = Number(cluster.latitude);
+      const clusterLng = Number(cluster.longitude);
+      const distance = calculateDistance(lat, lng, clusterLat, clusterLng);
+      return distance <= radiusMeters;
+    });
+
+    if (existingCluster) {
+      // Add to existing cluster
+      existingCluster.count++;
+      existingCluster.points.push(point);
+      // Update to latest timestamp
+      if (new Date(point.timestamp) > new Date(existingCluster.latestTimestamp)) {
+        existingCluster.latestTimestamp = point.timestamp;
+      }
+    } else {
+      // Create new cluster
+      clusters.push({
+        latitude: point.latitude,
+        longitude: point.longitude,
+        count: 1,
+        latestTimestamp: point.timestamp,
+        points: [point]
+      });
+    }
+  });
+
+  return clusters;
+}
+
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 interface MapViewProps {
   currentLocation: {lat: number, lng: number} | null;
   patterns: PatternWithVotes[];
@@ -92,41 +153,53 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           }
         }
 
-        // Add tracking points as persistent dots to show movement patterns
-        trackingPoints.forEach((point, index) => {
+        // Add tracking points with clustering visualization for frequency analysis
+        const clusteredPoints = clusterTrackingPoints(trackingPoints);
+        
+        clusteredPoints.forEach((cluster, index) => {
           if (cleanup) return;
           
           try {
-            const lat = Number(point.latitude);
-            const lng = Number(point.longitude);
+            const lat = Number(cluster.latitude);
+            const lng = Number(cluster.longitude);
             
-            // Create more visible tracking dots that accumulate over time
-            const dotAge = Date.now() - new Date(point.timestamp).getTime();
+            // Calculate visual prominence based on visit frequency
+            const visitCount = cluster.count;
+            const dotAge = Date.now() - new Date(cluster.latestTimestamp).getTime();
             const isRecent = dotAge < 3600000; // Less than 1 hour old
+            
+            // Size and color based on frequency and recency
+            const baseSize = Math.min(4 + (visitCount * 2), 16); // 4px to 16px max
+            const opacity = Math.min(0.6 + (visitCount * 0.1), 1.0);
+            const color = visitCount > 3 ? '#EF4444' : // Red for high frequency
+                         visitCount > 1 ? '#F59E0B' : // Orange for medium frequency  
+                         isRecent ? '#10B981' : '#3B82F6'; // Green for recent, blue for old
             
             const trackingDot = L.marker([lat, lng], {
               icon: L.divIcon({
                 className: 'custom-tracking-dot',
                 html: `<div style="
-                  width: ${isRecent ? '6px' : '4px'}; 
-                  height: ${isRecent ? '6px' : '4px'}; 
-                  background: ${isRecent ? '#10B981' : '#3B82F6'}; 
-                  border: 1px solid white; 
+                  width: ${baseSize}px; 
+                  height: ${baseSize}px; 
+                  background: ${color}; 
+                  border: 2px solid white; 
                   border-radius: 50%; 
-                  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-                  opacity: ${isRecent ? '1' : '0.8'};
+                  box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+                  opacity: ${opacity};
+                  ${visitCount > 2 ? 'animation: pulse 2s infinite;' : ''}
                 "></div>`,
-                iconSize: [isRecent ? 6 : 4, isRecent ? 6 : 4],
-                iconAnchor: [isRecent ? 3 : 2, isRecent ? 3 : 2]
+                iconSize: [baseSize, baseSize],
+                iconAnchor: [baseSize/2, baseSize/2]
               })
             }).addTo(map);
 
-            // Add detailed tooltip with tracking information
-            const timeAgo = Math.floor(dotAge / 60000); // minutes ago
+            // Enhanced tooltip with frequency information
+            const timeAgo = Math.floor(dotAge / 60000);
             trackingDot.bindTooltip(`
-              Tracked: ${new Date(point.timestamp).toLocaleString()}<br>
+              <strong>${visitCount > 1 ? `${visitCount} visits` : '1 visit'}</strong><br>
+              Latest: ${new Date(cluster.latestTimestamp).toLocaleString()}<br>
               ${timeAgo < 60 ? `${timeAgo} minutes ago` : `${Math.floor(timeAgo / 60)} hours ago`}<br>
-              Coords: ${lat.toFixed(6)}, ${lng.toFixed(6)}
+              Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}
             `, {
               permanent: false,
               direction: 'top',
@@ -135,7 +208,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
             
             markers.push(trackingDot);
           } catch (error) {
-            console.warn('Failed to add tracking dot:', error);
+            console.warn('Failed to add tracking cluster:', error);
           }
         });
 
