@@ -127,11 +127,8 @@ export default function DiscoverPage() {
 
     initializeTracking();
 
-    // Cleanup tracking on unmount
-    return () => {
-      stopGlobalTracking();
-      console.log('Movement tracking stopped');
-    };
+    // Keep tracking running in background when navigating to other pages
+    // Movement tracking will continue across all app sections
   }, [sessionId, toast]);
 
   // Create location mutation
