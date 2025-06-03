@@ -329,3 +329,98 @@ function calculatePatternConfidence(pattern: any, location: any): number {
   
   return Math.max(0, Math.min(1, confidence));
 }
+
+// Helper function to get timezone from coordinates (approximate)
+function getTimezoneFromCoordinates(lat: number, lng: number): string {
+  // Simple timezone approximation based on longitude
+  const offsetHours = Math.round(lng / 15);
+  const utcOffset = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
+  return `UTC${utcOffset}`;
+}
+
+// Analyze contextual data from OpenStreetMap
+function analyzeContextualData(elements: any[]): any {
+  const amenities = new Set<string>();
+  const buildingTypes = new Set<string>();
+  let roads = 0;
+  let buildings = 0;
+  let hasPublicTransport = false;
+  let hasGreenSpace = false;
+  
+  elements.forEach(element => {
+    const tags = element.tags || {};
+    
+    // Count roads for traffic analysis
+    if (tags.highway) {
+      roads++;
+    }
+    
+    // Count buildings for density
+    if (tags.building) {
+      buildings++;
+      if (tags.building !== 'yes') {
+        buildingTypes.add(tags.building);
+      }
+    }
+    
+    // Collect amenities
+    if (tags.amenity) {
+      amenities.add(tags.amenity);
+      if (tags.amenity === 'bus_station' || tags.amenity === 'subway_entrance') {
+        hasPublicTransport = true;
+      }
+    }
+    
+    // Check for shops
+    if (tags.shop) {
+      amenities.add(`shop: ${tags.shop}`);
+    }
+    
+    // Check for public transport
+    if (tags.public_transport) {
+      hasPublicTransport = true;
+    }
+    
+    // Check for green spaces
+    if (tags.leisure === 'park' || tags.landuse === 'forest' || tags.landuse === 'grass') {
+      hasGreenSpace = true;
+    }
+  });
+
+  // Calculate urban density based on building count
+  let urbanDensity: 'low' | 'medium' | 'high' = 'low';
+  if (buildings > 50) urbanDensity = 'high';
+  else if (buildings > 20) urbanDensity = 'medium';
+
+  // Calculate walkability score based on amenities and infrastructure
+  let walkabilityScore = 30; // Base score
+  walkabilityScore += Math.min(amenities.size * 5, 40); // More amenities = better walkability
+  walkabilityScore += hasPublicTransport ? 20 : 0;
+  walkabilityScore += hasGreenSpace ? 10 : 0;
+  
+  // Determine land use
+  let landUse = 'mixed';
+  if (amenities.has('shop: residential') || buildingTypes.has('residential')) {
+    landUse = 'residential';
+  } else if (Array.from(amenities).some(a => a.startsWith('shop:')) || amenities.has('restaurant')) {
+    landUse = 'commercial';
+  }
+
+  // Traffic level based on road density
+  let trafficLevel: 'low' | 'medium' | 'high' = 'low';
+  if (roads > 15) trafficLevel = 'high';
+  else if (roads > 8) trafficLevel = 'medium';
+
+  return {
+    landUse,
+    urbanDensity,
+    walkabilityScore: Math.min(walkabilityScore, 100),
+    publicTransportAccess: hasPublicTransport,
+    nearbyAmenities: Array.from(amenities).slice(0, 10), // Limit to first 10
+    buildingTypes: Array.from(buildingTypes).slice(0, 5),
+    greenSpaceDistance: hasGreenSpace ? 100 : 500, // Approximate distance in meters
+    trafficLevel,
+    populationDensity: buildings * 25, // Rough estimate
+    noiseLevel: trafficLevel === 'high' ? 'loud' : trafficLevel === 'medium' ? 'moderate' : 'quiet'
+  };
+}

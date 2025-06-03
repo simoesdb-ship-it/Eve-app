@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, Plus, Minus, Navigation, Crosshair } from "lucide-react";
+import { MapPin, Plus, Minus, Navigation, Crosshair, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLocation } from "wouter";
 import { getMovementTracker } from "@/lib/movement-tracker";
 import type { PatternWithVotes, TrackingPoint } from "@shared/schema";
 
@@ -19,6 +20,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const [location, navigate] = useLocation();
 
   // Initialize OpenStreetMap
   useEffect(() => {
@@ -267,6 +269,12 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
     }
   };
 
+  const handleAnalyzeLocation = () => {
+    if (currentLocation) {
+      navigate(`/location-analysis?lat=${currentLocation.lat}&lng=${currentLocation.lng}`);
+    }
+  };
+
   const getLocationName = () => {
     if (!currentLocation) return "Unknown Location";
     
@@ -351,6 +359,16 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
             disabled={!currentLocation}
           >
             <Crosshair className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            onClick={handleAnalyzeLocation}
+            disabled={!currentLocation}
+            title="Analyze this location"
+          >
+            <Search className="w-4 h-4" />
           </Button>
         </div>
 
