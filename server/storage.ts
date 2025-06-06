@@ -46,10 +46,10 @@ export interface IStorage {
     offlinePatterns: number;
   }>;
 
-  // Tracking methods
-  createTrackingPoint(point: InsertTrackingPoint): Promise<TrackingPoint>;
-  getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]>;
-  getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]>;
+  // Spatial data methods (unified tracking, locations, saved points)
+  createSpatialPoint(point: InsertSpatialPoint): Promise<SpatialPoint>;
+  getSpatialPointsBySession(sessionId: string, type?: string): Promise<SpatialPoint[]>;
+  getSpatialPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string, type?: string): Promise<SpatialPoint[]>;
 
   // Saved location methods
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertTrackingPointSchema } from "@shared/schema";
+import { unifiedStorage as storage } from "./storage-unified";
+import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
