@@ -364,6 +364,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community Pattern Analysis endpoint
+  app.get('/api/community-analysis', async (req, res) => {
+    try {
+      const interpretations = await communityAgent.analyzeAllPatternMatches();
+      res.json(interpretations);
+    } catch (error) {
+      console.error('Error in community analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze community patterns' });
+    }
+  });
+
+  // Single pattern analysis endpoint
+  app.get('/api/community-analysis/:patternNumber', async (req, res) => {
+    try {
+      const patternNumber = parseInt(req.params.patternNumber);
+      const interpretation = await communityAgent.analyzePattern(patternNumber);
+      
+      if (!interpretation) {
+        return res.status(404).json({ error: 'Pattern not found or no data available' });
+      }
+      
+      res.json(interpretation);
+    } catch (error) {
+      console.error('Error in pattern analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze pattern' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

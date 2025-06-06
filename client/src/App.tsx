@@ -10,6 +10,7 @@ import PatternDetailPage from "@/pages/pattern-detail";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
 import LocationAnalysisPage from "@/pages/location-analysis";
+import CommunityAnalysisPage from "@/pages/community-analysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/location-analysis" component={LocationAnalysisPage} />
+      <Route path="/community-analysis" component={CommunityAnalysisPage} />
       <Route component={NotFound} />
     </Switch>
   );
