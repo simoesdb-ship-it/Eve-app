@@ -205,12 +205,20 @@ export class DatabaseStorage implements IStorage {
     timeSpentMinutes: number; 
   }): Promise<Vote> {
     const [vote] = await db.insert(votes).values({
-      ...insertVote,
+      suggestionId: insertVote.suggestionId,
+      sessionId: insertVote.sessionId,
+      voteType: insertVote.voteType,
       weight: insertVote.weight.toString(),
       locationId: insertVote.locationId,
       timeSpentMinutes: insertVote.timeSpentMinutes
     }).returning();
     return vote;
+  }
+
+  async canUserVoteAtLocation(sessionId: string, locationId: number): Promise<{ canVote: boolean; weight: number; timeSpentMinutes: number; reason?: string; }> {
+    // Import time tracking service to calculate voting eligibility
+    const { timeTrackingService } = await import("./time-tracking-service");
+    return await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
   }
 
   async getVotesForSuggestion(suggestionId: number): Promise<Vote[]> {
