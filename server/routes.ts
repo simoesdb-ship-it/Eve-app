@@ -474,6 +474,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Time tracking and voting eligibility endpoints
+  app.get("/api/time-tracking/:locationId", async (req, res) => {
+    try {
+      const sessionId = req.session.id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "No session found" });
+      }
+
+      const locationId = parseInt(req.params.locationId);
+      const { timeTrackingService } = await import("./time-tracking-service");
+      
+      const timeSpent = await timeTrackingService.calculateTimeAtLocation(sessionId, locationId);
+      const eligibility = await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
+      
+      res.json({
+        timeTracking: timeSpent,
+        votingEligibility: eligibility
+      });
+    } catch (error) {
+      console.error("Error calculating time tracking:", error);
+      res.status(500).json({ error: "Failed to calculate time tracking" });
+    }
+  });
+
+  app.get("/api/voting-eligible-locations", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string || "demo_session";
+
+      const { timeTrackingService } = await import("./time-tracking-service");
+      const eligibleLocations = await timeTrackingService.getVotingEligibleLocations(sessionId);
+      
+      res.json(eligibleLocations);
+    } catch (error) {
+      console.error("Error fetching voting eligible locations:", error);
+      res.status(500).json({ error: "Failed to fetch voting eligible locations" });
+    }
+  });
+
+  app.post("/api/generate-demo-data", async (req, res) => {
+    try {
+      const sessionId = req.body.sessionId || "demo_session";
+      const { generateTimeTrackingDemo } = await import("./demo-data-generator");
+      
+      const demoData = await generateTimeTrackingDemo(sessionId);
+      res.json(demoData);
+    } catch (error) {
+      console.error("Error generating demo data:", error);
+      res.status(500).json({ error: "Failed to generate demo data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

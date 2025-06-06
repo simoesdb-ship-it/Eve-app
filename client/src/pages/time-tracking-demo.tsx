@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Clock, MapPin, Vote, Users, CheckCircle, XCircle, Target } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, MapPin, Vote, Users, CheckCircle, XCircle, Target, Play } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface TimeTrackingData {
   locationId: number;
@@ -36,6 +38,18 @@ export default function TimeTrackingDemo() {
 
   const { data: userLocations, isLoading: loadingLocations } = useQuery<any[]>({
     queryKey: ["/api/locations"],
+  });
+
+  const generateDemoMutation = useMutation({
+    mutationFn: () => apiRequest("/api/generate-demo-data", {
+      method: "POST",
+      body: JSON.stringify({ sessionId: "demo_session" }),
+      headers: { "Content-Type": "application/json" }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/voting-eligible-locations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
+    }
   });
 
   if (loadingEligible || loadingLocations) {
@@ -116,14 +130,25 @@ export default function TimeTrackingDemo() {
             </div>
           </div>
 
-          <Alert className="border-blue-200 bg-blue-50">
-            <Target className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">Coordinate Interpolation Active</AlertTitle>
-            <AlertDescription className="text-blue-700">
-              System clusters nearby tracking points (within 100m) and interpolates coordinates 
-              to provide accurate time tracking even with GPS variations.
-            </AlertDescription>
-          </Alert>
+          <div className="flex items-center justify-between">
+            <Alert className="border-blue-200 bg-blue-50 flex-1 mr-4">
+              <Target className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-800">Coordinate Interpolation Active</AlertTitle>
+              <AlertDescription className="text-blue-700">
+                System clusters nearby tracking points (within 100m) and interpolates coordinates 
+                to provide accurate time tracking even with GPS variations.
+              </AlertDescription>
+            </Alert>
+            
+            <Button 
+              onClick={() => generateDemoMutation.mutate()}
+              disabled={generateDemoMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <Play className="h-4 w-4" />
+              {generateDemoMutation.isPending ? "Generating..." : "Generate Demo Data"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
