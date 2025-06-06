@@ -67,6 +67,24 @@ export class CommunityAnalysisAgent {
     const pattern12 = getPatternByNumber(12);
     if (pattern12) {
       const interpretation = await this.interpretAgainstPattern(pattern12, clusters);
+      // Add contextual analysis about actual community sizes vs Alexander's ideal
+      const contextualRecommendations = [
+        `Real communities like Woodbury, MN (~75,000 people) exceed Alexander's 7,000-person limit by 10x`,
+        `Alexander argued that democratic participation becomes impossible beyond 7,000 people per community`
+      ];
+      
+      if (clusters.length > 0) {
+        const populations = clusters.map(c => c.population);
+        contextualRecommendations.splice(1, 0, 
+          `Current tracking shows ${clusters.length} detected communities with populations ranging from ${Math.min(...populations)} to ${Math.max(...populations)} people`
+        );
+      } else {
+        contextualRecommendations.splice(1, 0, 
+          `No community clusters detected from current tracking data - need more spatial data for analysis`
+        );
+      }
+      
+      interpretation.overallAssessment.systemRecommendations.unshift(...contextualRecommendations);
       interpretations.push(interpretation);
     }
     
