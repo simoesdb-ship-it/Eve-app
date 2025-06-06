@@ -55,15 +55,14 @@ export const activity = pgTable("activity", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const trackingPoints = pgTable("tracking_points", {
+export const spatialPoints = pgTable("spatial_points", {
   id: serial("id").primaryKey(),
-  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
-  longitude: decimal("longitude", { precision: 10, scale: 8 }).notNull(),
+  latitude: decimal("latitude", { precision: 12, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 12, scale: 8 }).notNull(),
+  type: text("type").notNull(), // 'tracking', 'analyzed', 'saved'
   sessionId: text("session_id").notNull(),
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  accuracy: decimal("accuracy", { precision: 5, scale: 2 }),
-  speed: decimal("speed", { precision: 5, scale: 2 }),
-  heading: decimal("heading", { precision: 5, scale: 2 }),
+  metadata: text("metadata").default('{}').notNull(), // JSON string for patterns, analysis, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -95,9 +94,9 @@ export const insertActivitySchema = createInsertSchema(activity).omit({
   createdAt: true,
 });
 
-export const insertTrackingPointSchema = createInsertSchema(trackingPoints).omit({
+export const insertSpatialPointSchema = createInsertSchema(spatialPoints).omit({
   id: true,
-  timestamp: true,
+  createdAt: true,
 });
 
 export const savedLocations = pgTable("saved_locations", {
@@ -139,8 +138,8 @@ export type InsertVote = z.infer<typeof insertVoteSchema>;
 export type Activity = typeof activity.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
-export type TrackingPoint = typeof trackingPoints.$inferSelect;
-export type InsertTrackingPoint = z.infer<typeof insertTrackingPointSchema>;
+export type SpatialPoint = typeof spatialPoints.$inferSelect;
+export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
 
 export type SavedLocation = typeof savedLocations.$inferSelect;
 export type InsertSavedLocation = z.infer<typeof insertSavedLocationSchema>;

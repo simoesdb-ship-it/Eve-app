@@ -1,11 +1,11 @@
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import { 
-  users, patterns, locations, patternSuggestions, votes, activity, trackingPoints, savedLocations,
+  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations,
   type User, type InsertUser, type Pattern, type InsertPattern, 
   type Location, type InsertLocation, type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote, type Activity, type InsertActivity,
-  type TrackingPoint, type InsertTrackingPoint, type SavedLocation, type InsertSavedLocation, type PatternWithVotes
+  type SpatialPoint, type InsertSpatialPoint, type SavedLocation, type InsertSavedLocation, type PatternWithVotes
 } from "@shared/schema";
 
 export interface IStorage {
