@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { spatialPoints, patternSuggestions, patterns, locations } from "@shared/schema";
 import { eq, sql, and } from "drizzle-orm";
-import { getPatternByNumber } from "./alexander-patterns";
+import { getPatternByNumber, alexanderPatterns } from "./alexander-patterns";
 
 export interface CommunityCluster {
   id: string;
@@ -63,36 +63,37 @@ export class CommunityAnalysisAgent {
     // Analyze each detected pattern against real tracking data
     const interpretations: PatternInterpretation[] = [];
     
-    // Always analyze Pattern #12 (Community of 7000) as the primary focus
-    const pattern12 = getPatternByNumber(12);
-    if (pattern12) {
-      const interpretation = await this.interpretAgainstPattern(pattern12, clusters);
-      // Add contextual analysis about actual community sizes vs Alexander's ideal
-      const contextualRecommendations = [
-        `Real communities like Woodbury, MN (~75,000 people) exceed Alexander's 7,000-person limit by 10x`,
-        `Alexander argued that democratic participation becomes impossible beyond 7,000 people per community`
-      ];
-      
-      if (clusters.length > 0) {
-        const populations = clusters.map(c => c.population);
-        contextualRecommendations.splice(1, 0, 
-          `Current tracking shows ${clusters.length} detected communities with populations ranging from ${Math.min(...populations)} to ${Math.max(...populations)} people`
-        );
-      } else {
-        contextualRecommendations.splice(1, 0, 
-          `No community clusters detected from current tracking data - need more spatial data for analysis`
-        );
+    // Analyze all 253 patterns from Alexander's "A Pattern Language"
+    console.log(`Analyzing all ${alexanderPatterns.length} patterns against ${clusters.length} detected communities`);
+    
+    // Prioritize key community and urban patterns first
+    const priorityPatterns = [12, 14, 15, 21, 8, 9, 11, 16, 37, 41, 61, 88, 106];
+    const analyzedPatterns = new Set<number>();
+    
+    // First analyze priority patterns
+    for (const patternNumber of priorityPatterns) {
+      const pattern = getPatternByNumber(patternNumber);
+      if (pattern) {
+        const interpretation = await this.interpretAgainstPattern(pattern, clusters);
+        
+        // Add specific contextual analysis for key patterns
+        if (patternNumber === 12) {
+          interpretation.overallAssessment.systemRecommendations.unshift(
+            `Real communities like Woodbury, MN (~75,000 people) exceed Alexander's 7,000-person limit by 10x`,
+            `Alexander argued that democratic participation becomes impossible beyond 7,000 people per community`
+          );
+        }
+        
+        interpretations.push(interpretation);
+        analyzedPatterns.add(patternNumber);
       }
-      
-      interpretation.overallAssessment.systemRecommendations.unshift(...contextualRecommendations);
-      interpretations.push(interpretation);
     }
     
-    // Analyze all other patterns that have been suggested in the system
-    const uniquePatternNumbers = Array.from(new Set(existingPatternMatches.map(match => match.patternNumber)));
+    // Then analyze patterns that have been suggested in the system
+    const suggestedPatternNumbers = Array.from(new Set(existingPatternMatches.map(match => match.patternNumber)));
     
-    for (const patternNumber of uniquePatternNumbers) {
-      if (patternNumber === 12) continue; // Already analyzed
+    for (const patternNumber of suggestedPatternNumbers) {
+      if (analyzedPatterns.has(patternNumber)) continue;
       
       const pattern = getPatternByNumber(patternNumber);
       if (pattern) {
@@ -102,8 +103,26 @@ export class CommunityAnalysisAgent {
           confidence: community.confidence * this.calculatePatternRelevance(pattern, existingPatternMatches)
         }));
         interpretations.push(interpretation);
+        analyzedPatterns.add(patternNumber);
       }
     }
+    
+    // Finally, analyze remaining patterns that are relevant to detected spatial characteristics
+    for (const pattern of alexanderPatterns) {
+      if (analyzedPatterns.has(pattern.number)) continue;
+      
+      // Only analyze patterns relevant to the spatial data characteristics we have
+      if (this.isPatternRelevantToSpatialData(pattern, spatialData, clusters)) {
+        const interpretation = await this.interpretAgainstPattern(pattern, clusters);
+        interpretations.push(interpretation);
+        analyzedPatterns.add(pattern.number);
+      }
+      
+      // Limit total patterns analyzed to avoid overwhelming output
+      if (interpretations.length >= 25) break;
+    }
+    
+    console.log(`Completed analysis of ${interpretations.length} patterns with ${clusters.length} communities`);
     
     return interpretations.sort((a, b) => b.overallAssessment.averageAdherence - a.overallAssessment.averageAdherence);
   }
@@ -162,6 +181,40 @@ export class CommunityAnalysisAgent {
     const avgConfidence = patternMatches.reduce((sum, match) => sum + Number(match.confidence), 0) / patternMatches.length || 0;
     
     return Math.min(frequency * 2 + avgConfidence, 1.0);
+  }
+
+  private isPatternRelevantToSpatialData(pattern: any, spatialData: any[], clusters: CommunityCluster[]): boolean {
+    // Determine if a pattern is relevant to analyze based on current spatial data characteristics
+    const { keywords, category, number } = pattern;
+    
+    // Always include key community and urban patterns
+    if (number <= 25) return true; // Major town/city patterns
+    
+    // Include patterns based on detected community characteristics
+    if (clusters.length > 0) {
+      const maxPopulation = Math.max(...clusters.map(c => c.population));
+      const maxDensity = Math.max(...clusters.map(c => c.density));
+      const totalArea = clusters.reduce((sum, c) => sum + c.area, 0);
+      
+      // Urban density patterns (21, 95-106)
+      if (maxDensity > 100 && (number === 21 || (number >= 95 && number <= 106))) return true;
+      
+      // Community size patterns (8-16, 37, 41, 74, 75)
+      if (maxPopulation > 50 && [8, 9, 10, 11, 12, 13, 14, 15, 16, 37, 41, 74, 75].includes(number)) return true;
+      
+      // Public space patterns (30-36, 60-67)
+      if ((number >= 30 && number <= 36) || (number >= 60 && number <= 67)) return true;
+    }
+    
+    // Include patterns based on keywords matching spatial context
+    const spatialKeywords = ['community', 'neighborhood', 'street', 'public', 'space', 'transportation', 'density', 'population'];
+    if (keywords.some((k: string) => spatialKeywords.includes(k.toLowerCase()))) return true;
+    
+    // Include category-based relevance
+    const relevantCategories = ['Community', 'Urban Design', 'Transportation', 'Public Space', 'Built Form'];
+    if (relevantCategories.includes(category)) return true;
+    
+    return false;
   }
 
   private async getAllSpatialData() {
@@ -484,11 +537,42 @@ export class CommunityAnalysisAgent {
 
   private getIdealParametersForPattern(patternNumber: number) {
     switch (patternNumber) {
+      // TOWN PATTERNS (1-25)
+      case 1: // Independent Regions
+        return {
+          populationRange: [2000000, 10000000] as [number, number],
+          densityRange: [10, 100] as [number, number],
+          areaRange: [20000, 100000] as [number, number]
+        };
+      case 2: // Distribution of Towns
+        return {
+          populationRange: [5000, 50000] as [number, number],
+          densityRange: [20, 150] as [number, number],
+          areaRange: [25, 2500] as [number, number]
+        };
+      case 8: // Mosaic of Subcultures
+        return {
+          populationRange: [100000, 500000] as [number, number],
+          densityRange: [50, 200] as [number, number],
+          areaRange: [500, 10000] as [number, number]
+        };
+      case 9: // Scattered Work
+        return {
+          populationRange: [10000, 100000] as [number, number],
+          densityRange: [30, 150] as [number, number],
+          areaRange: [50, 3333] as [number, number]
+        };
+      case 11: // Local Transport Areas
+        return {
+          populationRange: [50000, 300000] as [number, number],
+          densityRange: [100, 500] as [number, number],
+          areaRange: [100, 3000] as [number, number]
+        };
       case 12: // Community of 7,000
         return {
           populationRange: [500, 7000] as [number, number],
-          densityRange: [50, 300] as [number, number], // people per km²
-          areaRange: [2, 140] as [number, number] // km² (500-7000 people at 50-300 density)
+          densityRange: [50, 300] as [number, number],
+          areaRange: [2, 140] as [number, number]
         };
       case 14: // Identifiable Neighborhood
         return {
@@ -496,18 +580,106 @@ export class CommunityAnalysisAgent {
           densityRange: [100, 400] as [number, number],
           areaRange: [1, 5] as [number, number]
         };
+      case 15: // Neighborhood Boundary
+        return {
+          populationRange: [200, 600] as [number, number],
+          densityRange: [50, 300] as [number, number],
+          areaRange: [0.5, 12] as [number, number]
+        };
+      case 16: // Web of Public Transportation
+        return {
+          populationRange: [100000, 1000000] as [number, number],
+          densityRange: [200, 1000] as [number, number],
+          areaRange: [100, 5000] as [number, number]
+        };
+      case 21: // Four-Story Limit
+        return {
+          populationRange: [1000, 50000] as [number, number],
+          densityRange: [200, 800] as [number, number],
+          areaRange: [1, 250] as [number, number]
+        };
+      
+      // COMMUNITY PATTERNS (26-94)
+      case 37: // House Cluster
+        return {
+          populationRange: [30, 500] as [number, number],
+          densityRange: [60, 250] as [number, number],
+          areaRange: [0.1, 8] as [number, number]
+        };
+      case 41: // Work Community
+        return {
+          populationRange: [500, 10000] as [number, number],
+          densityRange: [100, 400] as [number, number],
+          areaRange: [1, 100] as [number, number]
+        };
+      case 61: // Small Public Squares
+        return {
+          populationRange: [100, 2000] as [number, number],
+          densityRange: [200, 800] as [number, number],
+          areaRange: [0.1, 10] as [number, number]
+        };
+      case 74: // Animals
+        return {
+          populationRange: [50, 5000] as [number, number],
+          densityRange: [20, 200] as [number, number],
+          areaRange: [0.25, 250] as [number, number]
+        };
+      
+      // BUILDING PATTERNS (95-253)
+      case 88: // Street Cafe
+        return {
+          populationRange: [500, 10000] as [number, number],
+          densityRange: [300, 1000] as [number, number],
+          areaRange: [0.5, 33] as [number, number]
+        };
+      case 106: // Positive Outdoor Space
+        return {
+          populationRange: [100, 5000] as [number, number],
+          densityRange: [100, 500] as [number, number],
+          areaRange: [0.2, 50] as [number, number]
+        };
+      
+      // Patterns with specific spatial requirements
       case 18: // Network of Learning
         return {
           populationRange: [100, 2000] as [number, number],
           densityRange: [20, 200] as [number, number],
           areaRange: [0.5, 100] as [number, number]
         };
-      default:
+      case 30: // Activity Nodes
         return {
-          populationRange: [100, 50000] as [number, number],
-          densityRange: [10, 1000] as [number, number],
-          areaRange: [0.1, 1000] as [number, number]
+          populationRange: [300, 3000] as [number, number],
+          densityRange: [150, 600] as [number, number],
+          areaRange: [0.5, 20] as [number, number]
         };
+      case 31: // Promenade
+        return {
+          populationRange: [1000, 20000] as [number, number],
+          densityRange: [200, 500] as [number, number],
+          areaRange: [2, 100] as [number, number]
+        };
+      
+      default:
+        // Dynamic parameters based on pattern number ranges
+        if (patternNumber <= 25) { // Town patterns
+          return {
+            populationRange: [10000, 500000] as [number, number],
+            densityRange: [20, 300] as [number, number],
+            areaRange: [50, 2500] as [number, number]
+          };
+        } else if (patternNumber <= 94) { // Community patterns
+          return {
+            populationRange: [100, 10000] as [number, number],
+            densityRange: [50, 400] as [number, number],
+            areaRange: [0.5, 200] as [number, number]
+          };
+        } else { // Building patterns
+          return {
+            populationRange: [50, 2000] as [number, number],
+            densityRange: [100, 800] as [number, number],
+            areaRange: [0.1, 40] as [number, number]
+          };
+        }
     }
   }
 

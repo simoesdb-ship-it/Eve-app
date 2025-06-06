@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { unifiedStorage as storage } from "./storage-unified";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
+import { locationAnalyzer } from "./location-pattern-analyzer";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -389,6 +390,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in pattern analysis:', error);
       res.status(500).json({ error: 'Failed to analyze pattern' });
+    }
+  });
+
+  // Real-world location pattern analysis
+  app.post('/api/analyze-location', async (req, res) => {
+    try {
+      const { name, coordinates, population, area } = req.body;
+      
+      if (!name || !coordinates || !population || !area) {
+        return res.status(400).json({ error: 'Missing required fields: name, coordinates, population, area' });
+      }
+      
+      const analysis = await locationAnalyzer.analyzeRealWorldLocation(
+        name,
+        coordinates,
+        population,
+        area
+      );
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error in location analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze location' });
+    }
+  });
+
+  // Predefined real-world location analyses
+  app.get('/api/real-world-examples', async (req, res) => {
+    try {
+      const examples = [
+        {
+          name: "Woodbury, MN",
+          coordinates: [44.9239, -92.9594] as [number, number],
+          population: 75273,
+          area: 92.2 // km²
+        },
+        {
+          name: "Brooklyn Park, MN", 
+          coordinates: [45.0941, -93.3563] as [number, number],
+          population: 86478,
+          area: 68.9
+        },
+        {
+          name: "Edina, MN",
+          coordinates: [44.8897, -93.3499] as [number, number],
+          population: 53494,
+          area: 40.7
+        },
+        {
+          name: "Minnetonka, MN",
+          coordinates: [44.9211, -93.4687] as [number, number],
+          population: 53760,
+          area: 73.4
+        }
+      ];
+
+      const analyses = await Promise.all(
+        examples.map(location => 
+          locationAnalyzer.analyzeRealWorldLocation(
+            location.name,
+            location.coordinates,
+            location.population,
+            location.area
+          )
+        )
+      );
+
+      res.json({
+        totalLocations: examples.length,
+        analyses: analyses.map((analysis, index) => ({
+          ...analysis,
+          summary: {
+            majorDeviations: analysis.overallAssessment.criticalDeviations.length,
+            averageAdherence: Math.round(analysis.overallAssessment.averageAdherence * 100),
+            patternsAnalyzed: analysis.overallAssessment.totalPatternsAnalyzed
+          }
+        }))
+      });
+    } catch (error) {
+      console.error('Error in real-world examples analysis:', error);
+      res.status(500).json({ error: 'Failed to analyze real-world examples' });
     }
   });
 
