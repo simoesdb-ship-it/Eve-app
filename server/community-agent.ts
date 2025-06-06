@@ -23,6 +23,12 @@ export interface CommunityCluster {
     recommendations: string[];
     deviations: string[];
   };
+  trackedCoordinates?: Array<{
+    lat: number;
+    lng: number;
+    sessionId: string;
+    timestamp: Date;
+  }>; // preserve original tracking coordinates
 }
 
 export interface PatternInterpretation {
@@ -60,69 +66,38 @@ export class CommunityAnalysisAgent {
     // Get all existing pattern suggestions from the database
     const existingPatternMatches = await this.getExistingPatternMatches();
     
-    // Analyze each detected pattern against real tracking data
-    const interpretations: PatternInterpretation[] = [];
-    
-    // Analyze all 253 patterns from Alexander's "A Pattern Language"
-    console.log(`Analyzing all ${alexanderPatterns.length} patterns against ${clusters.length} detected communities`);
-    
-    // Prioritize key community and urban patterns first
-    const priorityPatterns = [12, 14, 15, 21, 8, 9, 11, 16, 37, 41, 61, 88, 106];
-    const analyzedPatterns = new Set<number>();
-    
-    // First analyze priority patterns
-    for (const patternNumber of priorityPatterns) {
-      const pattern = getPatternByNumber(patternNumber);
-      if (pattern) {
-        const interpretation = await this.interpretAgainstPattern(pattern, clusters);
-        
-        // Add specific contextual analysis for key patterns
-        if (patternNumber === 12) {
-          interpretation.overallAssessment.systemRecommendations.unshift(
-            `Real communities like Woodbury, MN (~75,000 people) exceed Alexander's 7,000-person limit by 10x`,
-            `Alexander argued that democratic participation becomes impossible beyond 7,000 people per community`
-          );
-        }
-        
-        interpretations.push(interpretation);
-        analyzedPatterns.add(patternNumber);
-      }
-    }
-    
-    // Then analyze patterns that have been suggested in the system
+    // Only analyze patterns that have been suggested for tracked locations
     const suggestedPatternNumbers = Array.from(new Set(existingPatternMatches.map(match => match.patternNumber)));
     
+    console.log(`Analyzing ${suggestedPatternNumbers.length} suggested patterns against ${clusters.length} detected communities`);
+    
+    const interpretations: PatternInterpretation[] = [];
+    
+    // Analyze only suggested patterns
     for (const patternNumber of suggestedPatternNumbers) {
-      if (analyzedPatterns.has(patternNumber)) continue;
-      
       const pattern = getPatternByNumber(patternNumber);
       if (pattern) {
         const interpretation = await this.interpretAgainstPattern(pattern, clusters);
+        
+        // Enhance interpretation with coordinate-specific context
         interpretation.detectedCommunities = interpretation.detectedCommunities.map(community => ({
           ...community,
           confidence: community.confidence * this.calculatePatternRelevance(pattern, existingPatternMatches)
         }));
+        
+        // Add specific contextual analysis for key patterns
+        if (patternNumber === 12) {
+          interpretation.overallAssessment.systemRecommendations.unshift(
+            `Pattern suggested for tracked locations shows community size violations`,
+            `Democratic participation becomes impossible beyond 7,000 people per community`
+          );
+        }
+        
         interpretations.push(interpretation);
-        analyzedPatterns.add(patternNumber);
       }
     }
     
-    // Finally, analyze remaining patterns that are relevant to detected spatial characteristics
-    for (const pattern of alexanderPatterns) {
-      if (analyzedPatterns.has(pattern.number)) continue;
-      
-      // Only analyze patterns relevant to the spatial data characteristics we have
-      if (this.isPatternRelevantToSpatialData(pattern, spatialData, clusters)) {
-        const interpretation = await this.interpretAgainstPattern(pattern, clusters);
-        interpretations.push(interpretation);
-        analyzedPatterns.add(pattern.number);
-      }
-      
-      // Limit total patterns analyzed to avoid overwhelming output
-      if (interpretations.length >= 25) break;
-    }
-    
-    console.log(`Completed analysis of ${interpretations.length} patterns with ${clusters.length} communities`);
+    console.log(`Completed analysis of ${interpretations.length} suggested patterns with ${clusters.length} communities`);
     
     return interpretations.sort((a, b) => b.overallAssessment.averageAdherence - a.overallAssessment.averageAdherence);
   }
@@ -392,7 +367,13 @@ export class CommunityAnalysisAgent {
         adherence: 0,
         recommendations: [],
         deviations: []
-      }
+      },
+      trackedCoordinates: cluster.points.map((p: any) => ({
+        lat: p.lat,
+        lng: p.lng,
+        sessionId: p.sessionId,
+        timestamp: new Date(p.createdAt)
+      }))
     };
   }
 
