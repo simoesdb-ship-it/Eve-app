@@ -358,42 +358,7 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <Button
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full shadow-lg"
-        size="icon"
-        onClick={() => {
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const { latitude, longitude } = position.coords;
-                setCurrentLocation({ lat: latitude, lng: longitude });
-                
-                createLocationMutation.mutate({
-                  latitude: latitude.toString(),
-                  longitude: longitude.toString(),
-                  name: "Updated Location",
-                  sessionId
-                });
-                
-                toast({
-                  title: "Location Updated",
-                  description: "Refreshed your current location and patterns",
-                });
-              },
-              (error) => {
-                toast({
-                  title: "Location Error",
-                  description: "Unable to get your current location",
-                  variant: "destructive"
-                });
-              }
-            );
-          }
-        }}
-      >
-        <Plus className="w-6 h-6" />
-      </Button>
+
 
       {/* Offline Indicator */}
       {!isOnline && (

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -100,6 +100,26 @@ export const insertTrackingPointSchema = createInsertSchema(trackingPoints).omit
   timestamp: true,
 });
 
+export const savedLocations = pgTable("saved_locations", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  address: text("address"),
+  elevation: decimal("elevation", { precision: 8, scale: 2 }),
+  landUse: text("land_use"),
+  urbanDensity: text("urban_density"),
+  patternEvaluation: text("pattern_evaluation"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSavedLocationSchema = createInsertSchema(savedLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -121,6 +141,9 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 export type TrackingPoint = typeof trackingPoints.$inferSelect;
 export type InsertTrackingPoint = z.infer<typeof insertTrackingPointSchema>;
+
+export type SavedLocation = typeof savedLocations.$inferSelect;
+export type InsertSavedLocation = z.infer<typeof insertSavedLocationSchema>;
 
 // Extended types for API responses
 export type PatternWithVotes = Pattern & {
