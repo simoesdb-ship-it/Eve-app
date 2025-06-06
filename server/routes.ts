@@ -186,6 +186,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Saved locations endpoints
+  app.post('/api/saved-locations', async (req, res) => {
+    try {
+      const savedLocation = await storage.createSavedLocation(req.body);
+      res.json(savedLocation);
+    } catch (error) {
+      console.error('Error saving location:', error);
+      res.status(500).json({ error: 'Failed to save location' });
+    }
+  });
+
+  app.get('/api/saved-locations/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const savedLocations = await storage.getSavedLocationsBySession(sessionId);
+      res.json(savedLocations);
+    } catch (error) {
+      console.error('Error fetching saved locations:', error);
+      res.status(500).json({ error: 'Failed to fetch saved locations' });
+    }
+  });
+
+  app.delete('/api/saved-locations/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { sessionId } = req.body;
+      await storage.deleteSavedLocation(parseInt(id), sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting saved location:', error);
+      res.status(500).json({ error: 'Failed to delete saved location' });
+    }
+  });
+
   // Location analysis endpoint - fetches real geographic data
   app.get('/api/location-analysis', async (req, res) => {
     try {

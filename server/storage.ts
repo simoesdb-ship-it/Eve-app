@@ -1,11 +1,11 @@
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import { 
-  users, patterns, locations, patternSuggestions, votes, activity, trackingPoints,
+  users, patterns, locations, patternSuggestions, votes, activity, trackingPoints, savedLocations,
   type User, type InsertUser, type Pattern, type InsertPattern, 
   type Location, type InsertLocation, type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote, type Activity, type InsertActivity,
-  type TrackingPoint, type InsertTrackingPoint, type PatternWithVotes
+  type TrackingPoint, type InsertTrackingPoint, type SavedLocation, type InsertSavedLocation, type PatternWithVotes
 } from "@shared/schema";
 
 export interface IStorage {
@@ -50,6 +50,11 @@ export interface IStorage {
   createTrackingPoint(point: InsertTrackingPoint): Promise<TrackingPoint>;
   getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]>;
   getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]>;
+
+  // Saved location methods
+  createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
+  getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
+  deleteSavedLocation(id: number, sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -297,6 +302,24 @@ export class DatabaseStorage implements IStorage {
       const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
       return distance <= radiusKm;
     }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation> {
+    const [savedLocation] = await db
+      .insert(savedLocations)
+      .values(location)
+      .returning();
+    return savedLocation;
+  }
+
+  async getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]> {
+    return await db.select().from(savedLocations).where(eq(savedLocations.sessionId, sessionId));
+  }
+
+  async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
+    await db.delete(savedLocations).where(
+      and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId))
+    );
   }
 }
 
