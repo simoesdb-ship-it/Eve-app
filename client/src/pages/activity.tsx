@@ -266,12 +266,12 @@ export default function ActivityPage() {
         </Collapsible>
       </div>
 
-      {/* Recent Activity Feed */}
+      {/* Categorized Activity Feed */}
       <div className="flex-1 overflow-y-auto pb-20">
-        <div className="px-4 py-4">
+        <div className="px-4 py-4 space-y-4">
           <div className="flex items-center space-x-2 mb-3">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <h3 className="font-semibold text-neutral-800">Recent Activity Feed</h3>
+            <h3 className="font-semibold text-neutral-800">Recent Activity by Category</h3>
             <Badge variant="outline" className="text-xs">
               {activities.length} total activities
             </Badge>
@@ -299,36 +299,167 @@ export default function ActivityPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {activities.slice(0, 10).map((activity: ActivityType) => {
-                const IconComponent = getActivityIcon(activity.type);
-                
-                return (
-                  <Card key={activity.id} className="transition-shadow hover:shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.type)}`}>
-                          <IconComponent className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-neutral-800">
-                            {activity.description}
-                          </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {activity.type}
-                            </Badge>
-                            <span className="text-xs text-neutral-400">
-                              {formatTimeAgo(activity.createdAt.toString())}
-                            </span>
+            <>
+              {/* Location Analysis Activities */}
+              {activities.filter(a => a.type === 'visit').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    <h4 className="font-medium text-neutral-800">Location Analysis</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {activities.filter(a => a.type === 'visit').length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activities.filter(a => a.type === 'visit').slice(0, 5).map((activity: ActivityType) => (
+                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                              <MapPin className="w-3 h-3 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-neutral-800">{activity.description}</p>
+                              <span className="text-xs text-neutral-400">
+                                {formatTimeAgo(activity.createdAt.toString())}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pattern Suggestions */}
+              {activities.filter(a => a.type === 'suggestion').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <BookOpen className="w-4 h-4 text-purple-600" />
+                    <h4 className="font-medium text-neutral-800">Pattern Suggestions</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {activities.filter(a => a.type === 'suggestion').length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activities.filter(a => a.type === 'suggestion').slice(0, 5).map((activity: ActivityType) => (
+                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                              <BookOpen className="w-3 h-3 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-neutral-800">{activity.description}</p>
+                              <span className="text-xs text-neutral-400">
+                                {formatTimeAgo(activity.createdAt.toString())}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Voting Activities */}
+              {activities.filter(a => a.type === 'vote').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Vote className="w-4 h-4 text-orange-600" />
+                    <h4 className="font-medium text-neutral-800">Community Voting</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {activities.filter(a => a.type === 'vote').length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activities.filter(a => a.type === 'vote').slice(0, 5).map((activity: ActivityType) => (
+                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">
+                              <Vote className="w-3 h-3 text-orange-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-neutral-800">{activity.description}</p>
+                              <span className="text-xs text-neutral-400">
+                                {formatTimeAgo(activity.createdAt.toString())}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Movement Tracking */}
+              {activities.filter(a => a.type === 'tracking').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Navigation className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-medium text-neutral-800">Movement Tracking</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {activities.filter(a => a.type === 'tracking').length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activities.filter(a => a.type === 'tracking').slice(0, 5).map((activity: ActivityType) => (
+                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                              <Navigation className="w-3 h-3 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-neutral-800">{activity.description}</p>
+                              <span className="text-xs text-neutral-400">
+                                {formatTimeAgo(activity.createdAt.toString())}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Other Activities */}
+              {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-gray-600" />
+                    <h4 className="font-medium text-neutral-800">Other Activities</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).slice(0, 5).map((activity: ActivityType) => (
+                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                              <Activity className="w-3 h-3 text-gray-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-neutral-800">{activity.description}</p>
+                              <span className="text-xs text-neutral-400">
+                                {formatTimeAgo(activity.createdAt.toString())}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
