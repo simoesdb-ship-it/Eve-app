@@ -8,6 +8,9 @@ export interface LocationTimeSpent {
   firstVisit: Date;
   lastVisit: Date;
   visitCount: number;
+  averageSessionDuration: number;
+  visitFrequency: number; // visits per day
+  interpolatedPoints: number; // number of points interpolated due to clustering
 }
 
 export interface VotingEligibility {
@@ -21,9 +24,12 @@ export class TimeTrackingService {
   private readonly MINIMUM_TIME_FOR_VOTING = 5; // minutes
   private readonly MAXIMUM_VOTING_WEIGHT = 10.0; // max weight multiplier
   private readonly TIME_WEIGHT_FACTOR = 0.1; // weight increase per minute
+  private readonly CLUSTERING_RADIUS_KM = 0.1; // 100 meters for coordinate interpolation
+  private readonly TRACKING_INTERVAL_MINUTES = 3; // tracking every 3 minutes
+  private readonly MAX_GAP_TOLERANCE_MINUTES = 6; // allow up to 6 minutes gap in visits
 
   /**
-   * Calculate time spent by a session at a specific location
+   * Calculate time spent by a session at a specific location with coordinate interpolation
    */
   async calculateTimeAtLocation(sessionId: string, locationId: number): Promise<LocationTimeSpent> {
     // Get location coordinates
@@ -34,66 +40,70 @@ export class TimeTrackingService {
 
     const locationLat = parseFloat(location.latitude);
     const locationLng = parseFloat(location.longitude);
-    const RADIUS_KM = 0.1; // 100 meters
 
-    // Get all spatial points for this session near the location
-    const points = await db.select().from(spatialPoints)
-      .where(and(
-        eq(spatialPoints.sessionId, sessionId),
-        sql`ST_DWithin(
-          ST_MakePoint(${spatialPoints.longitude}::float, ${spatialPoints.latitude}::float)::geography,
-          ST_MakePoint(${locationLng}, ${locationLat})::geography,
-          ${RADIUS_KM * 1000}
-        )`
-      ))
+    // Get all spatial points for this session
+    const allPoints = await db.select().from(spatialPoints)
+      .where(eq(spatialPoints.sessionId, sessionId))
       .orderBy(spatialPoints.createdAt);
 
-    if (points.length === 0) {
+    if (allPoints.length === 0) {
       return {
         locationId,
         timeSpentMinutes: 0,
         firstVisit: new Date(),
         lastVisit: new Date(),
-        visitCount: 0
+        visitCount: 0,
+        averageSessionDuration: 0,
+        visitFrequency: 0,
+        interpolatedPoints: 0
       };
     }
 
-    // Calculate time spent based on tracking points
-    let totalMinutes = 0;
-    const TRACKING_INTERVAL_MINUTES = 3; // tracking every 3 minutes
+    // Find points near the location and interpolate coordinates that are close enough to be clustered
+    const { nearbyPoints, interpolatedCount } = this.findAndInterpolateNearbyPoints(
+      allPoints, 
+      locationLat, 
+      locationLng
+    );
 
-    // Group consecutive visits
-    const visits: Date[][] = [];
-    let currentVisit: Date[] = [points[0].createdAt];
-
-    for (let i = 1; i < points.length; i++) {
-      const timeDiff = (points[i].createdAt.getTime() - points[i-1].createdAt.getTime()) / (1000 * 60);
-      
-      if (timeDiff <= TRACKING_INTERVAL_MINUTES * 2) { // Allow some gap tolerance
-        currentVisit.push(points[i].createdAt);
-      } else {
-        visits.push(currentVisit);
-        currentVisit = [points[i].createdAt];
-      }
+    if (nearbyPoints.length === 0) {
+      return {
+        locationId,
+        timeSpentMinutes: 0,
+        firstVisit: new Date(),
+        lastVisit: new Date(),
+        visitCount: 0,
+        averageSessionDuration: 0,
+        visitFrequency: 0,
+        interpolatedPoints: interpolatedCount
+      };
     }
-    visits.push(currentVisit);
 
-    // Calculate time for each visit
-    for (const visit of visits) {
-      if (visit.length === 1) {
-        totalMinutes += TRACKING_INTERVAL_MINUTES; // Assume minimum tracking interval
-      } else {
-        const visitDuration = (visit[visit.length - 1].getTime() - visit[0].getTime()) / (1000 * 60);
-        totalMinutes += Math.max(visitDuration, TRACKING_INTERVAL_MINUTES);
-      }
-    }
+    // Group consecutive visits with improved gap tolerance
+    const visits = this.groupConsecutiveVisits(nearbyPoints);
+    
+    // Calculate time spent and visit statistics
+    const { totalMinutes, visitDurations } = this.calculateVisitTimes(visits);
+    const averageSessionDuration = visitDurations.length > 0 
+      ? visitDurations.reduce((sum, duration) => sum + duration, 0) / visitDurations.length 
+      : 0;
+
+    // Calculate visit frequency (visits per day)
+    const timeSpanDays = Math.max(1, 
+      (nearbyPoints[nearbyPoints.length - 1].createdAt.getTime() - nearbyPoints[0].createdAt.getTime()) 
+      / (1000 * 60 * 60 * 24)
+    );
+    const visitFrequency = visits.length / timeSpanDays;
 
     return {
       locationId,
       timeSpentMinutes: Math.round(totalMinutes),
-      firstVisit: points[0].createdAt,
-      lastVisit: points[points.length - 1].createdAt,
-      visitCount: visits.length
+      firstVisit: nearbyPoints[0].createdAt,
+      lastVisit: nearbyPoints[nearbyPoints.length - 1].createdAt,
+      visitCount: visits.length,
+      averageSessionDuration: Math.round(averageSessionDuration),
+      visitFrequency: Math.round(visitFrequency * 100) / 100, // Round to 2 decimal places
+      interpolatedPoints: interpolatedCount
     };
   }
 
@@ -144,6 +154,96 @@ export class TimeTrackingService {
     }
 
     return eligibleLocations.sort((a, b) => b.timeSpentMinutes - a.timeSpentMinutes);
+  }
+
+  /**
+   * Find and interpolate nearby points that should be clustered together
+   */
+  private findAndInterpolateNearbyPoints(allPoints: any[], targetLat: number, targetLng: number): { nearbyPoints: any[], interpolatedCount: number } {
+    const nearbyPoints: any[] = [];
+    let interpolatedCount = 0;
+
+    for (const point of allPoints) {
+      const pointLat = parseFloat(point.latitude);
+      const pointLng = parseFloat(point.longitude);
+      const distance = this.calculateDistance(pointLat, pointLng, targetLat, targetLng);
+
+      if (distance <= this.CLUSTERING_RADIUS_KM) {
+        // If point is close enough but not exact, interpolate towards target location
+        if (distance > 0.01) { // 10 meters
+          const interpolatedPoint = {
+            ...point,
+            latitude: this.interpolateCoordinate(pointLat, targetLat, distance),
+            longitude: this.interpolateCoordinate(pointLng, targetLng, distance),
+            originalDistance: distance
+          };
+          nearbyPoints.push(interpolatedPoint);
+          interpolatedCount++;
+        } else {
+          nearbyPoints.push(point);
+        }
+      }
+    }
+
+    return { nearbyPoints, interpolatedCount };
+  }
+
+  /**
+   * Interpolate coordinate towards target based on distance
+   */
+  private interpolateCoordinate(current: number, target: number, distanceKm: number): string {
+    // Interpolate closer to target if within clustering radius
+    const interpolationFactor = Math.max(0.1, 1 - (distanceKm / this.CLUSTERING_RADIUS_KM));
+    const interpolated = current + (target - current) * interpolationFactor;
+    return interpolated.toString();
+  }
+
+  /**
+   * Group consecutive visits with improved gap tolerance
+   */
+  private groupConsecutiveVisits(points: any[]): Date[][] {
+    if (points.length === 0) return [];
+
+    const visits: Date[][] = [];
+    let currentVisit: Date[] = [points[0].createdAt];
+
+    for (let i = 1; i < points.length; i++) {
+      const timeDiff = (points[i].createdAt.getTime() - points[i-1].createdAt.getTime()) / (1000 * 60);
+      
+      if (timeDiff <= this.MAX_GAP_TOLERANCE_MINUTES) {
+        currentVisit.push(points[i].createdAt);
+      } else {
+        visits.push(currentVisit);
+        currentVisit = [points[i].createdAt];
+      }
+    }
+    visits.push(currentVisit);
+
+    return visits;
+  }
+
+  /**
+   * Calculate total time and individual visit durations
+   */
+  private calculateVisitTimes(visits: Date[][]): { totalMinutes: number, visitDurations: number[] } {
+    let totalMinutes = 0;
+    const visitDurations: number[] = [];
+
+    for (const visit of visits) {
+      let visitDuration: number;
+      
+      if (visit.length === 1) {
+        visitDuration = this.TRACKING_INTERVAL_MINUTES; // Assume minimum tracking interval
+      } else {
+        visitDuration = (visit[visit.length - 1].getTime() - visit[0].getTime()) / (1000 * 60);
+        visitDuration = Math.max(visitDuration, this.TRACKING_INTERVAL_MINUTES);
+      }
+      
+      totalMinutes += visitDuration;
+      visitDurations.push(visitDuration);
+    }
+
+    return { totalMinutes, visitDurations };
   }
 
   /**
