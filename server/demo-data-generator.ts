@@ -6,22 +6,22 @@ export async function generateTimeTrackingDemo(sessionId: string) {
   // Create a realistic location in Minneapolis (from the fallback coordinates)
   const coffeeShopLocation = await storage.createLocation({
     name: "Community Coffee Shop",
-    latitude: 44.97996520,
-    longitude: -92.9594,
+    latitude: "44.97996520",
+    longitude: "-92.9594",
     sessionId,
   });
 
   const libraryLocation = await storage.createLocation({
     name: "Public Library",
-    latitude: 44.97896520, // Slightly different coordinates
-    longitude: -92.9584,
+    latitude: "44.97896520", // Slightly different coordinates
+    longitude: "-92.9584",
     sessionId,
   });
 
   const parkLocation = await storage.createLocation({
     name: "Neighborhood Park",
-    latitude: 44.98096520,
-    longitude: -92.9574,
+    latitude: "44.98096520",
+    longitude: "-92.9574",
     sessionId,
   });
 

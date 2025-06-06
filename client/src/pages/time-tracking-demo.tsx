@@ -41,11 +41,12 @@ export default function TimeTrackingDemo() {
   });
 
   const generateDemoMutation = useMutation({
-    mutationFn: () => apiRequest("/api/generate-demo-data", {
-      method: "POST",
-      body: JSON.stringify({ sessionId: "demo_session" }),
-      headers: { "Content-Type": "application/json" }
-    }),
+    mutationFn: () => 
+      fetch("/api/generate-demo-data", {
+        method: "POST",
+        body: JSON.stringify({ sessionId: "demo_session" }),
+        headers: { "Content-Type": "application/json" }
+      }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/voting-eligible-locations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
