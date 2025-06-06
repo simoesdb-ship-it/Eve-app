@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import MobileContainer from "@/components/mobile-container";
 import DiscoverPage from "@/pages/discover";
 import PatternsPage from "@/pages/patterns";
+import PatternDetailPage from "@/pages/pattern-detail";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
 import LocationAnalysisPage from "@/pages/location-analysis";
@@ -16,6 +17,7 @@ function Router() {
     <Switch>
       <Route path="/" component={DiscoverPage} />
       <Route path="/patterns" component={PatternsPage} />
+      <Route path="/patterns/:id" component={PatternDetailPage} />
       <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/location-analysis" component={LocationAnalysisPage} />

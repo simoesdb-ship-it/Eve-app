@@ -220,6 +220,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pattern library endpoints
+  app.get('/api/patterns', async (req, res) => {
+    try {
+      const patterns = await storage.getAllPatterns();
+      res.json(patterns);
+    } catch (error) {
+      console.error('Error fetching patterns:', error);
+      res.status(500).json({ error: 'Failed to fetch patterns' });
+    }
+  });
+
+  app.get('/api/patterns/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const pattern = await storage.getPattern(id);
+      if (!pattern) {
+        return res.status(404).json({ error: 'Pattern not found' });
+      }
+      res.json(pattern);
+    } catch (error) {
+      console.error('Error fetching pattern:', error);
+      res.status(500).json({ error: 'Failed to fetch pattern' });
+    }
+  });
+
   // Location analysis endpoint - fetches real geographic data
   app.get('/api/location-analysis', async (req, res) => {
     try {
