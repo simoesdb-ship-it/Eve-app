@@ -109,22 +109,28 @@ export class CommunityAnalysisAgent {
   }
 
   private async getExistingPatternMatches() {
-    // Get all pattern suggestions that have been made in the system
-    const suggestions = await db.select({
-      patternId: patternSuggestions.patternId,
-      patternNumber: patterns.number,
-      confidence: patternSuggestions.confidence,
-      locationId: patternSuggestions.locationId,
-      locationLat: locations.latitude,
-      locationLng: locations.longitude,
-      createdAt: patternSuggestions.createdAt
-    })
-    .from(patternSuggestions)
-    .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
-    .innerJoin(locations, eq(patternSuggestions.locationId, locations.id))
-    .where(sql`${patternSuggestions.createdAt} > NOW() - INTERVAL '30 days'`); // Last 30 days
-    
-    return suggestions;
+    try {
+      // Get all pattern suggestions that have been made in the system
+      const suggestions = await db.select({
+        patternId: patternSuggestions.patternId,
+        patternNumber: patterns.number,
+        confidence: patternSuggestions.confidence,
+        locationId: patternSuggestions.locationId,
+        locationLat: locations.latitude,
+        locationLng: locations.longitude,
+        createdAt: patternSuggestions.createdAt
+      })
+      .from(patternSuggestions)
+      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+      .innerJoin(locations, eq(patternSuggestions.locationId, locations.id))
+      .where(sql`${patternSuggestions.createdAt} > NOW() - INTERVAL '30 days'`); // Last 30 days
+      
+      return suggestions;
+    } catch (error) {
+      // If tables don't exist or have no data, return empty array
+      console.log('No pattern suggestions found, using empty array for analysis');
+      return [];
+    }
   }
 
   private calculatePatternRelevance(pattern: any, existingMatches: any[]): number {
@@ -145,15 +151,35 @@ export class CommunityAnalysisAgent {
     const points = await db.select().from(spatialPoints)
       .where(sql`${spatialPoints.createdAt} > NOW() - INTERVAL '7 days'`); // Last week's data
     
-    return points.map(point => ({
-      id: point.id,
-      lat: Number(point.latitude),
-      lng: Number(point.longitude),
-      type: point.type,
-      sessionId: point.sessionId,
-      timestamp: point.createdAt,
-      metadata: JSON.parse(point.metadata || '{}')
-    }));
+    console.log('Found', points.length, 'spatial points for analysis');
+    
+    return points.map(point => {
+      let metadata = {};
+      
+      // Handle metadata safely - it might be a string, object, or null
+      if (point.metadata) {
+        if (typeof point.metadata === 'string') {
+          try {
+            metadata = JSON.parse(point.metadata);
+          } catch (e) {
+            console.log('Failed to parse metadata string:', point.metadata);
+            metadata = {};
+          }
+        } else if (typeof point.metadata === 'object') {
+          metadata = point.metadata;
+        }
+      }
+      
+      return {
+        id: point.id,
+        lat: Number(point.latitude),
+        lng: Number(point.longitude),
+        type: point.type,
+        sessionId: point.sessionId,
+        timestamp: point.createdAt,
+        metadata
+      };
+    });
   }
 
   private async detectCommunities(spatialData: any[]): Promise<CommunityCluster[]> {
