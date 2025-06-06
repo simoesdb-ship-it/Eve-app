@@ -84,61 +84,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async initializePatterns(): Promise<void> {
-    const initialPatterns: InsertPattern[] = [
-      {
-        number: 52,
-        name: "Network of Paths and Cars",
-        description: "Cars are dangerous to pedestrians; yet activities and people's movement patterns on foot are incompatible with the grid of streets and roads that this movement requires.",
-        fullDescription: "Cars are dangerous to pedestrians; yet activities and people's movement patterns on foot are incompatible with the grid of streets and roads that this movement requires. The conflict can be resolved by making a complete separation between paths for people and roads for cars.",
-        category: "Transportation",
-        keywords: ["pedestrian", "walkway", "traffic", "safety", "urban"],
-        iconName: "footprints",
-        moodColor: "structured"
-      },
-      {
-        number: 61,
-        name: "Small Public Squares",
-        description: "A town needs public squares; they are the largest, most public rooms, that the town has.",
-        fullDescription: "A town needs public squares; they are the largest, most public rooms, that the town has. But when they are too large, they look and feel deserted.",
-        category: "Public Space",
-        keywords: ["plaza", "gathering", "public", "community", "center"],
-        iconName: "square",
-        moodColor: "community"
-      },
-      {
-        number: 88,
-        name: "Street Café",
-        description: "The street café provides a unique setting, special to the activity of drinking.",
-        fullDescription: "The street café provides a unique setting, special to the activity of drinking. If the café cannot be on a sidewalk, a terrace or a place where people can sit lazily, the café will not provide the magic of a street café.",
-        category: "Commercial",
-        keywords: ["cafe", "outdoor", "seating", "social", "dining"],
-        iconName: "coffee",
-        moodColor: "warm"
-      },
-      {
-        number: 100,
-        name: "Pedestrian Street",
-        description: "In the right circumstances, a street closed to traffic can become a wonderful place for people.",
-        fullDescription: "In the right circumstances, a street closed to traffic can become a wonderful place for people. But not all streets should be closed to traffic. The ones that should be closed are those which are small enough, and active enough, so that they are not overwhelmed by people walking.",
-        category: "Transportation",
-        keywords: ["pedestrian", "walkway", "no-cars", "public", "street"],
-        iconName: "road",
-        moodColor: "active"
-      },
-      {
-        number: 106,
-        name: "Positive Outdoor Space",
-        description: "Outdoor spaces which are merely 'left over' between buildings will, in general, not be used.",
-        fullDescription: "Outdoor spaces which are merely 'left over' between buildings will, in general, not be used. Instead of making buildings, and then treating the open space between them as leftover, start with the open space and make it positive.",
-        category: "Landscape",
-        keywords: ["outdoor", "space", "landscape", "design", "natural"],
-        iconName: "trees",
-        moodColor: "natural"
-      }
-    ];
-
-    for (const pattern of initialPatterns) {
-      await db.insert(patterns).values(pattern);
+    const { alexanderPatterns } = await import('./alexander-patterns');
+    
+    for (const pattern of alexanderPatterns) {
+      await db.insert(patterns).values({
+        number: pattern.number,
+        name: pattern.name,
+        description: pattern.description,
+        fullDescription: pattern.fullDescription,
+        category: pattern.category,
+        keywords: pattern.keywords,
+        iconName: pattern.iconName,
+        moodColor: pattern.moodColor
+      });
     }
   }
 
