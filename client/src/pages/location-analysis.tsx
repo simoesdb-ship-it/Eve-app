@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, MapPin, Building, Users, Car, Trees, Wifi, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Building, Users, Car, Trees, Wifi, Clock, CheckCircle, XCircle, AlertCircle, Save, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { apiRequest } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { generateSessionId } from "@/lib/geolocation";
 import MobileContainer from "@/components/mobile-container";
 
 interface LocationData {
@@ -47,6 +52,11 @@ interface PatternCriteria {
 export default function LocationAnalysisPage() {
   const [location, navigate] = useLocation();
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [locationName, setLocationName] = useState("");
+  const [locationDescription, setLocationDescription] = useState("");
+  const { toast } = useToast();
+  const sessionId = generateSessionId();
   const [openSections, setOpenSections] = useState<{[key: string]: boolean}>({
     geographic: true,
     contextual: false,
@@ -149,6 +159,54 @@ export default function LocationAnalysisPage() {
     }));
   };
 
+  // Save location mutation
+  const saveLocationMutation = useMutation({
+    mutationFn: async (saveData: any) => {
+      const response = await apiRequest('POST', '/api/saved-locations', saveData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Location Saved",
+        description: "This location has been saved to your collection",
+      });
+      setSaveDialogOpen(false);
+      setLocationName("");
+      setLocationDescription("");
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-locations'] });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Unable to save location. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSaveLocation = () => {
+    if (!coordinates || !locationData) return;
+    
+    const saveData = {
+      sessionId,
+      latitude: coordinates.lat.toString(),
+      longitude: coordinates.lng.toString(),
+      name: locationName || `Location at ${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}`,
+      description: locationDescription,
+      address: locationData.address || "",
+      elevation: locationData.elevation?.toString() || null,
+      landUse: contextualData?.landUse || null,
+      urbanDensity: contextualData?.urbanDensity || null,
+      patternEvaluation: JSON.stringify(patternCriteria.map(c => ({
+        id: c.id,
+        name: c.name,
+        evaluation: c.evaluation
+      })))
+    };
+    
+    saveLocationMutation.mutate(saveData);
+  };
+
   const updatePatternEvaluation = (criteriaId: string, evaluation: 'positive' | 'negative' | 'neutral') => {
     setPatternEvaluations(prev => ({
       ...prev,
@@ -189,7 +247,54 @@ export default function LocationAnalysisPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-lg font-semibold">Location Analysis</h1>
-          <div className="w-9" /> {/* Spacer */}
+          <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-2">
+                <Heart className="w-5 h-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Save Location</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Location Name
+                  </label>
+                  <Input
+                    id="name"
+                    value={locationName}
+                    onChange={(e) => setLocationName(e.target.value)}
+                    placeholder="Enter a name for this location"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="description" className="text-sm font-medium">
+                    Description (Optional)
+                  </label>
+                  <Textarea
+                    id="description"
+                    value={locationDescription}
+                    onChange={(e) => setLocationDescription(e.target.value)}
+                    placeholder="Add notes about this location"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveLocation}
+                  disabled={saveLocationMutation.isPending}
+                >
+                  {saveLocationMutation.isPending ? "Saving..." : "Save Location"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
