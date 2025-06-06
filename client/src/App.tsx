@@ -12,6 +12,7 @@ import SettingsPage from "@/pages/settings";
 import LocationAnalysisPage from "@/pages/location-analysis";
 import CommunityAnalysisPage from "@/pages/community-analysis";
 import RealWorldAnalysisPage from "@/pages/real-world-analysis";
+import TimeTrackingDemoPage from "@/pages/time-tracking-demo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/location-analysis" component={LocationAnalysisPage} />
       <Route path="/community-analysis" component={CommunityAnalysisPage} />
       <Route path="/real-world-analysis" component={RealWorldAnalysisPage} />
+      <Route path="/time-tracking" component={TimeTrackingDemoPage} />
       <Route component={NotFound} />
     </Switch>
   );
