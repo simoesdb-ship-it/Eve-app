@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { unifiedStorage as storage } from "./storage-unified";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema } from "@shared/schema";
+import { communityAgent } from "./community-agent";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
