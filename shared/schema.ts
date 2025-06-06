@@ -43,6 +43,9 @@ export const votes = pgTable("votes", {
   suggestionId: integer("suggestion_id").references(() => patternSuggestions.id).notNull(),
   sessionId: text("session_id").notNull(), // Anonymous voting
   voteType: text("vote_type").notNull(), // 'up' or 'down'
+  weight: decimal("weight", { precision: 5, scale: 2 }).default("1.00").notNull(), // voting weight based on time spent at location
+  locationId: integer("location_id").references(() => locations.id), // location where vote was cast
+  timeSpentMinutes: integer("time_spent_minutes").default(0).notNull(), // tracked time at this location
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

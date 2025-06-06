@@ -32,8 +32,10 @@ export interface IStorage {
 
   // Voting methods
   createVote(vote: InsertVote): Promise<Vote>;
+  createLocationBasedVote(vote: InsertVote & { weight: number; locationId: number; timeSpentMinutes: number; }): Promise<Vote>;
   getVotesForSuggestion(suggestionId: number): Promise<Vote[]>;
   getUserVoteForSuggestion(suggestionId: number, sessionId: string): Promise<Vote | undefined>;
+  canUserVoteAtLocation(sessionId: string, locationId: number): Promise<{ canVote: boolean; weight: number; timeSpentMinutes: number; reason?: string; }>;
 
   // Activity methods
   createActivity(activity: InsertActivity): Promise<Activity>;
@@ -194,6 +196,20 @@ export class DatabaseStorage implements IStorage {
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
     const [vote] = await db.insert(votes).values(insertVote).returning();
+    return vote;
+  }
+
+  async createLocationBasedVote(insertVote: InsertVote & { 
+    weight: number; 
+    locationId: number; 
+    timeSpentMinutes: number; 
+  }): Promise<Vote> {
+    const [vote] = await db.insert(votes).values({
+      ...insertVote,
+      weight: insertVote.weight.toString(),
+      locationId: insertVote.locationId,
+      timeSpentMinutes: insertVote.timeSpentMinutes
+    }).returning();
     return vote;
   }
 
