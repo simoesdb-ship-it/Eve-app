@@ -161,37 +161,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPatternsForLocation(locationId: number, sessionId: string): Promise<PatternWithVotes[]> {
-    const suggestions = await db
-      .select({
-        suggestion: patternSuggestions,
-        pattern: patterns
-      })
-      .from(patternSuggestions)
-      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
-      .where(eq(patternSuggestions.locationId, locationId));
+    try {
+      console.log(`Storage: Fetching suggestions for location ${locationId}`);
+      
+      const suggestions = await db
+        .select({
+          suggestion: patternSuggestions,
+          pattern: patterns
+        })
+        .from(patternSuggestions)
+        .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+        .where(eq(patternSuggestions.locationId, locationId));
 
-    const patternsWithVotes: PatternWithVotes[] = [];
+      console.log(`Storage: Found ${suggestions.length} suggestions`);
 
-    for (const { suggestion, pattern } of suggestions) {
-      const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
-      const userVote = await db.select().from(votes)
-        .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
-        .limit(1);
+      const patternsWithVotes: PatternWithVotes[] = [];
 
-      const upvotes = allVotes.filter(v => v.voteType === 'up').length;
-      const downvotes = allVotes.filter(v => v.voteType === 'down').length;
+      for (const { suggestion, pattern } of suggestions) {
+        const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
+        const userVote = await db.select().from(votes)
+          .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
+          .limit(1);
 
-      patternsWithVotes.push({
-        ...pattern,
-        upvotes,
-        downvotes,
-        confidence: Number(suggestion.confidence),
-        suggestionId: suggestion.id,
-        userVote: userVote[0]?.voteType as 'up' | 'down' || null
-      });
+        const upvotes = allVotes.filter(v => v.voteType === 'up').length;
+        const downvotes = allVotes.filter(v => v.voteType === 'down').length;
+
+        patternsWithVotes.push({
+          ...pattern,
+          upvotes,
+          downvotes,
+          confidence: parseFloat(suggestion.confidence.toString()),
+          suggestionId: suggestion.id,
+          userVote: userVote[0]?.voteType as 'up' | 'down' || null
+        });
+      }
+
+      console.log(`Storage: Returning ${patternsWithVotes.length} patterns with votes`);
+      return patternsWithVotes;
+    } catch (error) {
+      console.error('Storage: Error in getPatternsForLocation:', error);
+      throw error;
     }
-
-    return patternsWithVotes;
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {

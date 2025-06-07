@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const suggestion = await storage.createPatternSuggestion({
             locationId: location.id,
             patternId: pattern.id,
-            confidence: confidence.toString(),
+            confidence: confidence,
             mlAlgorithm: "enhanced_keyword_spatial_matching"
           });
           suggestions.push(suggestion);
@@ -89,10 +89,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Session ID is required" });
       }
 
+      console.log(`Fetching patterns for location ${locationId}`);
       const patterns = await storage.getPatternsForLocation(locationId, sessionId);
+      console.log(`Found ${patterns.length} patterns for location ${locationId}`);
       res.json(patterns);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch patterns for location" });
+      console.error(`Error fetching patterns for location ${locationId}:`, error);
+      res.status(500).json({ message: "Failed to fetch patterns for location", error: String(error) });
     }
   });
 
