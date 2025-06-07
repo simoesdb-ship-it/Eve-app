@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { getMovementTracker } from "@/lib/movement-tracker";
-import type { PatternWithVotes, TrackingPoint } from "@shared/schema";
+import type { PatternWithVotes, SpatialPoint } from "@shared/schema";
 
 // Cluster tracking points by proximity to show visit frequency
-function clusterTrackingPoints(points: TrackingPoint[], radiusMeters = 20): Array<{
+function clusterTrackingPoints(points: SpatialPoint[], radiusMeters = 20): Array<{
   latitude: string;
   longitude: string;
   count: number;
@@ -18,7 +18,7 @@ function clusterTrackingPoints(points: TrackingPoint[], radiusMeters = 20): Arra
     longitude: string;
     count: number;
     latestTimestamp: string;
-    points: TrackingPoint[];
+    points: SpatialPoint[];
   }> = [];
 
   points.forEach(point => {
@@ -38,8 +38,8 @@ function clusterTrackingPoints(points: TrackingPoint[], radiusMeters = 20): Arra
       existingCluster.count++;
       existingCluster.points.push(point);
       // Update to latest timestamp
-      if (new Date(point.timestamp) > new Date(existingCluster.latestTimestamp)) {
-        existingCluster.latestTimestamp = point.timestamp;
+      if (new Date(point.createdAt) > new Date(existingCluster.latestTimestamp)) {
+        existingCluster.latestTimestamp = point.createdAt.toISOString();
       }
     } else {
       // Create new cluster
@@ -375,11 +375,46 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
     }
   };
 
-  const handleRecenter = () => {
-    if (currentLocation && mapRef.current) {
+  const handleRecenter = async () => {
+    if (mapRef.current) {
       try {
-        mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
-        setShowLocationDetails(!showLocationDetails);
+        // Force refresh current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const newLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              
+              // Update map view to current location
+              mapRef.current.setView([newLocation.lat, newLocation.lng], Math.max(zoomLevel, 15));
+              setShowLocationDetails(!showLocationDetails);
+              
+              // Notify parent component of location update
+              if (props.onLocationUpdate) {
+                props.onLocationUpdate(newLocation);
+              }
+            },
+            (error) => {
+              console.warn('Error getting current location:', error);
+              // Fallback to existing location if available
+              if (currentLocation) {
+                mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+                setShowLocationDetails(!showLocationDetails);
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0 // Force fresh location
+            }
+          );
+        } else if (currentLocation) {
+          // Fallback if geolocation not available
+          mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+          setShowLocationDetails(!showLocationDetails);
+        }
       } catch (error) {
         console.warn('Error recentering map:', error);
         setMapLoaded(false);
@@ -472,11 +507,12 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white bg-green-50 hover:bg-green-100 border-green-200"
             onClick={handleRecenter}
             disabled={!currentLocation}
+            title="Center map on current location"
           >
-            <Crosshair className="w-4 h-4" />
+            <Crosshair className="w-4 h-4 text-green-600" />
           </Button>
           <Button
             size="icon"

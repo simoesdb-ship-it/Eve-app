@@ -2,7 +2,7 @@ export function generateSessionId(): string {
   return `anon_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
 }
 
-export function getCurrentPosition(): Promise<GeolocationPosition> {
+export function getCurrentPosition(forceRefresh: boolean = false): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by this browser.'));
@@ -15,10 +15,27 @@ export function getCurrentPosition(): Promise<GeolocationPosition> {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 300000 // 5 minutes
+        maximumAge: forceRefresh ? 0 : 300000 // Force fresh location if requested
       }
     );
   });
+}
+
+// Add visibility change listener for app foreground refresh
+export function setupAppForegroundRefresh(callback: () => void): () => void {
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      // App came to foreground, refresh location
+      callback();
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // Return cleanup function
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
 }
 
 export function watchPosition(
