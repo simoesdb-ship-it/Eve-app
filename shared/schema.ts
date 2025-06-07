@@ -33,7 +33,7 @@ export const patternSuggestions = pgTable("pattern_suggestions", {
   id: serial("id").primaryKey(),
   locationId: integer("location_id").references(() => locations.id).notNull(),
   patternId: integer("pattern_id").references(() => patterns.id).notNull(),
-  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull(),
+  confidence: text("confidence").notNull(),
   mlAlgorithm: text("ml_algorithm").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

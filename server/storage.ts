@@ -190,7 +190,7 @@ export class DatabaseStorage implements IStorage {
           ...pattern,
           upvotes,
           downvotes,
-          confidence: parseFloat(suggestion.confidence.toString()),
+          confidence: parseFloat(suggestion.confidence),
           suggestionId: suggestion.id,
           userVote: userVote[0]?.voteType as 'up' | 'down' || null
         });
