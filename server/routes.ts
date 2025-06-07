@@ -38,23 +38,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const locationData = insertLocationSchema.parse(req.body);
       const location = await storage.createLocation(locationData);
 
-      // Generate pattern suggestions using ML algorithm
+      // Generate pattern suggestions using enhanced algorithm
       const patterns = await storage.getAllPatterns();
       const suggestions = [];
 
+      console.log(`Analyzing ${patterns.length} patterns for location: ${location.name}`);
+
       for (const pattern of patterns) {
-        // Simple pattern matching algorithm based on keywords and location characteristics
         const confidence = calculatePatternConfidence(pattern, location);
+        console.log(`Pattern ${pattern.number} "${pattern.name}": confidence ${confidence.toFixed(3)}`);
+        
         if (confidence > 0.5) {
           const suggestion = await storage.createPatternSuggestion({
             locationId: location.id,
             patternId: pattern.id,
             confidence: confidence.toString(),
-            mlAlgorithm: "keyword_spatial_matching"
+            mlAlgorithm: "enhanced_keyword_spatial_matching"
           });
           suggestions.push(suggestion);
+          console.log(`Created suggestion for pattern ${pattern.number} with confidence ${confidence.toFixed(3)}`);
         }
       }
+
+      console.log(`Generated ${suggestions.length} pattern suggestions for location ${location.id}`);
 
       // Log activity
       await storage.createActivity({
@@ -525,26 +531,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Simple pattern matching algorithm
+// Enhanced pattern matching algorithm
 function calculatePatternConfidence(pattern: any, location: any): number {
-  let confidence = 0.5; // Base confidence
+  let confidence = 0.3; // Lower base confidence
 
-  // Urban area indicators
-  const urbanKeywords = ['street', 'plaza', 'public', 'pedestrian', 'cafe'];
+  // Location name analysis
+  const locationName = (location.name || '').toLowerCase();
   const patternKeywords = pattern.keywords.map((k: string) => k.toLowerCase());
+  const patternName = pattern.name.toLowerCase();
   
-  const urbanMatch = urbanKeywords.some(uk => 
-    patternKeywords.some((pk: string) => pk.includes(uk))
+  // Direct keyword matches in location name
+  const nameKeywordMatch = patternKeywords.some(keyword => 
+    locationName.includes(keyword) || keyword.includes(locationName.split(' ')[0])
   );
   
-  if (urbanMatch) {
-    confidence += 0.3;
+  if (nameKeywordMatch) {
+    confidence += 0.4;
   }
 
-  // Random variation to simulate ML algorithm
-  confidence += (Math.random() - 0.5) * 0.2;
+  // Urban context patterns
+  const urbanIndicators = ['plaza', 'square', 'park', 'street', 'avenue', 'center', 'market', 'station'];
+  const hasUrbanContext = urbanIndicators.some(indicator => locationName.includes(indicator));
   
-  return Math.max(0, Math.min(1, confidence));
+  if (hasUrbanContext) {
+    // Boost patterns related to urban design
+    const urbanPatterns = ['pedestrian', 'public', 'community', 'activity', 'circulation', 'open'];
+    const isUrbanPattern = urbanPatterns.some(urban => 
+      patternKeywords.some(keyword => keyword.includes(urban)) || patternName.includes(urban)
+    );
+    
+    if (isUrbanPattern) {
+      confidence += 0.3;
+    }
+  }
+
+  // Community and social patterns get higher confidence
+  const socialKeywords = ['community', 'gathering', 'meeting', 'social', 'public', 'common'];
+  const isSocialPattern = socialKeywords.some(social => 
+    patternKeywords.some(keyword => keyword.includes(social)) || patternName.includes(social)
+  );
+  
+  if (isSocialPattern) {
+    confidence += 0.2;
+  }
+
+  // Popular Alexander patterns that apply to most locations
+  const commonPatterns = [61, 106, 125, 171, 183]; // Common patterns that often apply
+  if (commonPatterns.includes(pattern.number)) {
+    confidence += 0.15;
+  }
+
+  // Add slight randomization for variety
+  confidence += Math.random() * 0.1;
+  
+  return Math.max(0.1, Math.min(0.95, confidence));
 }
 
 // Helper function to get timezone from coordinates (approximate)
