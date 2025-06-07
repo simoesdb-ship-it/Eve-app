@@ -59,12 +59,15 @@ export interface IStorage {
   }>;
 
   // Tracking methods
-  createTrackingPoint(point: InsertTrackingPoint): Promise<TrackingPoint>;
-  getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]>;
-  getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]>;
+  createTrackingPoint(point: InsertSpatialPoint): Promise<SpatialPoint>;
+  getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]>;
+  getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]>;
 
   // Saved locations methods
   getSavedLocations(limit: number): Promise<SavedLocation[]>;
+  createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
+  getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
+  deleteSavedLocation(id: number, sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -228,17 +231,17 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async createTrackingPoint(insertPoint: InsertTrackingPoint): Promise<TrackingPoint> {
-    const [trackingPoint] = await db.insert(trackingPoints).values(insertPoint).returning();
-    return trackingPoint;
+  async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
+    const [spatialPoint] = await db.insert(spatialPoints).values(insertPoint).returning();
+    return spatialPoint;
   }
 
-  async getTrackingPointsBySession(sessionId: string): Promise<TrackingPoint[]> {
-    return await db.select().from(trackingPoints).where(eq(trackingPoints.sessionId, sessionId));
+  async getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]> {
+    return await db.select().from(spatialPoints).where(eq(spatialPoints.sessionId, sessionId));
   }
 
-  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<TrackingPoint[]> {
-    const allPoints = await db.select().from(trackingPoints).where(eq(trackingPoints.sessionId, sessionId));
+  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]> {
+    const allPoints = await db.select().from(spatialPoints).where(eq(spatialPoints.sessionId, sessionId));
     return allPoints.filter(point => {
       const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
       return distance <= radiusKm;
@@ -249,6 +252,22 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(savedLocations)
       .orderBy(desc(savedLocations.createdAt))
       .limit(limit);
+  }
+
+  async createSavedLocation(insertLocation: InsertSavedLocation): Promise<SavedLocation> {
+    const [savedLocation] = await db.insert(savedLocations).values(insertLocation).returning();
+    return savedLocation;
+  }
+
+  async getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]> {
+    return await db.select().from(savedLocations)
+      .where(eq(savedLocations.sessionId, sessionId))
+      .orderBy(desc(savedLocations.createdAt));
+  }
+
+  async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
+    await db.delete(savedLocations)
+      .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
   }
 }
 

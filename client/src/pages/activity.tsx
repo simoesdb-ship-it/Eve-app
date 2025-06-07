@@ -38,6 +38,16 @@ export default function ActivityPage() {
     }
   });
 
+  // Fetch saved locations
+  const { data: savedLocations = [] } = useQuery({
+    queryKey: ['/api/saved-locations'],
+    queryFn: async () => {
+      const response = await fetch('/api/saved-locations');
+      if (!response.ok) throw new Error('Failed to fetch saved locations');
+      return response.json();
+    }
+  });
+
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -300,6 +310,44 @@ export default function ActivityPage() {
             </div>
           ) : (
             <>
+              {/* Saved Locations Section */}
+              {savedLocations.length > 0 && (
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <Heart className="w-4 h-4 text-red-600" />
+                    <h4 className="font-medium text-neutral-800">Saved Locations</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {savedLocations.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {savedLocations.map((location: any) => (
+                      <Card key={location.id} className="transition-shadow hover:shadow-sm">
+                        <CardContent className="p-3">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-neutral-800">{location.name}</p>
+                              {location.description && (
+                                <p className="text-xs text-neutral-600 mt-1">{location.description}</p>
+                              )}
+                              <p className="text-xs text-neutral-400 mt-1">
+                                {Number(location.latitude).toFixed(6)}, {Number(location.longitude).toFixed(6)}
+                              </p>
+                              <span className="text-xs text-neutral-400">
+                                Saved {formatTimeAgo(location.createdAt.toString())}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Location Analysis Activities */}
               {activities.filter(a => a.type === 'visit').length > 0 && (
                 <div className="space-y-2">
