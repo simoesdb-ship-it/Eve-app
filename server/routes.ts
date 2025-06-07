@@ -189,7 +189,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tracking endpoints
   app.post('/api/tracking', async (req, res) => {
     try {
-      const trackingPoint = await storage.createTrackingPoint(req.body);
+      const trackingData = {
+        ...req.body,
+        type: 'tracking' // Always set type to 'tracking' for movement tracking
+      };
+      console.log('Creating tracking point with data:', trackingData);
+      const trackingPoint = await storage.createTrackingPoint(trackingData);
       res.json(trackingPoint);
     } catch (error) {
       console.error('Error creating tracking point:', error);

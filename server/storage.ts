@@ -1,12 +1,24 @@
+import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
-import { 
+import {
   users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations,
-  type User, type InsertUser, type Pattern, type InsertPattern, 
-  type Location, type InsertLocation, type PatternSuggestion, type InsertPatternSuggestion,
-  type Vote, type InsertVote, type Activity, type InsertActivity,
-  type SpatialPoint, type InsertSpatialPoint, type SavedLocation, type InsertSavedLocation, type PatternWithVotes
+  type User, type InsertUser,
+  type Pattern, type InsertPattern,
+  type Location, type InsertLocation,
+  type PatternSuggestion, type InsertPatternSuggestion,
+  type Vote, type InsertVote,
+  type Activity, type InsertActivity,
+  type SpatialPoint, type InsertSpatialPoint,
+  type SavedLocation, type InsertSavedLocation
 } from "@shared/schema";
+
+export interface PatternWithVotes extends Pattern {
+  upvotes: number;
+  downvotes: number;
+  confidence: number;
+  suggestionId: number;
+  userVote: 'up' | 'down' | null;
+}
 
 export interface IStorage {
   // User methods
@@ -32,10 +44,8 @@ export interface IStorage {
 
   // Voting methods
   createVote(vote: InsertVote): Promise<Vote>;
-  createLocationBasedVote(vote: InsertVote & { weight: number; locationId: number; timeSpentMinutes: number; }): Promise<Vote>;
   getVotesForSuggestion(suggestionId: number): Promise<Vote[]>;
   getUserVoteForSuggestion(suggestionId: number, sessionId: string): Promise<Vote | undefined>;
-  canUserVoteAtLocation(sessionId: string, locationId: number): Promise<{ canVote: boolean; weight: number; timeSpentMinutes: number; reason?: string; }>;
 
   // Activity methods
   createActivity(activity: InsertActivity): Promise<Activity>;
@@ -48,12 +58,13 @@ export interface IStorage {
     offlinePatterns: number;
   }>;
 
-  // Spatial data methods (unified tracking, locations, saved points)
-  createSpatialPoint(point: InsertSpatialPoint): Promise<SpatialPoint>;
-  getSpatialPointsBySession(sessionId: string, type?: string): Promise<SpatialPoint[]>;
-  getSpatialPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string, type?: string): Promise<SpatialPoint[]>;
+  // Tracking methods
+  createTrackingPoint(point: InsertSpatialPoint): Promise<SpatialPoint>;
+  getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]>;
+  getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]>;
 
-  // Saved location methods
+  // Saved locations methods
+  getSavedLocations(limit: number): Promise<SavedLocation[]>;
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
@@ -76,30 +87,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllPatterns(): Promise<Pattern[]> {
-    // Initialize patterns if database is empty
-    const existingPatterns = await db.select().from(patterns);
-    if (existingPatterns.length === 0) {
-      await this.initializePatterns();
-      return await db.select().from(patterns);
-    }
-    return existingPatterns;
-  }
-
-  private async initializePatterns(): Promise<void> {
-    const { alexanderPatterns } = await import('./alexander-patterns');
-    
-    for (const pattern of alexanderPatterns) {
-      await db.insert(patterns).values({
-        number: pattern.number,
-        name: pattern.name,
-        description: pattern.description,
-        fullDescription: pattern.fullDescription,
-        category: pattern.category,
-        keywords: pattern.keywords,
-        iconName: pattern.iconName,
-        moodColor: pattern.moodColor
-      });
-    }
+    return await db.select().from(patterns).orderBy(patterns.number);
   }
 
   async getPattern(id: number): Promise<Pattern | undefined> {
@@ -161,74 +149,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPatternsForLocation(locationId: number, sessionId: string): Promise<PatternWithVotes[]> {
-    try {
-      console.log(`Storage: Fetching suggestions for location ${locationId}`);
-      
-      const suggestions = await db
-        .select({
-          suggestion: patternSuggestions,
-          pattern: patterns
-        })
-        .from(patternSuggestions)
-        .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
-        .where(eq(patternSuggestions.locationId, locationId));
+    const suggestions = await db
+      .select({
+        suggestion: patternSuggestions,
+        pattern: patterns
+      })
+      .from(patternSuggestions)
+      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+      .where(eq(patternSuggestions.locationId, locationId));
 
-      console.log(`Storage: Found ${suggestions.length} suggestions`);
+    const patternsWithVotes: PatternWithVotes[] = [];
 
-      const patternsWithVotes: PatternWithVotes[] = [];
+    for (const { suggestion, pattern } of suggestions) {
+      const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
+      const userVote = await db.select().from(votes)
+        .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
+        .limit(1);
 
-      for (const { suggestion, pattern } of suggestions) {
-        const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
-        const userVote = await db.select().from(votes)
-          .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
-          .limit(1);
+      const upvotes = allVotes.filter(v => v.voteType === 'up').length;
+      const downvotes = allVotes.filter(v => v.voteType === 'down').length;
 
-        const upvotes = allVotes.filter(v => v.voteType === 'up').length;
-        const downvotes = allVotes.filter(v => v.voteType === 'down').length;
-
-        patternsWithVotes.push({
-          ...pattern,
-          upvotes,
-          downvotes,
-          confidence: parseFloat(suggestion.confidence),
-          suggestionId: suggestion.id,
-          userVote: userVote[0]?.voteType as 'up' | 'down' || null
-        });
-      }
-
-      console.log(`Storage: Returning ${patternsWithVotes.length} patterns with votes`);
-      return patternsWithVotes;
-    } catch (error) {
-      console.error('Storage: Error in getPatternsForLocation:', error);
-      throw error;
+      patternsWithVotes.push({
+        ...pattern,
+        upvotes,
+        downvotes,
+        confidence: parseFloat(suggestion.confidence),
+        suggestionId: suggestion.id,
+        userVote: userVote[0]?.voteType as 'up' | 'down' || null
+      });
     }
+
+    return patternsWithVotes;
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
     const [vote] = await db.insert(votes).values(insertVote).returning();
     return vote;
-  }
-
-  async createLocationBasedVote(insertVote: InsertVote & { 
-    weight: number; 
-    locationId: number; 
-    timeSpentMinutes: number; 
-  }): Promise<Vote> {
-    const [vote] = await db.insert(votes).values({
-      suggestionId: insertVote.suggestionId,
-      sessionId: insertVote.sessionId,
-      voteType: insertVote.voteType,
-      weight: insertVote.weight.toString(),
-      locationId: insertVote.locationId,
-      timeSpentMinutes: insertVote.timeSpentMinutes
-    }).returning();
-    return vote;
-  }
-
-  async canUserVoteAtLocation(sessionId: string, locationId: number): Promise<{ canVote: boolean; weight: number; timeSpentMinutes: number; reason?: string; }> {
-    // Import time tracking service to calculate voting eligibility
-    const { timeTrackingService } = await import("./time-tracking-service");
-    return await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
   }
 
   async getVotesForSuggestion(suggestionId: number): Promise<Vote[]> {
@@ -275,61 +231,47 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async createSpatialPoint(point: InsertSpatialPoint): Promise<SpatialPoint> {
-    const [spatialPoint] = await db.insert(spatialPoints).values(point).returning();
+  async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
+    const trackingData = {
+      ...insertPoint,
+      type: insertPoint.type || 'tracking' // Ensure type is always set
+    };
+    const [spatialPoint] = await db.insert(spatialPoints).values(trackingData).returning();
     return spatialPoint;
+  }
+
+  async getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]> {
+    return await db.select().from(spatialPoints).where(eq(spatialPoints.sessionId, sessionId));
+  }
+
+  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]> {
+    const allPoints = await db.select().from(spatialPoints).where(eq(spatialPoints.sessionId, sessionId));
+    return allPoints.filter(point => {
+      const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
+      return distance <= radiusKm;
+    });
   }
 
   async getSavedLocations(limit: number = 20): Promise<SavedLocation[]> {
     return await db.select().from(savedLocations)
-      .orderBy(sql`${savedLocations.createdAt} DESC`)
+      .orderBy(desc(savedLocations.createdAt))
       .limit(limit);
   }
-}
 
-export const storage = new DatabaseStorage();
-    if (type) {
-      conditions.push(eq(spatialPoints.type, type));
-    }
-    
-    const allPoints = await db.select().from(spatialPoints)
-      .where(and(...conditions));
-    
-    return allPoints.filter(point => {
-      const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
-      return distance <= radiusKm;
-    }).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  }
-
-  // Legacy tracking methods for compatibility
-  async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
-    return this.createSpatialPoint({ ...insertPoint, type: 'tracking' });
-  }
-
-  async getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]> {
-    return this.getSpatialPointsBySession(sessionId, 'tracking');
-  }
-
-  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]> {
-    return this.getSpatialPointsInRadius(lat, lng, radiusKm, sessionId, 'tracking');
-  }
-
-  async createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation> {
-    const [savedLocation] = await db
-      .insert(savedLocations)
-      .values(location)
-      .returning();
+  async createSavedLocation(insertLocation: InsertSavedLocation): Promise<SavedLocation> {
+    const [savedLocation] = await db.insert(savedLocations).values(insertLocation).returning();
     return savedLocation;
   }
 
   async getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]> {
-    return await db.select().from(savedLocations).where(eq(savedLocations.sessionId, sessionId));
+    return await db.select().from(savedLocations)
+      .where(eq(savedLocations.sessionId, sessionId))
+      .orderBy(desc(savedLocations.createdAt));
   }
 
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
-    await db.delete(savedLocations).where(
-      and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId))
-    );
+    await db.delete(savedLocations)
+      .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
   }
 }
 
