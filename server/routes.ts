@@ -143,6 +143,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get saved locations (community activity)
+  app.get("/api/saved-locations", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const savedLocations = await storage.getSavedLocations(limit);
+      res.json(savedLocations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch saved locations" });
+    }
+  });
+
   // Get user statistics
   app.get("/api/stats", async (req, res) => {
     try {

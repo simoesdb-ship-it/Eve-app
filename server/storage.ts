@@ -280,6 +280,12 @@ export class DatabaseStorage implements IStorage {
     return spatialPoint;
   }
 
+  async getSavedLocations(limit: number = 20): Promise<SavedLocation[]> {
+    return await db.select().from(savedLocations)
+      .orderBy(sql`${savedLocations.createdAt} DESC`)
+      .limit(limit);
+  }
+
   async getSpatialPointsBySession(sessionId: string, type?: string): Promise<SpatialPoint[]> {
     const conditions = [eq(spatialPoints.sessionId, sessionId)];
     if (type) {
