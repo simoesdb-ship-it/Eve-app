@@ -47,7 +47,7 @@ function clusterTrackingPoints(points: SpatialPoint[], radiusMeters = 20): Array
         latitude: point.latitude,
         longitude: point.longitude,
         count: 1,
-        latestTimestamp: point.timestamp,
+        latestTimestamp: point.createdAt.toISOString(),
         points: [point]
       });
     }
@@ -72,16 +72,51 @@ interface MapViewProps {
   patterns: PatternWithVotes[];
   onPatternSelect: (pattern: PatternWithVotes) => void;
   sessionId: string;
+  onLocationUpdate?: (location: {lat: number, lng: number}) => void;
 }
 
-export default function MapView({ currentLocation, patterns, onPatternSelect, sessionId }: MapViewProps) {
+export default function MapView({ currentLocation, patterns, onPatternSelect, sessionId, onLocationUpdate }: MapViewProps) {
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
+  const [trackingPoints, setTrackingPoints] = useState<SpatialPoint[]>([]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [location, navigate] = useLocation();
+
+  // App foreground refresh functionality
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && onLocationUpdate) {
+        // App came to foreground, refresh location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const newLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              onLocationUpdate(newLocation);
+            },
+            (error) => {
+              console.warn('Error refreshing location on foreground:', error);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            }
+          );
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [onLocationUpdate]);
 
   // Initialize OpenStreetMap
   useEffect(() => {
@@ -392,8 +427,8 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
               setShowLocationDetails(!showLocationDetails);
               
               // Notify parent component of location update
-              if (props.onLocationUpdate) {
-                props.onLocationUpdate(newLocation);
+              if (onLocationUpdate) {
+                onLocationUpdate(newLocation);
               }
             },
             (error) => {

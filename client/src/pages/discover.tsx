@@ -213,6 +213,22 @@ export default function DiscoverPage() {
     voteMutation.mutate({ suggestionId, voteType });
   };
 
+  const handleLocationUpdate = (newLocation: {lat: number, lng: number}) => {
+    setCurrentLocation(newLocation);
+    
+    // Create new location entry when location is updated
+    createLocationMutation.mutate({
+      latitude: newLocation.lat.toString(),
+      longitude: newLocation.lng.toString(),
+      sessionId,
+      metadata: JSON.stringify({
+        accuracy: 'high',
+        source: 'manual_refresh',
+        timestamp: new Date().toISOString()
+      })
+    });
+  };
+
   const formatTimeAgo = (date: string) => {
     const now = new Date();
     const activityDate = new Date(date);
@@ -262,6 +278,7 @@ export default function DiscoverPage() {
         patterns={patterns}
         onPatternSelect={setSelectedPattern}
         sessionId={sessionId}
+        onLocationUpdate={handleLocationUpdate}
       />
 
       {/* Quick Stats */}
