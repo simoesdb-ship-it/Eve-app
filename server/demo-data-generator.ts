@@ -96,8 +96,33 @@ export async function generateTimeTrackingDemo(sessionId: string) {
 
   console.log(`Generated ${trackingPoints.length} tracking points for demo`);
   
+  // Create corresponding locations in the main locations table for time tracking calculations
+  const mainCoffeeShop = await storage.createLocation({
+    name: "Community Coffee Shop",
+    latitude: "44.97996520",
+    longitude: "-92.95940000",
+    sessionId,
+  });
+
+  const mainLibrary = await storage.createLocation({
+    name: "Public Library", 
+    latitude: "44.97896520",
+    longitude: "-92.95840000",
+    sessionId,
+  });
+
+  const mainPark = await storage.createLocation({
+    name: "Neighborhood Park",
+    latitude: "44.98096520", 
+    longitude: "-92.95740000",
+    sessionId,
+  });
+
+  console.log(`Created tracking locations: ${mainCoffeeShop.id}, ${mainLibrary.id}, ${mainPark.id}`);
+  
   return {
     locations: [coffeeShopLocation, libraryLocation, parkLocation],
+    mainLocations: [mainCoffeeShop, mainLibrary, mainPark],
     trackingPointsCount: trackingPoints.length,
     timeSpanDays: 7,
   };
