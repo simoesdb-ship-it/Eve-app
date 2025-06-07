@@ -55,8 +55,8 @@ export async function generateTimeTrackingDemo(sessionId: string) {
       for (let i = 0; i < libraryDuration; i += 3) {
         trackingPoints.push({
           sessionId,
-          latitude: parseFloat(libraryLocation.latitude) + (Math.random() - 0.5) * 0.0001,
-          longitude: parseFloat(libraryLocation.longitude) + (Math.random() - 0.5) * 0.0001,
+          latitude: Number(libraryLocation.latitude) + (Math.random() - 0.5) * 0.0001,
+          longitude: Number(libraryLocation.longitude) + (Math.random() - 0.5) * 0.0001,
           timestamp: new Date(libraryStart.getTime() + (i * 60 * 1000)),
           accuracy: 5 + Math.random() * 10,
         });
@@ -71,8 +71,8 @@ export async function generateTimeTrackingDemo(sessionId: string) {
       for (let i = 0; i < parkDuration; i += 3) {
         trackingPoints.push({
           sessionId,
-          latitude: parseFloat(parkLocation.latitude) + (Math.random() - 0.5) * 0.0001,
-          longitude: parseFloat(parkLocation.longitude) + (Math.random() - 0.5) * 0.0001,
+          latitude: Number(parkLocation.latitude) + (Math.random() - 0.5) * 0.0001,
+          longitude: Number(parkLocation.longitude) + (Math.random() - 0.5) * 0.0001,
           timestamp: new Date(parkStart.getTime() + (i * 60 * 1000)),
           accuracy: 5 + Math.random() * 10,
         });

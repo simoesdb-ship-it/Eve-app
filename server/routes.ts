@@ -477,11 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Time tracking and voting eligibility endpoints
   app.get("/api/time-tracking/:locationId", async (req, res) => {
     try {
-      const sessionId = req.session.id;
-      if (!sessionId) {
-        return res.status(401).json({ error: "No session found" });
-      }
-
+      const sessionId = req.query.sessionId as string || "demo_session";
       const locationId = parseInt(req.params.locationId);
       const { timeTrackingService } = await import("./time-tracking-service");
       
