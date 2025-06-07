@@ -40,8 +40,8 @@ export async function generateTimeTrackingDemo(sessionId: string) {
     for (let i = 0; i < morningDuration; i += 3) {
       trackingPoints.push({
         sessionId,
-        latitude: coffeeShopLocation.latitude + (Math.random() - 0.5) * 0.0001, // Small GPS variation
-        longitude: coffeeShopLocation.longitude + (Math.random() - 0.5) * 0.0001,
+        latitude: Number(coffeeShopLocation.latitude) + (Math.random() - 0.5) * 0.0001, // Small GPS variation
+        longitude: Number(coffeeShopLocation.longitude) + (Math.random() - 0.5) * 0.0001,
         timestamp: new Date(morningStart.getTime() + (i * 60 * 1000)),
         accuracy: 5 + Math.random() * 10,
       });
@@ -55,8 +55,8 @@ export async function generateTimeTrackingDemo(sessionId: string) {
       for (let i = 0; i < libraryDuration; i += 3) {
         trackingPoints.push({
           sessionId,
-          latitude: libraryLocation.latitude + (Math.random() - 0.5) * 0.0001,
-          longitude: libraryLocation.longitude + (Math.random() - 0.5) * 0.0001,
+          latitude: parseFloat(libraryLocation.latitude) + (Math.random() - 0.5) * 0.0001,
+          longitude: parseFloat(libraryLocation.longitude) + (Math.random() - 0.5) * 0.0001,
           timestamp: new Date(libraryStart.getTime() + (i * 60 * 1000)),
           accuracy: 5 + Math.random() * 10,
         });
@@ -71,8 +71,8 @@ export async function generateTimeTrackingDemo(sessionId: string) {
       for (let i = 0; i < parkDuration; i += 3) {
         trackingPoints.push({
           sessionId,
-          latitude: parkLocation.latitude + (Math.random() - 0.5) * 0.0001,
-          longitude: parkLocation.longitude + (Math.random() - 0.5) * 0.0001,
+          latitude: parseFloat(parkLocation.latitude) + (Math.random() - 0.5) * 0.0001,
+          longitude: parseFloat(parkLocation.longitude) + (Math.random() - 0.5) * 0.0001,
           timestamp: new Date(parkStart.getTime() + (i * 60 * 1000)),
           accuracy: 5 + Math.random() * 10,
         });
@@ -80,9 +80,18 @@ export async function generateTimeTrackingDemo(sessionId: string) {
     }
   }
 
-  // Create all tracking points
+  // Create all tracking points using spatial points
   for (const point of trackingPoints) {
-    await storage.createTrackingPoint(point);
+    await storage.createSpatialPoint({
+      latitude: point.latitude.toFixed(8),
+      longitude: point.longitude.toFixed(8),
+      type: 'tracking',
+      sessionId: point.sessionId,
+      metadata: JSON.stringify({
+        accuracy: point.accuracy,
+        timestamp: point.timestamp.toISOString()
+      })
+    });
   }
 
   console.log(`Generated ${trackingPoints.length} tracking points for demo`);
