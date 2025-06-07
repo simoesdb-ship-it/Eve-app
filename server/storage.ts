@@ -265,28 +265,48 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
-    const [spatialPoint] = await db.insert(spatialPoints).values({
-      ...insertPoint,
-      type: 'tracking'
-    }).returning();
+  async createSpatialPoint(point: InsertSpatialPoint): Promise<SpatialPoint> {
+    const [spatialPoint] = await db.insert(spatialPoints).values(point).returning();
     return spatialPoint;
   }
 
-  async getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]> {
+  async getSpatialPointsBySession(sessionId: string, type?: string): Promise<SpatialPoint[]> {
+    const conditions = [eq(spatialPoints.sessionId, sessionId)];
+    if (type) {
+      conditions.push(eq(spatialPoints.type, type));
+    }
+    
     return await db.select().from(spatialPoints)
-      .where(and(eq(spatialPoints.sessionId, sessionId), eq(spatialPoints.type, 'tracking')))
+      .where(and(...conditions))
       .orderBy(spatialPoints.createdAt);
   }
 
-  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]> {
+  async getSpatialPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string, type?: string): Promise<SpatialPoint[]> {
+    const conditions = [eq(spatialPoints.sessionId, sessionId)];
+    if (type) {
+      conditions.push(eq(spatialPoints.type, type));
+    }
+    
     const allPoints = await db.select().from(spatialPoints)
-      .where(and(eq(spatialPoints.sessionId, sessionId), eq(spatialPoints.type, 'tracking')));
+      .where(and(...conditions));
     
     return allPoints.filter(point => {
       const distance = this.calculateDistance(lat, lng, Number(point.latitude), Number(point.longitude));
       return distance <= radiusKm;
     }).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  // Legacy tracking methods for compatibility
+  async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
+    return this.createSpatialPoint({ ...insertPoint, type: 'tracking' });
+  }
+
+  async getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]> {
+    return this.getSpatialPointsBySession(sessionId, 'tracking');
+  }
+
+  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, sessionId: string): Promise<SpatialPoint[]> {
+    return this.getSpatialPointsInRadius(lat, lng, radiusKm, sessionId, 'tracking');
   }
 
   async createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation> {
