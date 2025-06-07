@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { unifiedStorage as storage } from "./storage-unified";
+import { storage } from "./storage-clean";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
