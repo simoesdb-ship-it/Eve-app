@@ -87,27 +87,32 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   // App foreground refresh functionality
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && onLocationUpdate) {
-        // App came to foreground, refresh location
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const newLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              };
+      if (document.visibilityState === 'visible' && onLocationUpdate && navigator.geolocation) {
+        // App came to foreground, try to refresh location with short timeout
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            
+            // Only update if location has changed significantly
+            if (!currentLocation || 
+                Math.abs(newLocation.lat - currentLocation.lat) > 0.0001 || 
+                Math.abs(newLocation.lng - currentLocation.lng) > 0.0001) {
               onLocationUpdate(newLocation);
-            },
-            (error) => {
-              console.warn('Error refreshing location on foreground:', error);
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0
             }
-          );
-        }
+          },
+          (error) => {
+            // Silently fail on foreground refresh - don't spam console
+            // User can manually refresh with green button if needed
+          },
+          {
+            enableHighAccuracy: false, // Use less accurate but faster positioning
+            timeout: 3000, // Very short timeout for background refresh
+            maximumAge: 30000 // Allow slightly cached location
+          }
+        );
       }
     };
 
@@ -116,7 +121,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [onLocationUpdate]);
+  }, [onLocationUpdate, currentLocation]);
 
   // Initialize OpenStreetMap
   useEffect(() => {
@@ -150,7 +155,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
 
         // Initialize map with error handling
         const map = L.map(mapContainerRef.current, {
-          center: currentLocation ? [currentLocation.lat, currentLocation.lng] : [37.7749, -122.4194],
+          center: currentLocation ? [currentLocation.lat, currentLocation.lng] : [44.9799652, -93.289345], // Minneapolis fallback
           zoom: zoomLevel,
           zoomControl: false,
           attributionControl: false
@@ -411,49 +416,54 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   };
 
   const handleRecenter = async () => {
-    if (mapRef.current) {
-      try {
-        // Force refresh current location
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const newLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              };
+    if (!mapRef.current) return;
+    
+    try {
+      // If we have a current location, center immediately then try to refresh
+      if (currentLocation) {
+        mapRef.current.setView([currentLocation.lat, currentLocation.lng], Math.max(zoomLevel, 15));
+        setShowLocationDetails(!showLocationDetails);
+      }
+      
+      // Try to get fresh location in background
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            
+            // Only update if location has changed significantly (more than ~10 meters)
+            if (!currentLocation || 
+                Math.abs(newLocation.lat - currentLocation.lat) > 0.0001 || 
+                Math.abs(newLocation.lng - currentLocation.lng) > 0.0001) {
               
-              // Update map view to current location
+              // Update map view to fresh location
               mapRef.current.setView([newLocation.lat, newLocation.lng], Math.max(zoomLevel, 15));
-              setShowLocationDetails(!showLocationDetails);
               
               // Notify parent component of location update
               if (onLocationUpdate) {
                 onLocationUpdate(newLocation);
               }
-            },
-            (error) => {
-              console.warn('Error getting current location:', error);
-              // Fallback to existing location if available
-              if (currentLocation) {
-                mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
-                setShowLocationDetails(!showLocationDetails);
-              }
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0 // Force fresh location
             }
-          );
-        } else if (currentLocation) {
-          // Fallback if geolocation not available
-          mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
-          setShowLocationDetails(!showLocationDetails);
-        }
-      } catch (error) {
-        console.warn('Error recentering map:', error);
-        setMapLoaded(false);
+          },
+          (error) => {
+            console.warn('Error refreshing location:', error);
+            // If we don't have any location and can't get one, stay where we are
+            if (!currentLocation) {
+              console.warn('No location available and unable to acquire fresh location');
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 8000, // Shorter timeout
+            maximumAge: 0 // Force fresh location
+          }
+        );
       }
+    } catch (error) {
+      console.warn('Error in recenter function:', error);
     }
   };
 
@@ -542,9 +552,8 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md hover:bg-white bg-green-50 hover:bg-green-100 border-green-200"
+            className="w-10 h-10 rounded-lg shadow-md bg-green-50 hover:bg-green-100 border-green-200 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleRecenter}
-            disabled={!currentLocation}
             title="Center map on current location"
           >
             <Crosshair className="w-4 h-4 text-green-600" />
