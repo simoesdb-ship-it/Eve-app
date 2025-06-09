@@ -555,9 +555,15 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           </div>
         )}
 
-        {/* Zoom level indicator */}
+        {/* Map status indicator */}
         <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs z-[1000]">
-          Zoom: {zoomLevel}
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${mapLoaded ? 'bg-green-400' : 'bg-red-400'}`}></div>
+            <span>Zoom: {zoomLevel}</span>
+            {currentLocation && (
+              <span className="opacity-75">• Located</span>
+            )}
+          </div>
         </div>
 
         {/* Navigation controls */}
