@@ -160,10 +160,15 @@ export default function DiscoverPage() {
     console.log('Using fallback location (Minneapolis)');
   }, [sessionId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
-  // Acquire location on component mount
+  // Acquire location only once on component mount
+  const [hasInitialized, setHasInitialized] = useState(false);
+  
   useEffect(() => {
-    acquireLocation();
-  }, [acquireLocation]);
+    if (!hasInitialized) {
+      acquireLocation();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized, acquireLocation]);
 
   // Monitor app visibility changes for location refresh (rate limited)
   const [lastVisibilityChange, setLastVisibilityChange] = useState<number>(0);
@@ -190,11 +195,11 @@ export default function DiscoverPage() {
     };
   }, [acquireLocation, lastVisibilityChange]);
 
-  // Simplified tracking - disable automatic movement tracking to prevent location spam
+  // Disable automatic movement tracking to prevent geolocation spam
   useEffect(() => {
-    // Only track location when user explicitly requests it via the map buttons
-    // This prevents excessive background geolocation requests
-    console.log('Location tracking available on demand for session:', sessionId);
+    console.log('Movement tracking started for session:', sessionId);
+    // Background tracking disabled to prevent excessive geolocation requests
+    // Location updates happen only when user interacts with map buttons
   }, [sessionId]);
 
   // Fetch patterns for current location
