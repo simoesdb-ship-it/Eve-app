@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import MapView from "@/components/map-view";
@@ -37,77 +37,127 @@ export default function DiscoverPage() {
     };
   }, []);
 
-  // Get user's current location
-  useEffect(() => {
+  // Create location mutation
+  const createLocationMutation = useMutation({
+    mutationFn: async (locationData: any) => {
+      const response = await apiRequest('POST', '/api/locations', locationData);
+      return response.json();
+    },
+    onSuccess: (location) => {
+      setLocationId(location.id);
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Location Error",
+        description: "Failed to record location for pattern suggestions",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Enhanced location acquisition function with multiple fallback strategies
+  const acquireLocation = useCallback(async () => {
+    // Strategy 1: Try high-accuracy GPS first
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 30000
+          });
+        });
+        
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        
+        createLocationMutation.mutate({
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          name: "Current Location",
+          sessionId
+        });
+        
+        console.log(`Using real GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        return;
+      } catch (highAccuracyError) {
+        console.warn('High accuracy geolocation failed, trying standard accuracy:', highAccuracyError);
+        
+        // Strategy 2: Try standard accuracy GPS
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 5000,
+              maximumAge: 60000
+            });
+          });
+          
           const { latitude, longitude } = position.coords;
           setCurrentLocation({ lat: latitude, lng: longitude });
           
-          // Create location entry
           createLocationMutation.mutate({
             latitude: latitude.toString(),
             longitude: longitude.toString(),
-            name: "Current Location",
+            name: "Current Location (Standard)",
             sessionId
           });
           
-          console.log(`Using real GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-        },
-        async (error) => {
-          console.error("Geolocation error:", error);
-          
-          // Try to get the latest tracked location from database
-          try {
-            const response = await fetch(`/api/tracking/${sessionId}`);
-            if (response.ok) {
-              const trackingPoints = await response.json();
-              
-              if (trackingPoints.length > 0) {
-                // Use the most recent tracking point
-                const lastPoint = trackingPoints[trackingPoints.length - 1];
-                const lastLocation = {
-                  lat: Number(lastPoint.latitude),
-                  lng: Number(lastPoint.longitude)
-                };
-                
-                setCurrentLocation(lastLocation);
-                createLocationMutation.mutate({
-                  latitude: lastLocation.lat.toString(),
-                  longitude: lastLocation.lng.toString(),
-                  name: "Last Known Location",
-                  sessionId
-                });
-                
-                console.log(`Using last tracked location: ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
-                return;
-              }
-            }
-          } catch (trackingError) {
-            console.warn('Failed to get last tracked location:', trackingError);
-          }
-          
-          // Only use fallback if no tracked location exists
-          const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
-          setCurrentLocation(fallbackLocation);
-          createLocationMutation.mutate({
-            latitude: fallbackLocation.lat.toString(),
-            longitude: fallbackLocation.lng.toString(),
-            name: "Default Location",
-            sessionId
-          });
-          
-          console.log('Using fallback location (Minneapolis)');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
+          console.log(`Using standard GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+          return;
+        } catch (standardError) {
+          console.warn('Standard geolocation also failed:', standardError);
         }
-      );
+      }
     }
-  }, [sessionId]);
+    
+    // Strategy 3: Try to get the latest tracked location from database
+    try {
+      const response = await fetch(`/api/tracking/${sessionId}`);
+      if (response.ok) {
+        const trackingPoints = await response.json();
+        
+        if (trackingPoints.length > 0) {
+          const lastPoint = trackingPoints[trackingPoints.length - 1];
+          const lastLocation = {
+            lat: Number(lastPoint.latitude),
+            lng: Number(lastPoint.longitude)
+          };
+          
+          setCurrentLocation(lastLocation);
+          createLocationMutation.mutate({
+            latitude: lastLocation.lat.toString(),
+            longitude: lastLocation.lng.toString(),
+            name: "Last Known Location",
+            sessionId
+          });
+          
+          console.log(`Using last tracked location: ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
+          return;
+        }
+      }
+    } catch (trackingError) {
+      console.warn('Failed to get last tracked location:', trackingError);
+    }
+    
+    // Strategy 4: Use fallback location only as last resort
+    const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
+    setCurrentLocation(fallbackLocation);
+    createLocationMutation.mutate({
+      latitude: fallbackLocation.lat.toString(),
+      longitude: fallbackLocation.lng.toString(),
+      name: "Default Location",
+      sessionId
+    });
+    
+    console.log('Using fallback location (Minneapolis)');
+  }, [sessionId, createLocationMutation]);
+
+  // Acquire location on component mount
+  useEffect(() => {
+    acquireLocation();
+  }, [acquireLocation]);
 
   // Start movement tracking when page loads
   useEffect(() => {
@@ -130,25 +180,6 @@ export default function DiscoverPage() {
     // Keep tracking running in background when navigating to other pages
     // Movement tracking will continue across all app sections
   }, [sessionId, toast]);
-
-  // Create location mutation
-  const createLocationMutation = useMutation({
-    mutationFn: async (locationData: any) => {
-      const response = await apiRequest('POST', '/api/locations', locationData);
-      return response.json();
-    },
-    onSuccess: (location) => {
-      setLocationId(location.id);
-      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Location Error",
-        description: "Failed to record location for pattern suggestions",
-        variant: "destructive"
-      });
-    }
-  });
 
   // Fetch patterns for current location
   const { data: patterns = [], isLoading: patternsLoading } = useQuery({
