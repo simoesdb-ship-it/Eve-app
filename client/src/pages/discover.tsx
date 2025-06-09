@@ -159,6 +159,25 @@ export default function DiscoverPage() {
     acquireLocation();
   }, [acquireLocation]);
 
+  // Monitor app visibility changes for location refresh
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // App came back to foreground - refresh location after brief delay
+        console.log('App returned to foreground, refreshing location...');
+        setTimeout(() => {
+          acquireLocation();
+        }, 100);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [acquireLocation]);
+
   // Start movement tracking when page loads
   useEffect(() => {
     const initializeTracking = async () => {
