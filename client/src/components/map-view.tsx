@@ -80,6 +80,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [trackingPoints, setTrackingPoints] = useState<SpatialPoint[]>([]);
+  const [isRecentering, setIsRecentering] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [location, navigate] = useLocation();
@@ -390,33 +391,47 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   }, [mapLoaded]);
 
   const handleZoomIn = () => {
+    if (!mapRef.current) return;
+    
     const newZoom = Math.min(zoomLevel + 1, 18);
     setZoomLevel(newZoom);
-    if (mapRef.current) {
+    
+    try {
+      mapRef.current.setZoom(newZoom);
+    } catch (error) {
+      console.warn('Error zooming in:', error);
+      // Try alternative zoom method
       try {
-        mapRef.current.setZoom(newZoom);
-      } catch (error) {
-        console.warn('Error zooming in:', error);
-        setMapLoaded(false);
+        mapRef.current.setView(mapRef.current.getCenter(), newZoom);
+      } catch (fallbackError) {
+        console.warn('Fallback zoom failed:', fallbackError);
       }
     }
   };
 
   const handleZoomOut = () => {
+    if (!mapRef.current) return;
+    
     const newZoom = Math.max(zoomLevel - 1, 8);
     setZoomLevel(newZoom);
-    if (mapRef.current) {
+    
+    try {
+      mapRef.current.setZoom(newZoom);
+    } catch (error) {
+      console.warn('Error zooming out:', error);
+      // Try alternative zoom method
       try {
-        mapRef.current.setZoom(newZoom);
-      } catch (error) {
-        console.warn('Error zooming out:', error);
-        setMapLoaded(false);
+        mapRef.current.setView(mapRef.current.getCenter(), newZoom);
+      } catch (fallbackError) {
+        console.warn('Fallback zoom failed:', fallbackError);
       }
     }
   };
 
   const handleRecenter = async () => {
     if (!mapRef.current) return;
+    
+    setIsRecentering(true);
     
     try {
       // If we have a current location, center immediately then try to refresh
@@ -440,13 +455,16 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
                 Math.abs(newLocation.lng - currentLocation.lng) > 0.0001) {
               
               // Update map view to fresh location
-              mapRef.current.setView([newLocation.lat, newLocation.lng], Math.max(zoomLevel, 15));
+              if (mapRef.current) {
+                mapRef.current.setView([newLocation.lat, newLocation.lng], Math.max(zoomLevel, 15));
+              }
               
               // Notify parent component of location update
               if (onLocationUpdate) {
                 onLocationUpdate(newLocation);
               }
             }
+            setIsRecentering(false);
           },
           (error) => {
             console.warn('Error refreshing location:', error);
@@ -454,6 +472,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
             if (!currentLocation) {
               console.warn('No location available and unable to acquire fresh location');
             }
+            setIsRecentering(false);
           },
           {
             enableHighAccuracy: true,
@@ -461,15 +480,27 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
             maximumAge: 0 // Force fresh location
           }
         );
+      } else {
+        setIsRecentering(false);
       }
     } catch (error) {
       console.warn('Error in recenter function:', error);
+      setIsRecentering(false);
     }
   };
 
   const handleAnalyzeLocation = () => {
-    if (currentLocation) {
-      navigate(`/location-analysis?lat=${currentLocation.lat}&lng=${currentLocation.lng}`);
+    if (!currentLocation) {
+      console.warn('No location available for analysis');
+      return;
+    }
+    
+    try {
+      const lat = currentLocation.lat.toFixed(6);
+      const lng = currentLocation.lng.toFixed(6);
+      navigate(`/location-analysis?lat=${lat}&lng=${lng}`);
+    } catch (error) {
+      console.warn('Error navigating to location analysis:', error);
     }
   };
 
@@ -534,37 +565,48 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleZoomIn}
-            disabled={zoomLevel >= 18}
+            disabled={zoomLevel >= 18 || !mapLoaded}
+            title="Zoom in"
           >
             <Plus className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleZoomOut}
-            disabled={zoomLevel <= 8}
+            disabled={zoomLevel <= 8 || !mapLoaded}
+            title="Zoom out"
           >
             <Minus className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md bg-green-50 hover:bg-green-100 border-green-200 transition-all duration-200 hover:scale-105 active:scale-95"
+            className={`w-10 h-10 rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 ${
+              isRecentering 
+                ? 'bg-green-200 border-green-300' 
+                : 'bg-green-50 hover:bg-green-100 border-green-200'
+            }`}
             onClick={handleRecenter}
-            title="Center map on current location"
+            disabled={isRecentering}
+            title={isRecentering ? "Getting location..." : "Center map on current location"}
           >
-            <Crosshair className="w-4 h-4 text-green-600" />
+            <Crosshair className={`w-4 h-4 transition-all duration-200 ${
+              isRecentering 
+                ? 'text-green-700 animate-spin' 
+                : 'text-green-600'
+            }`} />
           </Button>
           <Button
             size="icon"
             variant="secondary"
-            className="w-10 h-10 rounded-lg shadow-md hover:bg-white"
+            className="w-10 h-10 rounded-lg shadow-md hover:bg-white transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAnalyzeLocation}
-            disabled={!currentLocation}
-            title="Analyze this location"
+            disabled={!currentLocation || !mapLoaded}
+            title={currentLocation ? "Analyze this location" : "No location available"}
           >
             <Search className="w-4 h-4" />
           </Button>
