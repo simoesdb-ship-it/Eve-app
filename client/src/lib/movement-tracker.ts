@@ -3,7 +3,7 @@
 
 import { apiRequest } from "@/lib/queryClient";
 import { generateSessionId } from "@/lib/geolocation";
-import type { InsertTrackingPoint, TrackingPoint } from "@shared/schema";
+import type { InsertSpatialPoint, SpatialPoint } from "@shared/schema";
 
 export class MovementTracker {
   private watchId: number | null = null;
@@ -14,7 +14,7 @@ export class MovementTracker {
   private readonly TRACKING_INTERVAL_MS = 30 * 1000; // 30 seconds for testing accumulation
   private readonly MIN_DISTANCE_METERS = 1; // 1 meter for testing clustering
   private lastPosition: { lat: number; lng: number } | null = null;
-  private pendingPoints: InsertTrackingPoint[] = [];
+  private pendingPoints: InsertSpatialPoint[] = [];
   private syncInterval: NodeJS.Timeout | null = null;
 
   constructor(sessionId?: string) {
@@ -34,21 +34,31 @@ export class MovementTracker {
         return;
       }
 
-      // Start watching position changes
+      // Start watching position changes with more conservative settings
       this.watchId = navigator.geolocation.watchPosition(
         (position) => this.handlePositionUpdate(position),
-        (error) => console.warn('Geolocation error:', error),
+        (error) => {
+          console.warn('Failed to get location for tracking:', error);
+          // Stop trying after multiple failures to prevent spam
+          if (this.watchId) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+          }
+        },
         {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 60000 // 1 minute
+          enableHighAccuracy: false, // Use standard accuracy for background tracking
+          timeout: 15000,
+          maximumAge: 300000 // Accept 5-minute-old locations
         }
       );
 
-      // Set up interval tracking
+      // Set up interval tracking with longer intervals to reduce spam
       this.trackingInterval = setInterval(() => {
-        this.requestLocationUpdate();
-      }, this.TRACKING_INTERVAL_MS);
+        // Only request location update if watch position isn't already working
+        if (!this.watchId) {
+          this.requestLocationUpdate();
+        }
+      }, 180000); // 3 minutes instead of 30 seconds
 
       // Set up periodic sync for offline points
       this.syncInterval = setInterval(() => {

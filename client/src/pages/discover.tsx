@@ -56,63 +56,41 @@ export default function DiscoverPage() {
     }
   });
 
-  // Enhanced location acquisition function with multiple fallback strategies
+  // Rate-limited location acquisition with proper error handling
+  const [lastLocationAttempt, setLastLocationAttempt] = useState<number>(0);
+  const [locationAttempts, setLocationAttempts] = useState<number>(0);
+  
   const acquireLocation = useCallback(async () => {
-    // Strategy 1: Try high-accuracy GPS first
-    if (navigator.geolocation) {
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 30000
-          });
-        });
-        
-        const { latitude, longitude } = position.coords;
-        setCurrentLocation({ lat: latitude, lng: longitude });
-        
-        createLocationMutation.mutate({
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
-          name: "Current Location",
-          sessionId
-        });
-        
-        console.log(`Using real GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-        return;
-      } catch (highAccuracyError) {
-        console.warn('High accuracy geolocation failed, trying standard accuracy:', highAccuracyError);
-        
-        // Strategy 2: Try standard accuracy GPS
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: false,
-              timeout: 5000,
-              maximumAge: 60000
-            });
-          });
-          
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation({ lat: latitude, lng: longitude });
-          
-          createLocationMutation.mutate({
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-            name: "Current Location (Standard)",
-            sessionId
-          });
-          
-          console.log(`Using standard GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-          return;
-        } catch (standardError) {
-          console.warn('Standard geolocation also failed:', standardError);
-        }
-      }
+    const now = Date.now();
+    
+      // Rate limiting: don't attempt more than once every 30 seconds
+    if (now - lastLocationAttempt < 30000) {
+      console.log('Location request rate limited');
+      return;
     }
     
-    // Strategy 3: Try to get the latest tracked location from database
+    // Stop trying after 2 failed attempts per session to prevent spam
+    if (locationAttempts >= 2) {
+      console.log('Max location attempts reached, using fallback');
+      const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
+      
+      // Only set location if we don't already have one
+      if (!currentLocation) {
+        setCurrentLocation(fallbackLocation);
+        createLocationMutation.mutate({
+          latitude: fallbackLocation.lat.toString(),
+          longitude: fallbackLocation.lng.toString(),
+          name: "Default Location",
+          sessionId
+        });
+      }
+      return;
+    }
+    
+    setLastLocationAttempt(now);
+    setLocationAttempts(prev => prev + 1);
+    
+    // Strategy 1: Try to get the latest tracked location from database first
     try {
       const response = await fetch(`/api/tracking/${sessionId}`);
       if (response.ok) {
@@ -141,7 +119,35 @@ export default function DiscoverPage() {
       console.warn('Failed to get last tracked location:', trackingError);
     }
     
-    // Strategy 4: Use fallback location only as last resort
+    // Strategy 2: Try GPS if we have permission and it's supported
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false, // Use standard accuracy to be more reliable
+            timeout: 8000,
+            maximumAge: 300000 // Accept cached location up to 5 minutes old
+          });
+        });
+        
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        
+        createLocationMutation.mutate({
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          name: "Current Location",
+          sessionId
+        });
+        
+        console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        return;
+      } catch (gpsError) {
+        console.warn('GPS location failed:', gpsError);
+      }
+    }
+    
+    // Strategy 3: Use fallback location
     const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
     setCurrentLocation(fallbackLocation);
     createLocationMutation.mutate({
@@ -152,22 +158,28 @@ export default function DiscoverPage() {
     });
     
     console.log('Using fallback location (Minneapolis)');
-  }, [sessionId, createLocationMutation]);
+  }, [sessionId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
   // Acquire location on component mount
   useEffect(() => {
     acquireLocation();
   }, [acquireLocation]);
 
-  // Monitor app visibility changes for location refresh
+  // Monitor app visibility changes for location refresh (rate limited)
+  const [lastVisibilityChange, setLastVisibilityChange] = useState<number>(0);
+  
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // App came back to foreground - refresh location after brief delay
-        console.log('App returned to foreground, refreshing location...');
-        setTimeout(() => {
-          acquireLocation();
-        }, 100);
+        const now = Date.now();
+        // Only refresh location if it's been more than 30 seconds since last attempt
+        if (now - lastVisibilityChange > 30000) {
+          console.log('App returned to foreground, refreshing location...');
+          setLastVisibilityChange(now);
+          setTimeout(() => {
+            acquireLocation();
+          }, 1000);
+        }
       }
     };
 
@@ -176,29 +188,14 @@ export default function DiscoverPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [acquireLocation]);
+  }, [acquireLocation, lastVisibilityChange]);
 
-  // Start movement tracking when page loads
+  // Simplified tracking - disable automatic movement tracking to prevent location spam
   useEffect(() => {
-    const initializeTracking = async () => {
-      try {
-        await startGlobalTracking(sessionId);
-        console.log('Movement tracking started for session:', sessionId);
-      } catch (error) {
-        console.warn('Failed to start movement tracking:', error);
-        toast({
-          title: "Tracking Notice",
-          description: "Location tracking is optional and helps improve pattern suggestions",
-          variant: "default"
-        });
-      }
-    };
-
-    initializeTracking();
-
-    // Keep tracking running in background when navigating to other pages
-    // Movement tracking will continue across all app sections
-  }, [sessionId, toast]);
+    // Only track location when user explicitly requests it via the map buttons
+    // This prevents excessive background geolocation requests
+    console.log('Location tracking available on demand for session:', sessionId);
+  }, [sessionId]);
 
   // Fetch patterns for current location
   const { data: patterns = [], isLoading: patternsLoading } = useQuery({
