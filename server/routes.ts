@@ -248,6 +248,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Token Economy API Routes
+  
+  // Get user's token balance
+  app.get('/api/tokens/balance/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const balance = await tokenEconomy.getTokenBalance(sessionId);
+      res.json(balance);
+    } catch (error) {
+      console.error('Error fetching token balance:', error);
+      res.status(500).json({ error: 'Failed to fetch token balance' });
+    }
+  });
+
+  // Upload media and earn tokens
+  app.post('/api/tokens/upload-media', async (req, res) => {
+    try {
+      const { sessionId, locationId, mediaType, fileName, fileSize, mimeType, caption, isPremium } = req.body;
+      
+      if (!sessionId || !locationId || !mediaType || !fileName || !fileSize || !mimeType) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const result = await tokenEconomy.uploadMedia(sessionId, locationId, {
+        mediaType,
+        fileName,
+        fileSize,
+        mimeType,
+        caption,
+        isPremium
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      res.status(500).json({ error: 'Failed to upload media' });
+    }
+  });
+
+  // Add comment and earn tokens
+  app.post('/api/tokens/add-comment', async (req, res) => {
+    try {
+      const { sessionId, locationId, content, commentType, isPremium } = req.body;
+      
+      if (!sessionId || !locationId || !content || !commentType) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const result = await tokenEconomy.addComment(sessionId, locationId, {
+        content,
+        commentType,
+        isPremium
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      res.status(500).json({ error: 'Failed to add comment' });
+    }
+  });
+
+  // Get transaction history
+  app.get('/api/tokens/transactions/:sessionId', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const transactions = await tokenEconomy.getTransactionHistory(sessionId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
+  // Award tokens for saving location
+  app.post('/api/tokens/award-location', async (req, res) => {
+    try {
+      const { sessionId, locationId } = req.body;
+      
+      if (!sessionId || !locationId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const tokensAwarded = await tokenEconomy.awardTokens(
+        sessionId,
+        'location',
+        locationId,
+        'Saved new location'
+      );
+
+      res.json({ tokensAwarded });
+    } catch (error) {
+      console.error('Error awarding location tokens:', error);
+      res.status(500).json({ error: 'Failed to award tokens' });
+    }
+  });
+
   // Pattern library endpoints
   app.get('/api/patterns', async (req, res) => {
     try {

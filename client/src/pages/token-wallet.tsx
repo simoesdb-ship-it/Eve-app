@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { MobileContainer } from "@/components/ui/mobile-container";
-import { BottomNavigation } from "@/components/bottom-navigation";
+import BottomNavigation from "@/components/bottom-navigation";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -165,7 +164,7 @@ export default function TokenWallet() {
 
   if (balanceLoading) {
     return (
-      <MobileContainer>
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto p-6 space-y-6">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">Token Wallet</h1>
@@ -178,7 +177,7 @@ export default function TokenWallet() {
           <div className="h-20"></div>
         </div>
         <BottomNavigation activeTab="discover" />
-      </MobileContainer>
+      </div>
     );
   }
 
@@ -186,7 +185,7 @@ export default function TokenWallet() {
   const recentTransactions = transactions || [];
 
   return (
-    <MobileContainer>
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-2">
@@ -451,6 +450,6 @@ export default function TokenWallet() {
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab="discover" />
-    </MobileContainer>
+    </div>
   );
 }
