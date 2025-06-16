@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Device registration endpoints for anonymous user identification
   app.post('/api/register-device', async (req, res) => {
     try {
-      const { deviceId, userId, deviceFingerprint } = req.body;
+      const { deviceId, userId, deviceFingerprint, username } = req.body;
       
       // Check if device is already registered
       const existingRegistration = await storage.getDeviceRegistration(deviceId);
@@ -676,6 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ 
           registered: true, 
           userId: existingRegistration.userId,
+          username: existingRegistration.username,
           message: 'Device already registered' 
         });
         return;
@@ -685,6 +686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const registration = await storage.createDeviceRegistration({
         deviceId,
         userId,
+        username,
         deviceFingerprint,
         isActive: true
       });
@@ -692,6 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         registered: true, 
         userId: registration.userId,
+        username: registration.username,
         message: 'Device registered successfully' 
       });
     } catch (error: any) {

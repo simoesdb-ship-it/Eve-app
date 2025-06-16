@@ -198,6 +198,7 @@ export const deviceRegistrations = pgTable("device_registrations", {
   id: serial("id").primaryKey(),
   deviceId: text("device_id").unique().notNull(),
   userId: text("user_id").unique().notNull(),
+  username: text("username").notNull(), // Two-word fictitious name
   deviceFingerprint: text("device_fingerprint").notNull(),
   registeredAt: timestamp("registered_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),

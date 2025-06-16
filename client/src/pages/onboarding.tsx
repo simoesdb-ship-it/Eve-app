@@ -4,15 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getDeviceId, getConsistentUserId } from "@/lib/device-fingerprint";
+import { getUserDisplayName, getUserColor, getUserInitials } from "@/lib/username-generator";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Fingerprint, Shield, MapPin, Coins, Check } from "lucide-react";
+import { Fingerprint, Shield, MapPin, Coins, Check, User } from "lucide-react";
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
   const [deviceId, setDeviceId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [isExistingUser, setIsExistingUser] = useState(false);
   const { toast } = useToast();
@@ -29,12 +31,17 @@ export default function OnboardingPage() {
       setDeviceId(deviceFingerprint);
       setUserId(anonymousUserId);
 
+      // Generate consistent username from device fingerprint
+      const generatedUsername = getUserDisplayName(anonymousUserId);
+      setUsername(generatedUsername);
+
       // Check if device is already registered
       const response = await fetch(`/api/check-device/${deviceFingerprint}`);
       if (response.ok) {
         const data = await response.json();
         if (data.exists && data.isActive) {
           setIsExistingUser(true);
+          setUsername(data.username || generatedUsername);
           setStep(4); // Skip to welcome back step
         }
       }
