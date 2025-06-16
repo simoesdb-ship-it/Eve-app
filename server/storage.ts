@@ -9,7 +9,8 @@ import {
   type Vote, type InsertVote,
   type Activity, type InsertActivity,
   type SpatialPoint, type InsertSpatialPoint,
-  type SavedLocation, type InsertSavedLocation
+  type SavedLocation, type InsertSavedLocation,
+  type DeviceRegistration, type InsertDeviceRegistration
 } from "@shared/schema";
 
 export interface PatternWithVotes extends Pattern {
@@ -280,13 +281,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Device registration methods
-  async getDeviceRegistration(deviceId: string): Promise<any> {
+  async getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined> {
     const [registration] = await db.select().from(deviceRegistrations)
       .where(eq(deviceRegistrations.deviceId, deviceId));
     return registration;
   }
 
-  async createDeviceRegistration(registration: any): Promise<any> {
+  async createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration> {
     const [newRegistration] = await db.insert(deviceRegistrations)
       .values(registration)
       .returning();

@@ -287,6 +287,9 @@ export type InsertMediaView = z.infer<typeof insertMediaViewSchema>;
 export type TokenSupplyTracking = typeof tokenSupplyTracking.$inferSelect;
 export type InsertTokenSupplyTracking = z.infer<typeof insertTokenSupplyTrackingSchema>;
 
+export type DeviceRegistration = typeof deviceRegistrations.$inferSelect;
+export type InsertDeviceRegistration = z.infer<typeof insertDeviceRegistrationSchema>;
+
 // Extended types for API responses
 export type PatternWithVotes = Pattern & {
   upvotes: number;
