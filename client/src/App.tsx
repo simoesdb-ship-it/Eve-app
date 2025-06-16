@@ -36,6 +36,8 @@ function Router() {
       <Route path="/token-wallet" component={TokenWalletPage} />
       <Route path="/community-demo" component={CommunityDemoPage} />
       <Route path="/data-marketplace" component={DataMarketplacePage} />
+      <Route path="/economy" component={EconomyPage} />
+      <Route path="/insights" component={InsightsPage} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route component={NotFound} />
     </Switch>
