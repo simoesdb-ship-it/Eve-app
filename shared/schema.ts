@@ -6,6 +6,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  tokenBalance: integer("token_balance").default(100).notNull(), // Starting balance of 100 tokens
+  totalTokensEarned: integer("total_tokens_earned").default(0).notNull(),
+  totalTokensSpent: integer("total_tokens_spent").default(0).notNull(),
 });
 
 export const patterns = pgTable("patterns", {
@@ -122,6 +125,90 @@ export const insertSavedLocationSchema = createInsertSchema(savedLocations).omit
   createdAt: true,
 });
 
+// Token economy tables
+export const tokenTransactions = pgTable("token_transactions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  transactionType: text("transaction_type").notNull(), // 'earn' or 'spend'
+  amount: integer("amount").notNull(),
+  reason: text("reason").notNull(),
+  relatedContentType: text("related_content_type"), // 'location', 'photo', 'video', 'comment'
+  relatedContentId: integer("related_content_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userMedia = pgTable("user_media", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").references(() => locations.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  mediaType: text("media_type").notNull(), // 'photo', 'video'
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  caption: text("caption"),
+  tokensEarned: integer("tokens_earned").default(0).notNull(),
+  isPremium: boolean("is_premium").default(false).notNull(),
+  viewCost: integer("view_cost").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userComments = pgTable("user_comments", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").references(() => locations.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  content: text("content").notNull(),
+  commentType: text("comment_type").notNull(), // 'recommendation', 'observation', 'pattern_analysis'
+  tokensEarned: integer("tokens_earned").default(0).notNull(),
+  isPremium: boolean("is_premium").default(false).notNull(),
+  viewCost: integer("view_cost").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const sessionTokenBalances = pgTable("session_token_balances", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  tokenBalance: integer("token_balance").default(100).notNull(),
+  totalTokensEarned: integer("total_tokens_earned").default(0).notNull(),
+  totalTokensSpent: integer("total_tokens_spent").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const mediaViews = pgTable("media_views", {
+  id: serial("id").primaryKey(),
+  mediaId: integer("media_id").references(() => userMedia.id).notNull(),
+  viewerSessionId: text("viewer_session_id").notNull(),
+  tokensPaid: integer("tokens_paid").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Token economy insert schemas
+export const insertTokenTransactionSchema = createInsertSchema(tokenTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserMediaSchema = createInsertSchema(userMedia).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserCommentSchema = createInsertSchema(userComments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionTokenBalanceSchema = createInsertSchema(sessionTokenBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMediaViewSchema = createInsertSchema(mediaViews).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -146,6 +233,22 @@ export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
 
 export type SavedLocation = typeof savedLocations.$inferSelect;
 export type InsertSavedLocation = z.infer<typeof insertSavedLocationSchema>;
+
+// Token economy types
+export type TokenTransaction = typeof tokenTransactions.$inferSelect;
+export type InsertTokenTransaction = z.infer<typeof insertTokenTransactionSchema>;
+
+export type UserMedia = typeof userMedia.$inferSelect;
+export type InsertUserMedia = z.infer<typeof insertUserMediaSchema>;
+
+export type UserComment = typeof userComments.$inferSelect;
+export type InsertUserComment = z.infer<typeof insertUserCommentSchema>;
+
+export type SessionTokenBalance = typeof sessionTokenBalances.$inferSelect;
+export type InsertSessionTokenBalance = z.infer<typeof insertSessionTokenBalanceSchema>;
+
+export type MediaView = typeof mediaViews.$inferSelect;
+export type InsertMediaView = z.infer<typeof insertMediaViewSchema>;
 
 // Extended types for API responses
 export type PatternWithVotes = Pattern & {

@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage-clean";
-import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema } from "@shared/schema";
+import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
+import { tokenEconomy } from "./token-economy";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
