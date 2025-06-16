@@ -11,7 +11,7 @@ import {
   type InsertUserComment,
   type InsertMediaView
 } from "@shared/schema";
-import { eq, desc, sum } from "drizzle-orm";
+import { eq, desc, sum, sql } from "drizzle-orm";
 
 export interface TokenEarningRates {
   location: number;
@@ -98,17 +98,12 @@ export class TokenEconomyService {
       relatedContentId: contentId
     });
 
-    // Update user's balance
-    const [currentBalance] = await db
-      .select()
-      .from(sessionTokenBalances)
-      .where(eq(sessionTokenBalances.sessionId, sessionId));
-
+    // Update user's balance using SQL increment
     await db
       .update(sessionTokenBalances)
       .set({
-        tokenBalance: currentBalance.tokenBalance + tokensAwarded,
-        totalTokensEarned: currentBalance.totalTokensEarned + tokensAwarded
+        tokenBalance: sql`${sessionTokenBalances.tokenBalance} + ${tokensAwarded}`,
+        totalTokensEarned: sql`${sessionTokenBalances.totalTokensEarned} + ${tokensAwarded}`
       })
       .where(eq(sessionTokenBalances.sessionId, sessionId));
 
@@ -139,17 +134,12 @@ export class TokenEconomyService {
       relatedContentId: contentId || null
     });
 
-    // Update user's balance
-    const [currentBalance] = await db
-      .select()
-      .from(sessionTokenBalances)
-      .where(eq(sessionTokenBalances.sessionId, sessionId));
-
+    // Update user's balance using SQL decrement/increment
     await db
       .update(sessionTokenBalances)
       .set({
-        tokenBalance: currentBalance.tokenBalance - amount,
-        totalTokensSpent: currentBalance.totalTokensSpent + amount
+        tokenBalance: sql`${sessionTokenBalances.tokenBalance} - ${amount}`,
+        totalTokensSpent: sql`${sessionTokenBalances.totalTokensSpent} + ${amount}`
       })
       .where(eq(sessionTokenBalances.sessionId, sessionId));
 
