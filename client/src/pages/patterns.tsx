@@ -25,7 +25,7 @@ export default function PatternsPage() {
     queryFn: async () => {
       const response = await fetch('/api/patterns');
       if (!response.ok) throw new Error('Failed to fetch patterns');
-      return await response.json() as Pattern[];
+      return response.json() as Pattern[];
     }
   });
 

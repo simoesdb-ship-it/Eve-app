@@ -124,42 +124,51 @@ export default function InsightsPage() {
       </header>
 
       <div className="max-w-4xl mx-auto p-4">
-        <Tabs defaultValue="personal" className="space-y-6">
+        <Tabs defaultValue="personal" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="personal">Personal Insights</TabsTrigger>
-            <TabsTrigger value="community">Community Analysis</TabsTrigger>
+            <TabsTrigger value="personal" className="flex items-center space-x-2">
+              <Activity className="w-4 h-4" />
+              <span>Personal</span>
+            </TabsTrigger>
+            <TabsTrigger value="community" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Community</span>
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="personal" className="space-y-6">
+          {/* PERSONAL INSIGHTS TAB */}
+          <TabsContent value="personal" className="space-y-4">
             {/* Personal Stats Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="w-5 h-5 text-primary" />
-                  <span>Your Contributions</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stats?.suggestedPatterns || 0}</div>
-                    <div className="text-sm text-muted-foreground">Patterns Suggested</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stats?.votesContributed || 0}</div>
-                    <div className="text-sm text-muted-foreground">Votes Cast</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stats?.locationsTracked || 0}</div>
-                    <div className="text-sm text-muted-foreground">Locations Tracked</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stats?.hoursContributed || 0}</div>
-                    <div className="text-sm text-muted-foreground">Hours Contributed</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Target className="w-8 h-8 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats?.suggestedPatterns || 0}</div>
+                  <div className="text-sm text-muted-foreground">Patterns Suggested</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Vote className="w-8 h-8 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats?.votesContributed || 0}</div>
+                  <div className="text-sm text-muted-foreground">Votes Cast</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <MapPin className="w-8 h-8 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats?.locationsTracked || 0}</div>
+                  <div className="text-sm text-muted-foreground">Locations Tracked</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold">{stats?.hoursContributed || 0}</div>
+                  <div className="text-sm text-muted-foreground">Hours Contributed</div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Personal Activity Feed */}
             <Card>
