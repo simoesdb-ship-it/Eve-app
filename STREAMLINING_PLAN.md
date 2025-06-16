@@ -1,73 +1,59 @@
-# App Streamlining Plan - Alexander's Theory Applied
+# App Streamlining Analysis
 
-## Core Problem: Redundant Pattern Overlays
-The current architecture creates multiple disconnected systems that duplicate functionality, violating Alexander's principle of pattern coherence.
+## Current Navigation Issues (7 tabs - too many!)
 
-## Phase 1: Consolidate Spatial Data (PRIORITY)
-**Current Redundancy:**
-- `locations` table (analyzed places)
-- `trackingPoints` table (movement data) 
-- `savedLocations` table (bookmarks)
+### Current tabs:
+1. **Map** - Location discovery and tracking
+2. **Activity** - User activity feed and stats  
+3. **Groups** - Community analysis
+4. **Patterns** - Pattern exploration
+5. **Tokens** - Token wallet and balance
+6. **Market** - Data marketplace
+7. **Settings** - User settings
 
-**Solution:** Unified spatial model with type differentiation
-```sql
-CREATE TYPE spatial_point_type AS ENUM ('tracking', 'analyzed', 'saved');
-CREATE TABLE spatial_points (
-  id SERIAL PRIMARY KEY,
-  latitude DECIMAL(12,8) NOT NULL,
-  longitude DECIMAL(12,8) NOT NULL,
-  type spatial_point_type NOT NULL,
-  session_id TEXT NOT NULL,
-  metadata JSONB, -- patterns, analysis results, bookmark info
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
+## Consolidation Strategy
 
-## Phase 2: Eliminate Activity Table Redundancy
-**Current Problem:** Activity events duplicate data already captured in core operations
+### Merge Economy Functions (Tokens + Market → "Economy")
+- Token wallet and data marketplace are both economic functions
+- Users think of them as one unified economy system
+- Combine into single "Economy" tab with sub-navigation
 
-**Solution:** Generate activity feed from actual data changes:
-- Location analysis → derive from spatial_points where type='analyzed'
-- Pattern suggestions → derive from spatial_points metadata
-- Votes → derive from vote table changes
-- Movement → derive from spatial_points where type='tracking'
+### Merge Analysis Functions (Activity + Groups → "Insights") 
+- Activity feed and community analysis are both data insights
+- Both show analytical views of collected data
+- Combine into "Insights" tab with toggle between personal/community
 
-## Phase 3: Simplify Pattern Discovery
-**Current Complexity:** locations → patternSuggestions → patterns → votes
+### Keep Core Functions Separate
+- **Map** - Primary location interaction (core function)
+- **Patterns** - Pattern discovery (core Alexander functionality)
+- **Settings** - Configuration (standard app function)
 
-**Solution:** Direct pattern-location relationship:
-```sql
-CREATE TABLE pattern_applications (
-  spatial_point_id INTEGER REFERENCES spatial_points(id),
-  pattern_id INTEGER REFERENCES patterns(id),
-  confidence DECIMAL(5,3),
-  votes_up INTEGER DEFAULT 0,
-  votes_down INTEGER DEFAULT 0,
-  applied_at TIMESTAMP DEFAULT NOW()
-);
-```
+## New Streamlined Structure (5 tabs)
 
-## Phase 4: Centralized Session Context
-**Current Problem:** Session IDs scattered across tables without relationship modeling
+1. **Map** (Compass icon) - Location discovery, tracking, voting
+2. **Insights** (TrendingUp icon) - Personal activity + Community analysis  
+3. **Patterns** (Grid3X3 icon) - Pattern exploration and matching
+4. **Economy** (Coins icon) - Token wallet + Data marketplace
+5. **Settings** (Settings icon) - User preferences
 
-**Solution:** Session-centric data clustering with clear boundaries
+## Benefits
 
-## Phase 5: UI Pattern Consolidation
-**Current Issue:** Feature explanations repeated in multiple interface sections
+### User Experience:
+- Cleaner navigation with optimal 5-tab structure
+- Related functions grouped logically
+- Reduced cognitive load for users
+- Faster navigation between related features
 
-**Solution:** Single source of truth for feature descriptions, dynamic content rendering
+### Development:
+- Less redundant navigation code
+- Consolidated related state management
+- Easier maintenance and updates
+- More cohesive feature organization
 
-## Implementation Priority:
-1. Fix database precision errors (DONE)
-2. Consolidate spatial data model
-3. Remove activity table redundancy  
-4. Simplify pattern relationships
-5. Centralize session management
-6. Consolidate UI patterns
+## Implementation Plan
 
-## Expected Outcomes:
-- 40% reduction in database complexity
-- Elimination of data duplication
-- Cleaner API surface
-- More intuitive user interface
-- Better performance through reduced joins
+1. Create unified Economy page with tabs for Wallet/Marketplace
+2. Create unified Insights page with tabs for Activity/Community  
+3. Update bottom navigation to 5 consolidated tabs
+4. Ensure all existing functionality remains accessible
+5. Test navigation flows and user experience

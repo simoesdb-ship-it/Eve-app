@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Compass, Grid3X3, TrendingUp, Users, Settings, Wallet, ShoppingCart } from "lucide-react";
+import { Compass, Grid3X3, TrendingUp, Settings, Coins } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -16,16 +16,10 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       label: "Map"
     },
     {
-      id: "activity",
-      path: "/activity",
+      id: "insights",
+      path: "/insights",
       icon: TrendingUp,
-      label: "Activity"
-    },
-    {
-      id: "community",
-      path: "/community-analysis",
-      icon: Users,
-      label: "Groups"
+      label: "Insights"
     },
     {
       id: "patterns",
@@ -34,16 +28,10 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       label: "Patterns"
     },
     {
-      id: "tokens",
-      path: "/token-wallet",
-      icon: Wallet,
-      label: "Tokens"
-    },
-    {
-      id: "marketplace",
-      path: "/data-marketplace",
-      icon: ShoppingCart,
-      label: "Market"
+      id: "economy",
+      path: "/economy",
+      icon: Coins,
+      label: "Economy"
     },
     {
       id: "settings",
