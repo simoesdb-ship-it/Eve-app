@@ -14,6 +14,7 @@ import CommunityAnalysisPage from "@/pages/community-analysis";
 import RealWorldAnalysisPage from "@/pages/real-world-analysis";
 import TimeTrackingDemoPage from "@/pages/time-tracking-demo";
 import TokenWalletPage from "@/pages/token-wallet";
+import OnboardingPage from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 
 function Router() {

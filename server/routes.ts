@@ -663,6 +663,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Device registration endpoints for anonymous user identification
+  app.post('/api/register-device', async (req, res) => {
+    try {
+      const { deviceId, userId, deviceFingerprint } = req.body;
+      
+      // Check if device is already registered
+      const existingRegistration = await storage.getDeviceRegistration(deviceId);
+      if (existingRegistration) {
+        // Update last seen timestamp
+        await storage.updateDeviceLastSeen(deviceId);
+        res.json({ 
+          registered: true, 
+          userId: existingRegistration.userId,
+          message: 'Device already registered' 
+        });
+        return;
+      }
+
+      // Register new device
+      const registration = await storage.createDeviceRegistration({
+        deviceId,
+        userId,
+        deviceFingerprint,
+        isActive: true
+      });
+
+      res.json({ 
+        registered: true, 
+        userId: registration.userId,
+        message: 'Device registered successfully' 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Check if device exists
+  app.get('/api/check-device/:deviceId', async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const registration = await storage.getDeviceRegistration(deviceId);
+      
+      res.json({ 
+        exists: !!registration,
+        userId: registration?.userId,
+        isActive: registration?.isActive
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

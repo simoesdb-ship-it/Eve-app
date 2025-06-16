@@ -1,7 +1,7 @@
 import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations,
+  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
   type User, type InsertUser,
   type Pattern, type InsertPattern,
   type Location, type InsertLocation,
@@ -68,6 +68,11 @@ export interface IStorage {
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
+
+  // Device registration methods
+  getDeviceRegistration(deviceId: string): Promise<any>;
+  createDeviceRegistration(registration: any): Promise<any>;
+  updateDeviceLastSeen(deviceId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -272,6 +277,26 @@ export class DatabaseStorage implements IStorage {
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
     await db.delete(savedLocations)
       .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
+  }
+
+  // Device registration methods
+  async getDeviceRegistration(deviceId: string): Promise<any> {
+    const [registration] = await db.select().from(deviceRegistrations)
+      .where(eq(deviceRegistrations.deviceId, deviceId));
+    return registration;
+  }
+
+  async createDeviceRegistration(registration: any): Promise<any> {
+    const [newRegistration] = await db.insert(deviceRegistrations)
+      .values(registration)
+      .returning();
+    return newRegistration;
+  }
+
+  async updateDeviceLastSeen(deviceId: string): Promise<void> {
+    await db.update(deviceRegistrations)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(deviceRegistrations.deviceId, deviceId));
   }
 }
 
