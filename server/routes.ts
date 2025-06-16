@@ -204,6 +204,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate demo tracking data to show three-tier architecture
+  app.post('/api/demo/tracking', async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID required' });
+      }
+
+      const { generateDemoTrackingData } = await import('./demo-tracking-generator');
+      const result = await generateDemoTrackingData(sessionId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error generating demo tracking data:', error);
+      res.status(500).json({ error: 'Failed to generate demo data' });
+    }
+  });
+
   app.get('/api/tracking/:sessionId', async (req, res) => {
     try {
       const { sessionId } = req.params;
