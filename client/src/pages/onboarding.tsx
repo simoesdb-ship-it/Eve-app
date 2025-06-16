@@ -65,6 +65,7 @@ export default function OnboardingPage() {
       const response = await apiRequest('POST', '/api/register-device', {
         deviceId,
         userId,
+        username,
         deviceFingerprint: JSON.stringify(deviceInfo)
       });
 
@@ -75,7 +76,7 @@ export default function OnboardingPage() {
           title: "Registration Complete",
           description: "You can now start discovering patterns in your area",
         });
-        setStep(5);
+        setStep(6);
       }
     } catch (error: any) {
       toast({
@@ -179,23 +180,70 @@ export default function OnboardingPage() {
       case 4:
         return (
           <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+              <User className="w-8 h-8 text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-3">Your Anonymous Identity</h2>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                You'll be known by this unique two-word name that's generated from your device. This keeps you anonymous while giving you a memorable identity.
+              </p>
+              
+              {username && (
+                <div className="flex flex-col items-center space-y-4 mb-6">
+                  <div 
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                    style={{ backgroundColor: getUserColor(username) }}
+                  >
+                    {getUserInitials(username)}
+                  </div>
+                  <div className="text-xl font-semibold text-foreground">
+                    {username}
+                  </div>
+                </div>
+              )}
+              
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Same username every time you use the app</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Completely anonymous - no personal data</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Unique to your device</span>
+                </div>
+              </div>
+            </div>
+            <Button onClick={() => setStep(5)} size="lg" className="w-full">
+              Continue
+            </Button>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="text-center space-y-6">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
               <Fingerprint className="w-8 h-8 text-purple-600" />
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-3">
-                {isExistingUser ? "Welcome Back!" : "Create Your Anonymous Identity"}
+                {isExistingUser ? "Welcome Back!" : "Register Your Device"}
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 {isExistingUser 
                   ? "Your device is already registered. You can continue using the app with your existing anonymous identity."
-                  : "We'll create a unique anonymous identity for your device. This ensures one account per device while maintaining your privacy."
+                  : "Complete the registration to secure your anonymous identity and start earning tokens."
                 }
               </p>
               {!isExistingUser && (
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2 text-sm">
                   <div className="font-medium">Your Anonymous ID:</div>
-                  <div className="font-mono text-xs bg-white p-2 rounded border break-all">
+                  <div className="font-mono text-xs bg-white dark:bg-gray-700 p-2 rounded border break-all">
                     {userId}
                   </div>
                 </div>
@@ -207,12 +255,12 @@ export default function OnboardingPage() {
               className="w-full"
               disabled={isRegistering}
             >
-              {isRegistering ? "Registering..." : isExistingUser ? "Start Exploring" : "Create Identity"}
+              {isRegistering ? "Registering..." : isExistingUser ? "Start Exploring" : "Complete Registration"}
             </Button>
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="text-center space-y-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">

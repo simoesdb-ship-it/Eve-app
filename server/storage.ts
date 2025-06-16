@@ -70,8 +70,8 @@ export interface IStorage {
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
 
   // Device registration methods
-  getDeviceRegistration(deviceId: string): Promise<any>;
-  createDeviceRegistration(registration: any): Promise<any>;
+  getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined>;
+  createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration>;
   updateDeviceLastSeen(deviceId: string): Promise<void>;
 }
 
