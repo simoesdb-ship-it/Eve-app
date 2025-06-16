@@ -30,6 +30,17 @@ interface TokenBalance {
   totalSpent: number;
 }
 
+interface TokenSupply {
+  totalSupply: number;
+  tokensInCirculation: number;
+  currentRewardMultiplier: number;
+  lastHalvingAt: number;
+  nextHalvingAt: number;
+  isCapReached: boolean;
+  percentageMinted: number;
+  remainingTokens: number;
+}
+
 interface TokenTransaction {
   id: number;
   transactionType: 'earn' | 'spend';
@@ -78,6 +89,12 @@ export default function TokenWallet() {
   const { data: transactions, isLoading: transactionsLoading } = useQuery<TokenTransaction[]>({
     queryKey: ['/api/tokens/transactions', sessionId],
     queryFn: () => apiRequest('GET', `/api/tokens/transactions/${sessionId}`).then(res => res.json()),
+  });
+
+  // Fetch global token supply information
+  const { data: tokenSupply, isLoading: supplyLoading } = useQuery<TokenSupply>({
+    queryKey: ['/api/tokens/supply'],
+    queryFn: () => apiRequest('GET', '/api/tokens/supply').then(res => res.json()),
   });
 
   // Simulate content upload for demo
@@ -227,6 +244,61 @@ export default function TokenWallet() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Bitcoin-like Supply Information */}
+        {tokenSupply && (
+          <Card className="border-2 border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-800">
+                <Coins className="w-5 h-5" />
+                Global Token Supply (Bitcoin-like Cap)
+              </CardTitle>
+              <CardDescription className="text-orange-700">
+                Limited supply of 21 million tokens with halving rewards
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-semibold text-orange-800">Total Minted</div>
+                  <div className="text-lg">{tokenSupply.totalSupply.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-orange-800">Remaining</div>
+                  <div className="text-lg">{tokenSupply.remainingTokens.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-orange-800">Progress</div>
+                  <div className="text-lg">{tokenSupply.percentageMinted.toFixed(4)}%</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-orange-800">Reward Rate</div>
+                  <div className="text-lg">{(tokenSupply.currentRewardMultiplier * 100).toFixed(2)}%</div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-orange-700">
+                  <span>Minting Progress</span>
+                  <span>{tokenSupply.totalSupply.toLocaleString()} / 21,000,000</span>
+                </div>
+                <Progress value={tokenSupply.percentageMinted} className="h-2" />
+              </div>
+
+              {!tokenSupply.isCapReached && (
+                <div className="text-xs text-orange-600 bg-orange-100 p-2 rounded">
+                  ⚡ Next halving at {tokenSupply.nextHalvingAt.toLocaleString()} tokens
+                </div>
+              )}
+
+              {tokenSupply.isCapReached && (
+                <div className="text-xs text-red-600 bg-red-100 p-2 rounded font-semibold">
+                  🚫 TOKEN CAP REACHED - No more tokens can be minted
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="earn" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
