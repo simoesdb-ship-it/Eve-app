@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Users, MapPin, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import BottomNavigation from "@/components/bottom-navigation";
+import MobileContainer from "@/components/mobile-container";
 
 interface CommunityCluster {
   id: string;
@@ -56,72 +58,85 @@ export default function CommunityAnalysis() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Community Pattern Analysis</h1>
-          <p className="text-muted-foreground">Analyzing spatial data and pattern matches...</p>
+      <MobileContainer>
+        <div className="container mx-auto p-6 space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-4">Community Pattern Analysis</h1>
+            <p className="text-muted-foreground">Analyzing spatial data and pattern matches...</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="h-20"></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+        <BottomNavigation activeTab="community" />
+      </MobileContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Alert className="max-w-2xl mx-auto">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Analysis Error</AlertTitle>
-          <AlertDescription>
-            Unable to load community pattern analysis. Please try again later.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <MobileContainer>
+        <div className="container mx-auto p-6">
+          <Alert className="max-w-2xl mx-auto">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Analysis Error</AlertTitle>
+            <AlertDescription>
+              Unable to load community pattern analysis. Please try again later.
+            </AlertDescription>
+          </Alert>
+          <div className="h-20"></div>
+        </div>
+        <BottomNavigation activeTab="community" />
+      </MobileContainer>
     );
   }
 
   if (!interpretations || interpretations.length === 0) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-4">Community Pattern Analysis</h1>
-          <Alert>
-            <MapPin className="h-4 w-4" />
-            <AlertTitle>No Data Available</AlertTitle>
-            <AlertDescription>
-              No spatial tracking data found for analysis. Start using the app to record movement patterns and location data.
-            </AlertDescription>
-          </Alert>
+      <MobileContainer>
+        <div className="container mx-auto p-6">
+          <div className="text-center max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold mb-4">Community Pattern Analysis</h1>
+            <Alert>
+              <MapPin className="h-4 w-4" />
+              <AlertTitle>No Data Available</AlertTitle>
+              <AlertDescription>
+                No spatial tracking data found for analysis. Start using the app to record movement patterns and location data.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <div className="h-20"></div>
         </div>
-      </div>
+        <BottomNavigation activeTab="community" />
+      </MobileContainer>
     );
   }
 
   const primaryPattern = interpretations[0]; // Pattern #12 should be first
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Community Pattern Analysis</h1>
-        <p className="text-muted-foreground">
-          Real-time analysis of Alexander's patterns against actual community movement data
-        </p>
-      </div>
+    <MobileContainer>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-2">Community Pattern Analysis</h1>
+          <p className="text-muted-foreground">
+            Real-time analysis of Alexander's patterns against actual community movement data
+          </p>
+        </div>
 
       {/* Primary Pattern Overview - Community of 7000 */}
       <Card className="border-2 border-primary/20">
@@ -311,6 +326,13 @@ export default function CommunityAnalysis() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      
+      {/* Add space for bottom navigation */}
+      <div className="h-20"></div>
+      </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab="community" />
+    </MobileContainer>
   );
 }
