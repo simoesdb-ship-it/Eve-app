@@ -40,6 +40,12 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       label: "Tokens"
     },
     {
+      id: "marketplace",
+      path: "/data-marketplace",
+      icon: ShoppingCart,
+      label: "Market"
+    },
+    {
       id: "settings",
       path: "/settings",
       icon: Settings,
