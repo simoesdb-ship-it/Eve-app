@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Compass, Grid3X3, TrendingUp, Users, Settings } from "lucide-react";
+import { Compass, Grid3X3, TrendingUp, Users, Settings, Wallet } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -32,6 +32,12 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       path: "/patterns",
       icon: Grid3X3,
       label: "Patterns"
+    },
+    {
+      id: "tokens",
+      path: "/token-wallet",
+      icon: Wallet,
+      label: "Tokens"
     },
     {
       id: "settings",
