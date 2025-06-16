@@ -4,7 +4,7 @@ import { storage } from "./storage-clean";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
-import { tokenEconomy } from "./token-economy";
+import { dataTokenService } from "./data-token-service";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/tokens/balance/:sessionId', async (req, res) => {
     try {
       const { sessionId } = req.params;
-      const balance = await tokenEconomy.getTokenBalance(sessionId);
+      const balance = await dataTokenService.getTokenBalance(sessionId);
       res.json(balance);
     } catch (error) {
       console.error('Error fetching token balance:', error);
@@ -315,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionId } = req.params;
       const limit = parseInt(req.query.limit as string) || 20;
       
-      const transactions = await tokenEconomy.getTransactionHistory(sessionId, limit);
+      const transactions = await dataTokenService.getTransactionHistory(sessionId, limit);
       res.json(transactions);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -323,25 +323,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Award tokens for saving location
-  app.post('/api/tokens/award-location', async (req, res) => {
+  // Award tokens for location data contribution
+  app.post('/api/tokens/award-location-data', async (req, res) => {
     try {
-      const { sessionId, locationId } = req.body;
+      const { sessionId, coordinatesCount = 1, accuracyMeters = 10, trackingMinutes = 1 } = req.body;
       
-      if (!sessionId || !locationId) {
-        return res.status(400).json({ error: 'Missing required fields' });
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Missing session ID' });
       }
 
-      const tokensAwarded = await tokenEconomy.awardTokens(
+      const tokensAwarded = await dataTokenService.awardLocationData(
         sessionId,
-        'location',
-        locationId,
-        'Saved new location'
+        coordinatesCount,
+        accuracyMeters,
+        trackingMinutes
       );
 
       res.json({ tokensAwarded });
     } catch (error) {
-      console.error('Error awarding location tokens:', error);
+      console.error('Error awarding location data tokens:', error);
       res.status(500).json({ error: 'Failed to award tokens' });
     }
   });
@@ -349,8 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get global token supply information
   app.get('/api/tokens/supply', async (req, res) => {
     try {
-      const supply = await tokenEconomy.getTokenSupplyInfo();
-      const rewardMultiplier = await tokenEconomy.getCurrentRewardMultiplier();
+      const supply = await dataTokenService.getTokenSupplyInfo();
+      const rewardMultiplier = await dataTokenService.getCurrentRewardMultiplier();
       
       res.json({
         ...supply,

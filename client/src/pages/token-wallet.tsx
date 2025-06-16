@@ -310,9 +310,9 @@ export default function TokenWallet() {
           <TabsContent value="earn" className="space-y-4">
             <Alert>
               <Gift className="h-4 w-4" />
-              <AlertTitle>Earn Tokens</AlertTitle>
+              <AlertTitle>Earn Tokens Through Data Contribution</AlertTitle>
               <AlertDescription>
-                Contribute content to earn tokens. Try the demo actions below!
+                Contribute valuable location and spatial data to earn tokens. Rewards are based on data quality and amount.
               </AlertDescription>
             </Alert>
 
@@ -320,31 +320,57 @@ export default function TokenWallet() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Upload className="w-5 h-5" />
-                    Upload Media
+                    <MapPin className="w-5 h-5" />
+                    Location Data Rewards
                   </CardTitle>
                   <CardDescription>
-                    Share photos and videos of architectural patterns
+                    Earn tokens automatically through GPS tracking and location data
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    onClick={() => handleDemoUpload('photo')}
-                    disabled={uploadMediaMutation.isPending}
-                    className="w-full"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Upload Photo (+15 tokens)
-                  </Button>
-                  <Button 
-                    onClick={() => handleDemoUpload('video')}
-                    disabled={uploadMediaMutation.isPending}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <Video className="w-4 h-4 mr-2" />
-                    Upload Video (+25 tokens)
-                  </Button>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <div className="font-medium">GPS Coordinates</div>
+                          <div className="text-sm text-muted-foreground">0.5 tokens per coordinate</div>
+                        </div>
+                      </div>
+                      <div className="text-sm font-medium text-blue-600">Base Rate</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Target className="w-5 h-5 text-green-600" />
+                        <div>
+                          <div className="font-medium">High Accuracy Bonus</div>
+                          <div className="text-sm text-muted-foreground">2x multiplier for GPS accuracy &lt; 5m</div>
+                        </div>
+                      </div>
+                      <div className="text-sm font-medium text-green-600">Quality Bonus</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <div className="font-medium">Time Tracking</div>
+                          <div className="text-sm text-muted-foreground">0.1 tokens per minute tracked</div>
+                        </div>
+                      </div>
+                      <div className="text-sm font-medium text-purple-600">Duration Reward</div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-lg text-center">
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Location tracking is automatically rewarding you with tokens based on your data contribution
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Higher GPS accuracy and longer tracking sessions earn more tokens
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
