@@ -355,7 +355,7 @@ export default function DiscoverPage() {
 
       {/* Pattern Suggestions */}
       <div className="flex-1 px-4 py-4">
-        <Collapsible open={!isPatternsCollapsed} onOpenChange={setIsPatternsCollapsed}>
+        <Collapsible open={!isPatternsCollapsed} onOpenChange={(open) => setIsPatternsCollapsed(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between mb-4 cursor-pointer">
               <h2 className="text-lg font-semibold text-neutral-800">Current Position Potential</h2>
