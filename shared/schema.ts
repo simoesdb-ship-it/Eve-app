@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, json, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -193,6 +193,17 @@ export const mediaViews = pgTable("media_views", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Device registration table for anonymous but unique user identification
+export const deviceRegistrations = pgTable("device_registrations", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").unique().notNull(),
+  userId: text("user_id").unique().notNull(),
+  deviceFingerprint: text("device_fingerprint").notNull(),
+  registeredAt: timestamp("registered_at").defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+});
+
 // Token economy insert schemas
 export const insertTokenTransactionSchema = createInsertSchema(tokenTransactions).omit({
   id: true,
@@ -202,6 +213,12 @@ export const insertTokenTransactionSchema = createInsertSchema(tokenTransactions
 export const insertUserMediaSchema = createInsertSchema(userMedia).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertDeviceRegistrationSchema = createInsertSchema(deviceRegistrations).omit({
+  id: true,
+  registeredAt: true,
+  lastSeenAt: true,
 });
 
 export const insertUserCommentSchema = createInsertSchema(userComments).omit({

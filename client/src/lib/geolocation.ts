@@ -1,5 +1,12 @@
+import { getConsistentUserId } from './device-fingerprint';
+
 export function generateSessionId(): string {
   return `anon_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
+}
+
+// Generate consistent user ID based on device fingerprint
+export async function getAnonymousUserId(): Promise<string> {
+  return await getConsistentUserId();
 }
 
 export function getCurrentPosition(forceRefresh: boolean = false): Promise<GeolocationPosition> {
