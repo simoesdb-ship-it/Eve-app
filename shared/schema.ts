@@ -174,6 +174,17 @@ export const sessionTokenBalances = pgTable("session_token_balances", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const tokenSupplyTracking = pgTable("token_supply_tracking", {
+  id: serial("id").primaryKey(),
+  totalSupply: integer("total_supply").default(0).notNull(),
+  tokensInCirculation: integer("tokens_in_circulation").default(0).notNull(),
+  currentRewardMultiplier: decimal("current_reward_multiplier", { precision: 5, scale: 4 }).default("1.0000").notNull(),
+  lastHalvingAt: integer("last_halving_at").default(0).notNull(),
+  nextHalvingAt: integer("next_halving_at").default(100000).notNull(),
+  isCapReached: boolean("is_cap_reached").default(false).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const mediaViews = pgTable("media_views", {
   id: serial("id").primaryKey(),
   mediaId: integer("media_id").references(() => userMedia.id).notNull(),
@@ -207,6 +218,11 @@ export const insertSessionTokenBalanceSchema = createInsertSchema(sessionTokenBa
 export const insertMediaViewSchema = createInsertSchema(mediaViews).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertTokenSupplyTrackingSchema = createInsertSchema(tokenSupplyTracking).omit({
+  id: true,
+  updatedAt: true,
 });
 
 // Types
@@ -249,6 +265,9 @@ export type InsertSessionTokenBalance = z.infer<typeof insertSessionTokenBalance
 
 export type MediaView = typeof mediaViews.$inferSelect;
 export type InsertMediaView = z.infer<typeof insertMediaViewSchema>;
+
+export type TokenSupplyTracking = typeof tokenSupplyTracking.$inferSelect;
+export type InsertTokenSupplyTracking = z.infer<typeof insertTokenSupplyTrackingSchema>;
 
 // Extended types for API responses
 export type PatternWithVotes = Pattern & {

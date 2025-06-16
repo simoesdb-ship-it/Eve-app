@@ -5,11 +5,14 @@ import {
   userMedia, 
   userComments,
   mediaViews,
+  tokenSupplyTracking,
   type InsertTokenTransaction,
   type InsertSessionTokenBalance,
   type InsertUserMedia,
   type InsertUserComment,
-  type InsertMediaView
+  type InsertMediaView,
+  type InsertTokenSupplyTracking,
+  type TokenSupplyTracking
 } from "@shared/schema";
 import { eq, desc, sum, sql } from "drizzle-orm";
 
@@ -21,13 +24,22 @@ export interface TokenEarningRates {
   recommendation: number;
 }
 
-// Token earning rates for different content types
+// Token supply constants (Bitcoin-like cap system)
+export const TOKEN_SUPPLY = {
+  MAX_SUPPLY: 21000000,        // Maximum tokens that will ever exist (21 million like Bitcoin)
+  INITIAL_REWARD: 50,          // Initial reward per contribution
+  HALVING_INTERVAL: 100000,    // Number of tokens minted before reward halves
+  MIN_REWARD: 1,               // Minimum reward (never goes below this)
+  GENESIS_BLOCK_REWARD: 5000   // Initial distribution for early adopters
+};
+
+// Dynamic token earning rates (decrease over time as supply grows)
 export const TOKEN_RATES: TokenEarningRates = {
-  location: 10,      // Tokens for saving a location
-  photo: 15,         // Tokens for uploading a photo
-  video: 25,         // Tokens for uploading a video
-  comment: 8,        // Tokens for adding a comment
-  recommendation: 12 // Tokens for adding a recommendation
+  location: 10,      // Base tokens for saving a location
+  photo: 15,         // Base tokens for uploading a photo
+  video: 25,         // Base tokens for uploading a video
+  comment: 8,        // Base tokens for adding a comment
+  recommendation: 12 // Base tokens for adding a recommendation
 };
 
 // Premium content viewing costs
@@ -39,6 +51,80 @@ export const PREMIUM_VIEW_COSTS = {
 
 export class TokenEconomyService {
   
+  // Initialize global token supply tracking
+  async initializeTokenSupply(): Promise<void> {
+    const existing = await db
+      .select()
+      .from(tokenSupplyTracking)
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(tokenSupplyTracking).values({
+        totalSupply: TOKEN_SUPPLY.GENESIS_BLOCK_REWARD,
+        tokensInCirculation: TOKEN_SUPPLY.GENESIS_BLOCK_REWARD,
+        currentRewardMultiplier: "1.0000",
+        lastHalvingAt: 0,
+        nextHalvingAt: TOKEN_SUPPLY.HALVING_INTERVAL,
+        isCapReached: false
+      });
+    }
+  }
+
+  // Get current token supply information
+  async getTokenSupplyInfo(): Promise<TokenSupplyTracking> {
+    await this.initializeTokenSupply();
+    
+    const [supply] = await db
+      .select()
+      .from(tokenSupplyTracking)
+      .limit(1);
+
+    return supply;
+  }
+
+  // Calculate current reward multiplier based on supply and halving
+  async getCurrentRewardMultiplier(): Promise<number> {
+    const supply = await this.getTokenSupplyInfo();
+    
+    if (supply.isCapReached) {
+      return 0; // No more tokens can be minted
+    }
+
+    // Check if we need to trigger a halving event
+    if (supply.totalSupply >= supply.nextHalvingAt && !supply.isCapReached) {
+      await this.triggerHalvingEvent();
+      return await this.getCurrentRewardMultiplier(); // Recursively get updated multiplier
+    }
+
+    return parseFloat(supply.currentRewardMultiplier);
+  }
+
+  // Trigger halving event (like Bitcoin)
+  async triggerHalvingEvent(): Promise<void> {
+    const supply = await this.getTokenSupplyInfo();
+    const newMultiplier = Math.max(
+      parseFloat(supply.currentRewardMultiplier) / 2,
+      TOKEN_SUPPLY.MIN_REWARD / TOKEN_RATES.location // Ensure minimum viable rewards
+    );
+
+    // Check if we've reached the cap
+    const isCapReached = supply.totalSupply >= TOKEN_SUPPLY.MAX_SUPPLY;
+
+    await db
+      .update(tokenSupplyTracking)
+      .set({
+        currentRewardMultiplier: newMultiplier.toFixed(4),
+        lastHalvingAt: supply.totalSupply,
+        nextHalvingAt: supply.totalSupply + TOKEN_SUPPLY.HALVING_INTERVAL,
+        isCapReached,
+        updatedAt: new Date()
+      })
+      .where(eq(tokenSupplyTracking.id, supply.id));
+
+    console.log(`🎉 HALVING EVENT! Reward multiplier reduced to ${newMultiplier.toFixed(4)}x`);
+    console.log(`📊 Total supply: ${supply.totalSupply.toLocaleString()}/${TOKEN_SUPPLY.MAX_SUPPLY.toLocaleString()}`);
+  }
+
   // Initialize user's token balance if it doesn't exist
   async initializeUserBalance(sessionId: string): Promise<void> {
     const existing = await db
@@ -77,7 +163,7 @@ export class TokenEconomyService {
     };
   }
 
-  // Award tokens for content contribution
+  // Award tokens for content contribution (with Bitcoin-like supply cap)
   async awardTokens(
     sessionId: string,
     contentType: keyof TokenEarningRates,
@@ -85,9 +171,55 @@ export class TokenEconomyService {
     reason: string,
     qualityMultiplier: number = 1.0
   ): Promise<number> {
-    const baseTokens = TOKEN_RATES[contentType];
-    const tokensAwarded = Math.floor(baseTokens * qualityMultiplier);
+    // Get current reward multiplier based on supply
+    const rewardMultiplier = await this.getCurrentRewardMultiplier();
+    
+    if (rewardMultiplier === 0) {
+      console.log(`🚫 Token cap reached! No more tokens can be minted.`);
+      return 0; // No more tokens can be awarded
+    }
 
+    const baseTokens = TOKEN_RATES[contentType];
+    const tokensAwarded = Math.floor(baseTokens * qualityMultiplier * rewardMultiplier);
+
+    // Check if awarding these tokens would exceed the cap
+    const supply = await this.getTokenSupplyInfo();
+    if (supply.totalSupply + tokensAwarded > TOKEN_SUPPLY.MAX_SUPPLY) {
+      const remainingTokens = TOKEN_SUPPLY.MAX_SUPPLY - supply.totalSupply;
+      console.log(`⚠️ Near token cap! Only ${remainingTokens} tokens remaining.`);
+      
+      if (remainingTokens <= 0) {
+        await this.markCapReached();
+        return 0;
+      }
+      
+      // Award only the remaining tokens
+      const finalTokensAwarded = Math.min(tokensAwarded, remainingTokens);
+      await this.processTokenAward(sessionId, contentType, contentId, reason, finalTokensAwarded);
+      await this.updateTokenSupply(finalTokensAwarded);
+      
+      if (supply.totalSupply + finalTokensAwarded >= TOKEN_SUPPLY.MAX_SUPPLY) {
+        await this.markCapReached();
+      }
+      
+      return finalTokensAwarded;
+    }
+
+    // Normal token awarding process
+    await this.processTokenAward(sessionId, contentType, contentId, reason, tokensAwarded);
+    await this.updateTokenSupply(tokensAwarded);
+
+    return tokensAwarded;
+  }
+
+  // Helper method to process token award transaction
+  private async processTokenAward(
+    sessionId: string,
+    contentType: keyof TokenEarningRates,
+    contentId: number,
+    reason: string,
+    tokensAwarded: number
+  ): Promise<void> {
     // Record the transaction
     await db.insert(tokenTransactions).values({
       sessionId,
@@ -106,8 +238,36 @@ export class TokenEconomyService {
         totalTokensEarned: sql`${sessionTokenBalances.totalTokensEarned} + ${tokensAwarded}`
       })
       .where(eq(sessionTokenBalances.sessionId, sessionId));
+  }
 
-    return tokensAwarded;
+  // Update global token supply
+  private async updateTokenSupply(tokensAwarded: number): Promise<void> {
+    const supply = await this.getTokenSupplyInfo();
+    
+    await db
+      .update(tokenSupplyTracking)
+      .set({
+        totalSupply: sql`${tokenSupplyTracking.totalSupply} + ${tokensAwarded}`,
+        tokensInCirculation: sql`${tokenSupplyTracking.tokensInCirculation} + ${tokensAwarded}`,
+        updatedAt: new Date()
+      })
+      .where(eq(tokenSupplyTracking.id, supply.id));
+  }
+
+  // Mark that the token cap has been reached
+  private async markCapReached(): Promise<void> {
+    const supply = await this.getTokenSupplyInfo();
+    
+    await db
+      .update(tokenSupplyTracking)
+      .set({
+        isCapReached: true,
+        currentRewardMultiplier: "0.0000",
+        updatedAt: new Date()
+      })
+      .where(eq(tokenSupplyTracking.id, supply.id));
+
+    console.log(`🎉 TOKEN CAP REACHED! All ${TOKEN_SUPPLY.MAX_SUPPLY.toLocaleString()} tokens have been minted.`);
   }
 
   // Spend tokens for premium content access

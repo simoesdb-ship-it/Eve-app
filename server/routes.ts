@@ -346,6 +346,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get global token supply information
+  app.get('/api/tokens/supply', async (req, res) => {
+    try {
+      const supply = await tokenEconomy.getTokenSupplyInfo();
+      const rewardMultiplier = await tokenEconomy.getCurrentRewardMultiplier();
+      
+      res.json({
+        ...supply,
+        currentRewardMultiplier: rewardMultiplier,
+        percentageMinted: (supply.totalSupply / 21000000) * 100,
+        remainingTokens: 21000000 - supply.totalSupply
+      });
+    } catch (error) {
+      console.error('Error fetching token supply:', error);
+      res.status(500).json({ error: 'Failed to fetch token supply' });
+    }
+  });
+
   // Pattern library endpoints
   app.get('/api/patterns', async (req, res) => {
     try {
