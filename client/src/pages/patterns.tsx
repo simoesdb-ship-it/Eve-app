@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import MobileContainer from "@/components/mobile-container";
+import BottomNavigation from "@/components/bottom-navigation";
 import type { Pattern } from "@shared/schema";
 
 interface PatternWithCrossRefs extends Pattern {
@@ -183,7 +184,13 @@ export default function PatternsPage() {
             No patterns found matching your search criteria.
           </div>
         )}
+        
+        {/* Add space for bottom navigation */}
+        <div className="h-20"></div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab="patterns" />
     </MobileContainer>
   );
 }
