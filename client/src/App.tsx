@@ -28,6 +28,7 @@ function Router() {
       <Route path="/community-analysis" component={CommunityAnalysisPage} />
       <Route path="/real-world-analysis" component={RealWorldAnalysisPage} />
       <Route path="/time-tracking" component={TimeTrackingDemoPage} />
+      <Route path="/token-wallet" component={TokenWalletPage} />
       <Route component={NotFound} />
     </Switch>
   );
