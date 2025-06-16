@@ -55,7 +55,8 @@ export interface IStorage {
   getStats(sessionId: string): Promise<{
     suggestedPatterns: number;
     votesContributed: number;
-    offlinePatterns: number;
+    locationsTracked: number;
+    hoursContributed: number;
   }>;
 
   // Tracking methods
@@ -211,10 +212,12 @@ export class DatabaseStorage implements IStorage {
   async getStats(sessionId: string): Promise<{
     suggestedPatterns: number;
     votesContributed: number;
-    offlinePatterns: number;
+    locationsTracked: number;
+    hoursContributed: number;
   }> {
     const userVotes = await db.select().from(votes).where(eq(votes.sessionId, sessionId));
     const userLocations = await this.getLocationsBySession(sessionId);
+    const trackingPoints = await this.getTrackingPointsBySession(sessionId);
     
     let suggestedPatterns = 0;
     for (const location of userLocations) {
@@ -222,12 +225,15 @@ export class DatabaseStorage implements IStorage {
       suggestedPatterns += suggestions.length;
     }
 
-    const allPatterns = await db.select().from(patterns);
+    // Calculate hours contributed based on tracking points and activities
+    const activities = await db.select().from(activity).where(eq(activity.sessionId, sessionId));
+    const hoursContributed = Math.max(0.1, (trackingPoints.length * 0.1) + (activities.length * 0.05));
 
     return {
       suggestedPatterns,
       votesContributed: userVotes.length,
-      offlinePatterns: allPatterns.length
+      locationsTracked: userLocations.length + trackingPoints.length,
+      hoursContributed: Math.round(hoursContributed * 10) / 10
     };
   }
 

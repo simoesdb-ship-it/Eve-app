@@ -157,14 +157,14 @@ export default function InsightsPage() {
               <Card>
                 <CardContent className="p-4 text-center">
                   <MapPin className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{trackingPoints.length}</div>
+                  <div className="text-2xl font-bold">{stats?.locationsTracked || 0}</div>
                   <div className="text-sm text-muted-foreground">Locations Tracked</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
                   <Clock className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{Math.floor(trackingPoints.length * 2.5)}</div>
+                  <div className="text-2xl font-bold">{stats?.hoursContributed || 0}</div>
                   <div className="text-sm text-muted-foreground">Hours Contributed</div>
                 </CardContent>
               </Card>
