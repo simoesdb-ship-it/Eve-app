@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, json, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, json, jsonb, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -205,6 +205,44 @@ export const deviceRegistrations = pgTable("device_registrations", {
   isActive: boolean("is_active").default(true),
 });
 
+// Data Packages - Valuable location insights users can sell to each other
+export const dataPackages = pgTable("data_packages", {
+  id: serial("id").primaryKey(),
+  creatorSessionId: text("creator_session_id").notNull(),
+  locationId: integer("location_id").references(() => locations.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  dataType: text("data_type").notNull(), // 'spatial_analysis', 'pattern_insights', 'time_tracking', 'media_bundle'
+  dataContent: json("data_content").notNull(), // Actual valuable data
+  priceTokens: integer("price_tokens").notNull(),
+  totalSales: integer("total_sales").notNull().default(0),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Data Package Purchases - Track who bought what from whom
+export const dataPackagePurchases = pgTable("data_package_purchases", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").references(() => dataPackages.id).notNull(),
+  buyerSessionId: text("buyer_session_id").notNull(),
+  sellerSessionId: text("seller_session_id").notNull(),
+  tokensTransferred: integer("tokens_transferred").notNull(),
+  purchasedAt: timestamp("purchased_at").defaultNow(),
+});
+
+// Peer-to-Peer Token Transfers
+export const tokenTransfers = pgTable("token_transfers", {
+  id: serial("id").primaryKey(),
+  fromSessionId: text("from_session_id").notNull(),
+  toSessionId: text("to_session_id").notNull(),
+  amount: integer("amount").notNull(),
+  transferType: text("transfer_type").notNull(), // 'gift', 'payment', 'data_purchase', 'tip'
+  relatedPackageId: integer("related_package_id").references(() => dataPackages.id),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Token economy insert schemas
 export const insertTokenTransactionSchema = createInsertSchema(tokenTransactions).omit({
   id: true,
@@ -241,6 +279,21 @@ export const insertMediaViewSchema = createInsertSchema(mediaViews).omit({
 export const insertTokenSupplyTrackingSchema = createInsertSchema(tokenSupplyTracking).omit({
   id: true,
   updatedAt: true,
+});
+
+export const insertDataPackageSchema = createInsertSchema(dataPackages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDataPackagePurchaseSchema = createInsertSchema(dataPackagePurchases).omit({
+  id: true,
+  purchasedAt: true,
+});
+
+export const insertTokenTransferSchema = createInsertSchema(tokenTransfers).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Types
