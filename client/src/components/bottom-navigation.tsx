@@ -13,7 +13,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       id: "discover",
       path: "/",
       icon: Compass,
-      label: "Discover"
+      label: "Map"
     },
     {
       id: "activity",
@@ -25,7 +25,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       id: "community",
       path: "/community-analysis",
       icon: Users,
-      label: "Community"
+      label: "Groups"
     },
     {
       id: "patterns",
@@ -49,18 +49,18 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
 
   return (
     <nav className="bg-white border-t border-gray-200 bottom-nav">
-      <div className="flex items-center justify-around py-2">
+      <div className="flex items-center justify-between px-1 py-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const IconComponent = tab.icon;
           
           return (
             <Link key={tab.id} href={tab.path} asChild>
-              <button className={`flex flex-col items-center py-2 px-3 ${
+              <button className={`flex flex-col items-center py-1 px-1 min-w-0 flex-1 ${
                 isActive ? 'text-primary' : 'text-neutral-400'
               }`}>
-                <IconComponent className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">{tab.label}</span>
+                <IconComponent className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px] font-medium truncate">{tab.label}</span>
               </button>
             </Link>
           );
