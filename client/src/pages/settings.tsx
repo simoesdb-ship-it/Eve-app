@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BottomNavigation from "@/components/bottom-navigation";
+import { UsernameDisplay } from "@/components/username-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,24 @@ export default function SettingsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto pb-20">
+        
+        {/* Username Section */}
+        <div className="px-4 py-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-primary" />
+                <span>Your Anonymous Identity</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UsernameDisplay />
+              <p className="text-sm text-gray-600 mt-3">
+                This unique username is generated from your device and stays the same across sessions.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
         
         {/* Privacy Section */}
         <div className="px-4 py-4">

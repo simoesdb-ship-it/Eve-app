@@ -42,7 +42,7 @@ export default function OnboardingPage() {
         if (data.exists && data.isActive) {
           setIsExistingUser(true);
           setUsername(data.username || generatedUsername);
-          setStep(4); // Skip to welcome back step
+          setStep(4); // Show username step for existing users too
         }
       }
     } catch (error) {
@@ -184,9 +184,14 @@ export default function OnboardingPage() {
               <User className="w-8 h-8 text-orange-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold mb-3">Your Anonymous Identity</h2>
+              <h2 className="text-2xl font-bold mb-3">
+                {isExistingUser ? "Welcome Back!" : "Your Anonymous Identity"}
+              </h2>
               <p className="text-muted-foreground leading-relaxed mb-6">
-                You'll be known by this unique two-word name that's generated from your device. This keeps you anonymous while giving you a memorable identity.
+                {isExistingUser 
+                  ? "Here's your unique anonymous identity. This username is always the same when you use this device."
+                  : "You'll be known by this unique two-word name that's generated from your device. This keeps you anonymous while giving you a memorable identity."
+                }
               </p>
               
               {username && (

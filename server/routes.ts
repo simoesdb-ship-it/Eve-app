@@ -711,6 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         exists: !!registration,
         userId: registration?.userId,
+        username: registration?.username,
         isActive: registration?.isActive
       });
     } catch (error: any) {
