@@ -124,39 +124,45 @@ export default function InsightsPage() {
       </header>
 
       <div className="max-w-4xl mx-auto p-4">
-        <div className="space-y-6">
-          {/* Personal Stats Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-primary" />
-                <span>Your Contributions</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats?.suggestedPatterns || 0}</div>
-                  <div className="text-sm text-muted-foreground">Patterns Suggested</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats?.votesContributed || 0}</div>
-                  <div className="text-sm text-muted-foreground">Votes Cast</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats?.locationsTracked || 0}</div>
-                  <div className="text-sm text-muted-foreground">Locations Tracked</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats?.hoursContributed || 0}</div>
-                  <div className="text-sm text-muted-foreground">Hours Contributed</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="personal" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="personal">Personal Insights</TabsTrigger>
+            <TabsTrigger value="community">Community Analysis</TabsTrigger>
+          </TabsList>
 
-          {/* Personal Activity Feed */}
-          <Card>
+          <TabsContent value="personal" className="space-y-6">
+            {/* Personal Stats Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  <span>Your Contributions</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{stats?.suggestedPatterns || 0}</div>
+                    <div className="text-sm text-muted-foreground">Patterns Suggested</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{stats?.votesContributed || 0}</div>
+                    <div className="text-sm text-muted-foreground">Votes Cast</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{stats?.locationsTracked || 0}</div>
+                    <div className="text-sm text-muted-foreground">Locations Tracked</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{stats?.hoursContributed || 0}</div>
+                    <div className="text-sm text-muted-foreground">Hours Contributed</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Activity Feed */}
+            <Card>
               <CardHeader>
                 <CardTitle>Your Recent Activity</CardTitle>
                 <CardDescription>Track your contributions and interactions</CardDescription>
