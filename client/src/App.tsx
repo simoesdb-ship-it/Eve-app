@@ -30,6 +30,7 @@ function Router() {
       <Route path="/real-world-analysis" component={RealWorldAnalysisPage} />
       <Route path="/time-tracking" component={TimeTrackingDemoPage} />
       <Route path="/token-wallet" component={TokenWalletPage} />
+      <Route path="/onboarding" component={OnboardingPage} />
       <Route component={NotFound} />
     </Switch>
   );
