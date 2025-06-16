@@ -16,37 +16,39 @@ import {
 } from "@shared/schema";
 import { eq, desc, sum, sql } from "drizzle-orm";
 
-export interface TokenEarningRates {
-  location: number;
-  photo: number;
-  video: number;
-  comment: number;
-  recommendation: number;
+export interface DataContributionRates {
+  locationPoint: number;        // Tokens per GPS coordinate recorded
+  accuracyBonus: number;        // Multiplier for high-precision GPS data
+  timeTracking: number;         // Tokens per minute of location tracking
+  spatialDensity: number;       // Bonus for areas with rich spatial data
+  patternContribution: number;  // Tokens for meaningful pattern analysis
+  communityInsight: number;     // Tokens for valuable community observations
 }
 
 // Token supply constants (Bitcoin-like cap system)
 export const TOKEN_SUPPLY = {
   MAX_SUPPLY: 21000000,        // Maximum tokens that will ever exist (21 million like Bitcoin)
   INITIAL_REWARD: 50,          // Initial reward per contribution
-  HALVING_INTERVAL: 100000,    // Number of tokens minted before reward halves
-  MIN_REWARD: 1,               // Minimum reward (never goes below this)
+  HALVING_INTERVAL: 2100000,   // Halving every 2.1 million tokens (like Bitcoin)
+  MIN_REWARD: 0.1,             // Minimum reward (never goes below this)
   GENESIS_BLOCK_REWARD: 5000   // Initial distribution for early adopters
 };
 
-// Dynamic token earning rates (decrease over time as supply grows)
-export const TOKEN_RATES: TokenEarningRates = {
-  location: 10,      // Base tokens for saving a location
-  photo: 15,         // Base tokens for uploading a photo
-  video: 25,         // Base tokens for uploading a video
-  comment: 8,        // Base tokens for adding a comment
-  recommendation: 12 // Base tokens for adding a recommendation
+// Data-driven token earning rates (based on actual data contribution)
+export const DATA_RATES: DataContributionRates = {
+  locationPoint: 0.5,     // Tokens per GPS coordinate recorded
+  accuracyBonus: 2.0,     // 2x multiplier for GPS accuracy < 5 meters
+  timeTracking: 0.1,      // Tokens per minute of location tracking
+  spatialDensity: 1.5,    // Bonus for contributing to data-sparse areas
+  patternContribution: 8, // Tokens for pattern analysis contributions
+  communityInsight: 15    // Tokens for valuable community insights
 };
 
-// Premium content viewing costs
-export const PREMIUM_VIEW_COSTS = {
-  photo: 3,    // Cost to view premium photo
-  video: 5,    // Cost to view premium video
-  comment: 2   // Cost to view premium comment/recommendation
+// Data access costs (for consuming rich spatial analysis)
+export const DATA_ACCESS_COSTS = {
+  spatialAnalysis: 2,    // Cost to access detailed spatial analysis
+  patternInsights: 5,    // Cost to view advanced pattern insights
+  communityData: 3       // Cost to access community analysis data
 };
 
 export class TokenEconomyService {
@@ -104,7 +106,7 @@ export class TokenEconomyService {
     const supply = await this.getTokenSupplyInfo();
     const newMultiplier = Math.max(
       parseFloat(supply.currentRewardMultiplier) / 2,
-      TOKEN_SUPPLY.MIN_REWARD / TOKEN_RATES.location // Ensure minimum viable rewards
+      TOKEN_SUPPLY.MIN_REWARD / DATA_RATES.locationPoint // Ensure minimum viable rewards
     );
 
     // Check if we've reached the cap
@@ -163,11 +165,11 @@ export class TokenEconomyService {
     };
   }
 
-  // Award tokens for content contribution (with Bitcoin-like supply cap)
-  async awardTokens(
+  // Award tokens for data contribution (with Bitcoin-like supply cap)
+  async awardDataTokens(
     sessionId: string,
-    contentType: keyof TokenEarningRates,
-    contentId: number,
+    dataType: keyof DataContributionRates,
+    dataAmount: number,
     reason: string,
     qualityMultiplier: number = 1.0
   ): Promise<number> {
@@ -179,8 +181,8 @@ export class TokenEconomyService {
       return 0; // No more tokens can be awarded
     }
 
-    const baseTokens = TOKEN_RATES[contentType];
-    const tokensAwarded = Math.floor(baseTokens * qualityMultiplier * rewardMultiplier);
+    const baseRate = DATA_RATES[dataType];
+    const tokensAwarded = Math.floor(baseRate * dataAmount * qualityMultiplier * rewardMultiplier);
 
     // Check if awarding these tokens would exceed the cap
     const supply = await this.getTokenSupplyInfo();
@@ -195,7 +197,7 @@ export class TokenEconomyService {
       
       // Award only the remaining tokens
       const finalTokensAwarded = Math.min(tokensAwarded, remainingTokens);
-      await this.processTokenAward(sessionId, contentType, contentId, reason, finalTokensAwarded);
+      await this.processDataAward(sessionId, dataType, reason, finalTokensAwarded);
       await this.updateTokenSupply(finalTokensAwarded);
       
       if (supply.totalSupply + finalTokensAwarded >= TOKEN_SUPPLY.MAX_SUPPLY) {
@@ -206,17 +208,16 @@ export class TokenEconomyService {
     }
 
     // Normal token awarding process
-    await this.processTokenAward(sessionId, contentType, contentId, reason, tokensAwarded);
+    await this.processDataAward(sessionId, dataType, reason, tokensAwarded);
     await this.updateTokenSupply(tokensAwarded);
 
     return tokensAwarded;
   }
 
-  // Helper method to process token award transaction
-  private async processTokenAward(
+  // Helper method to process data award transaction
+  private async processDataAward(
     sessionId: string,
-    contentType: keyof TokenEarningRates,
-    contentId: number,
+    dataType: keyof DataContributionRates,
     reason: string,
     tokensAwarded: number
   ): Promise<void> {
@@ -226,8 +227,8 @@ export class TokenEconomyService {
       transactionType: 'earn',
       amount: tokensAwarded,
       reason,
-      relatedContentType: contentType,
-      relatedContentId: contentId
+      relatedContentType: dataType,
+      relatedContentId: 0 // Data contributions don't have specific content IDs
     });
 
     // Update user's balance using SQL increment
