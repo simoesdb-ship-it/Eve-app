@@ -97,6 +97,8 @@ export default function InsightsPage() {
   };
 
   const formatActivityType = (type: string) => {
+    if (!type) return 'Unknown Activity';
+    
     switch (type) {
       case 'pattern_suggestion': return 'Pattern Suggested';
       case 'vote': return 'Vote Cast';
