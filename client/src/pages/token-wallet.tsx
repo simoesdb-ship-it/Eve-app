@@ -21,6 +21,7 @@ import {
   Eye,
   Clock,
   Gift,
+  Target,
   Wallet
 } from "lucide-react";
 
@@ -342,7 +343,7 @@ export default function TokenWallet() {
 
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <Target className="w-5 h-5 text-green-600" />
+                        <Eye className="w-5 h-5 text-green-600" />
                         <div>
                           <div className="font-medium">High Accuracy Bonus</div>
                           <div className="text-sm text-muted-foreground">2x multiplier for GPS accuracy &lt; 5m</div>
