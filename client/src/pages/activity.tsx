@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import BottomNavigation from "@/components/bottom-navigation";
+import { UsernameDisplay } from "@/components/username-display";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

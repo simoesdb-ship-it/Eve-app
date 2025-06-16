@@ -14,6 +14,7 @@ import CommunityAnalysisPage from "@/pages/community-analysis";
 import RealWorldAnalysisPage from "@/pages/real-world-analysis";
 import TimeTrackingDemoPage from "@/pages/time-tracking-demo";
 import TokenWalletPage from "@/pages/token-wallet";
+import CommunityDemoPage from "@/pages/community-demo";
 import OnboardingPage from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/real-world-analysis" component={RealWorldAnalysisPage} />
       <Route path="/time-tracking" component={TimeTrackingDemoPage} />
       <Route path="/token-wallet" component={TokenWalletPage} />
+      <Route path="/community-demo" component={CommunityDemoPage} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route component={NotFound} />
     </Switch>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import BottomNavigation from "@/components/bottom-navigation";
+import { UsernameDisplay } from "@/components/username-display";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -205,7 +206,7 @@ export default function TokenWallet() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-2">
             <Wallet className="w-8 h-8" />
             Token Wallet
@@ -213,6 +214,9 @@ export default function TokenWallet() {
           <p className="text-muted-foreground">
             Earn tokens by contributing data, spend tokens for premium content
           </p>
+          <div className="flex justify-center">
+            <UsernameDisplay />
+          </div>
         </div>
 
         {/* Balance Overview */}
