@@ -38,9 +38,9 @@ export default function InsightsPage() {
 
   // Fetch user stats
   const { data: stats } = useQuery({
-    queryKey: ['/api/stats'],
+    queryKey: ['/api/stats', sessionId],
     queryFn: async () => {
-      const response = await fetch('/api/stats');
+      const response = await fetch(`/api/stats?sessionId=${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     }
@@ -48,9 +48,9 @@ export default function InsightsPage() {
 
   // Fetch recent activity
   const { data: activity = [] } = useQuery({
-    queryKey: ['/api/activity'],
+    queryKey: ['/api/activity', sessionId],
     queryFn: async () => {
-      const response = await fetch('/api/activity');
+      const response = await fetch(`/api/activity?sessionId=${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch activity');
       return response.json();
     }
@@ -223,9 +223,12 @@ export default function InsightsPage() {
                       <div className="flex items-center space-x-3">
                         <MapPin className="w-4 h-4 text-primary" />
                         <div>
-                          <div className="font-medium">{location.name}</div>
+                          <div className="font-medium">{location.name || 'Unknown Location'}</div>
                           <div className="text-sm text-muted-foreground">
-                            {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                            {location.latitude && location.longitude ? 
+                              `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                              'Coordinates unavailable'
+                            }
                           </div>
                         </div>
                       </div>
