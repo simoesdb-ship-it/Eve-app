@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Compass, Grid3X3, TrendingUp, Users, Settings, Wallet } from "lucide-react";
+import { Compass, Grid3X3, TrendingUp, Users, Settings, Wallet, ShoppingCart } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;

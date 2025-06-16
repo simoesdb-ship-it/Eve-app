@@ -5,6 +5,7 @@ import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpa
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
 import { dataTokenService } from "./data-token-service";
+import { dataMarketplace } from "./data-marketplace";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -716,6 +717,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== PEER-TO-PEER DATA MARKETPLACE ====================
+  
+  // Create a data package for sale
+  app.post('/api/marketplace/create-package', async (req, res) => {
+    try {
+      const { sessionId, title, description, dataType, locationId, priceTokens } = req.body;
+      
+      if (!sessionId || !title || !description || !dataType || !priceTokens) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const dataPackage = await dataMarketplace.createDataPackage(sessionId, {
+        title,
+        description,
+        dataType,
+        locationId,
+        priceTokens: parseInt(priceTokens)
+      });
+      
+      res.json(dataPackage);
+    } catch (error) {
+      console.error("Error creating data package:", error);
+      res.status(500).json({ message: "Failed to create data package" });
+    }
+  });
+  
+  // Get available data packages for purchase
+  app.get('/api/marketplace/packages', async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+      
+      const packages = await dataMarketplace.getAvailableDataPackages(sessionId as string);
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching marketplace packages:", error);
+      res.status(500).json({ message: "Failed to fetch data packages" });
+    }
+  });
+  
+  // Purchase a data package
+  app.post('/api/marketplace/purchase', async (req, res) => {
+    try {
+      const { buyerSessionId, packageId } = req.body;
+      
+      if (!buyerSessionId || !packageId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const result = await dataMarketplace.purchaseDataPackage(buyerSessionId, parseInt(packageId));
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error("Error purchasing data package:", error);
+      res.status(500).json({ message: "Purchase failed" });
+    }
+  });
+  
+  // Get user's purchased data packages
+  app.get('/api/marketplace/purchased', async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+      
+      const purchases = await dataMarketplace.getPurchasedDataPackages(sessionId as string);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching purchased packages:", error);
+      res.status(500).json({ message: "Failed to fetch purchased packages" });
+    }
+  });
+  
+  // Direct token transfer between users
+  app.post('/api/marketplace/transfer-tokens', async (req, res) => {
+    try {
+      const { fromSessionId, toSessionId, amount, transferType, message } = req.body;
+      
+      if (!fromSessionId || !toSessionId || !amount) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const result = await dataMarketplace.transferTokens(
+        fromSessionId,
+        toSessionId,
+        parseInt(amount),
+        transferType || 'gift',
+        message
+      );
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error("Error transferring tokens:", error);
+      res.status(500).json({ message: "Transfer failed" });
+    }
+  });
+  
+  // Get transfer history
+  app.get('/api/marketplace/transfers', async (req, res) => {
+    try {
+      const { sessionId, limit } = req.query;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+      
+      const transfers = await dataMarketplace.getTransferHistory(
+        sessionId as string,
+        limit ? parseInt(limit as string) : 50
+      );
+      res.json(transfers);
+    } catch (error) {
+      console.error("Error fetching transfer history:", error);
+      res.status(500).json({ message: "Failed to fetch transfer history" });
     }
   });
 
