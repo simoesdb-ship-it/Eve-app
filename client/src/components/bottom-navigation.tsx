@@ -16,12 +16,6 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       label: "Discover"
     },
     {
-      id: "patterns",
-      path: "/patterns",
-      icon: Grid3X3,
-      label: "Patterns"
-    },
-    {
       id: "activity",
       path: "/activity",
       icon: TrendingUp,
@@ -32,6 +26,12 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       path: "/community-analysis",
       icon: Users,
       label: "Community"
+    },
+    {
+      id: "patterns",
+      path: "/patterns",
+      icon: Grid3X3,
+      label: "Patterns"
     },
     {
       id: "settings",
