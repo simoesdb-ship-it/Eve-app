@@ -5,6 +5,7 @@ import MapView from "@/components/map-view";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
+import { UsernameDisplay } from "@/components/username-display";
 import { generateSessionId } from "@/lib/geolocation";
 import { startGlobalTracking, stopGlobalTracking } from "@/lib/movement-tracker";
 import { useToast } from "@/hooks/use-toast";
@@ -281,7 +282,7 @@ export default function DiscoverPage() {
       <div className="safe-area-top bg-primary text-white px-4 py-2 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-          <span>Guest User</span>
+          <UsernameDisplay sessionId={sessionId} />
         </div>
       </div>
 
