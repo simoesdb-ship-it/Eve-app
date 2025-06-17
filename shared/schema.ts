@@ -120,9 +120,23 @@ export const savedLocations = pgTable("saved_locations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User-assigned patterns for saved locations
+export const savedLocationPatterns = pgTable("saved_location_patterns", {
+  id: serial("id").primaryKey(),
+  savedLocationId: integer("saved_location_id").references(() => savedLocations.id).notNull(),
+  patternId: integer("pattern_id").references(() => patterns.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+});
+
 export const insertSavedLocationSchema = createInsertSchema(savedLocations).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertSavedLocationPatternSchema = createInsertSchema(savedLocationPatterns).omit({
+  id: true,
+  assignedAt: true,
 });
 
 // Token economy tables
@@ -320,6 +334,9 @@ export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
 
 export type SavedLocation = typeof savedLocations.$inferSelect;
 export type InsertSavedLocation = z.infer<typeof insertSavedLocationSchema>;
+
+export type SavedLocationPattern = typeof savedLocationPatterns.$inferSelect;
+export type InsertSavedLocationPattern = z.infer<typeof insertSavedLocationPatternSchema>;
 
 // Token economy types
 export type TokenTransaction = typeof tokenTransactions.$inferSelect;

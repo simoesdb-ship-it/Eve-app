@@ -69,6 +69,11 @@ export interface IStorage {
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
+  
+  // Saved location patterns
+  assignPatternToSavedLocation(assignment: InsertSavedLocationPattern): Promise<SavedLocationPattern>;
+  getPatternsByLocationId(savedLocationId: number): Promise<(SavedLocationPattern & { pattern: Pattern })[]>;
+  removePatternFromSavedLocation(savedLocationId: number, patternId: number, sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
