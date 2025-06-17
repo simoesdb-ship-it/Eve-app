@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import BottomNavigation from "@/components/bottom-navigation";
-import { UsernameDisplay } from "@/components/username-display";
+import { getUserDisplayName } from "@/lib/username-generator";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -59,6 +60,22 @@ export default function DataMarketplace() {
   const queryClient = useQueryClient();
   const [createPackageOpen, setCreatePackageOpen] = useState(false);
   const [transferTokensOpen, setTransferTokensOpen] = useState(false);
+  const [username, setUsername] = useState<string>('');
+
+  // Load username
+  useEffect(() => {
+    async function loadUsername() {
+      try {
+        const userId = await getConsistentUserId();
+        const displayName = getUserDisplayName(userId);
+        setUsername(displayName);
+      } catch (error) {
+        console.error('Failed to generate username:', error);
+        setUsername('Anonymous');
+      }
+    }
+    loadUsername();
+  }, []);
 
   // Fetch available data packages
   const { data: packages = [], isLoading: packagesLoading } = useQuery({
@@ -179,22 +196,30 @@ export default function DataMarketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <ShoppingCart className="w-6 h-6 text-primary" />
-              <h1 className="text-xl font-bold">Data Marketplace</h1>
+    <div className="flex flex-col min-h-screen bg-neutral-50">
+      {/* Status Bar */}
+      <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+          <span>{username || 'Loading...'}</span>
+        </div>
+      </div>
+
+      {/* App Header */}
+      <header className="bg-transparent px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">E</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-primary/10 px-3 py-1 rounded-full">
-                <Coins className="w-4 h-4 text-primary" />
-                <span className="font-semibold">{tokenBalance?.balance || 0}</span>
-              </div>
-              <UsernameDisplay />
+            <div>
+              <h1 className="text-lg font-semibold text-neutral-800">Data Marketplace</h1>
+              <p className="text-xs text-neutral-400">Trade location insights & earn tokens</p>
             </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-primary/10 px-3 py-1 rounded-full">
+            <Coins className="w-4 h-4 text-primary" />
+            <span className="font-semibold">{tokenBalance?.balance || 0}</span>
           </div>
         </div>
       </header>
