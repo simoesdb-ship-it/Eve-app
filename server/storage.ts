@@ -8,6 +8,7 @@ import {
   type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote,
   type Activity, type InsertActivity,
+  type ActivityWithLocation,
   type SpatialPoint, type InsertSpatialPoint,
   type SavedLocation, type InsertSavedLocation,
   type DeviceRegistration, type InsertDeviceRegistration
@@ -209,6 +210,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentActivity(limit: number): Promise<ActivityWithLocation[]> {
+    console.log('Enhanced getRecentActivity called with limit:', limit);
     const activities = await db.select({
       id: activity.id,
       type: activity.type,
@@ -225,6 +227,7 @@ export class DatabaseStorage implements IStorage {
     .orderBy(sql`${activity.createdAt} DESC`)
     .limit(limit);
     
+    console.log('Activity query result sample:', activities[0]);
     return activities;
   }
 
