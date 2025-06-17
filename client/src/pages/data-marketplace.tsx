@@ -230,7 +230,7 @@ export default function DataMarketplace() {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Peer-to-Peer Data Economy</h2>
+              <h2 className="text-2xl font-bold mb-2">Peer-to-Peer Data</h2>
               <p className="text-muted-foreground mb-4">
                 Sell your collected location insights to other users and purchase valuable data from the community
               </p>
