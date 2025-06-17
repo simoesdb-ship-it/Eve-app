@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import BottomNavigation from "@/components/bottom-navigation";
 import { UsernameDisplay } from "@/components/username-display";
 import { 
@@ -21,7 +22,8 @@ import {
   AlertCircle,
   Eye,
   MessageSquare,
-  Share2
+  Share2,
+  ChevronDown
 } from "lucide-react";
 
 function getSessionId(): string {
@@ -35,6 +37,17 @@ function getSessionId(): string {
 
 export default function InsightsPage() {
   const [sessionId] = useState(getSessionId());
+  const [expandedSections, setExpandedSections] = useState({
+    activity: true,
+    savedLocations: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   // Fetch user stats
   const { data: stats } = useQuery({
@@ -171,12 +184,21 @@ export default function InsightsPage() {
             </div>
 
             {/* Personal Activity Feed */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Recent Activity</CardTitle>
-                <CardDescription>Track your contributions and interactions</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Collapsible open={expandedSections.activity} onOpenChange={() => toggleSection('activity')}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <CardTitle>Your Recent Activity</CardTitle>
+                        <CardDescription>Track your contributions and interactions</CardDescription>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.activity ? 'rotate-180' : ''}`} />
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent>
                 <div className="space-y-4">
                   {activity.slice(0, 10).map((item: any, index: number) => (
                     <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -207,8 +229,10 @@ export default function InsightsPage() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             {/* Saved Locations */}
             <Card>
