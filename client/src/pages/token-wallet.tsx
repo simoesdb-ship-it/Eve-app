@@ -221,20 +221,31 @@ export default function TokenWallet() {
   const recentTransactions = transactions || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-2">
-            <Wallet className="w-8 h-8" />
-            Token Wallet
-          </h1>
-          <p className="text-muted-foreground">
-            Earn tokens by contributing data, spend tokens for premium content
-          </p>
-          <div className="flex justify-center">
-            <UsernameDisplay />
+    <div className="flex flex-col min-h-screen bg-neutral-50">
+      {/* Status Bar */}
+      <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+          <span>{username || 'Loading...'}</span>
+        </div>
+      </div>
+
+      {/* App Header */}
+      <header className="bg-transparent px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">E</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-neutral-800">Token Wallet</h1>
+              <p className="text-xs text-neutral-400">Earn & spend tokens for data contributions</p>
+            </div>
           </div>
         </div>
+      </header>
+
+      <div className="container mx-auto p-6 space-y-6">
 
         {/* Balance Overview */}
         <Card className="border-2 border-primary/20">

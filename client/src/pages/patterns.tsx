@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Search, ExternalLink } from "lucide-react";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import MobileContainer from "@/components/mobile-container";
 import BottomNavigation from "@/components/bottom-navigation";
+import { getUserDisplayName } from "@/lib/username-generator";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import type { Pattern } from "@shared/schema";
 
 interface PatternWithCrossRefs extends Pattern {
@@ -19,6 +21,22 @@ export default function PatternsPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [username, setUsername] = useState<string>('');
+
+  // Load username
+  useEffect(() => {
+    async function loadUsername() {
+      try {
+        const userId = await getConsistentUserId();
+        const displayName = getUserDisplayName(userId);
+        setUsername(displayName);
+      } catch (error) {
+        console.error('Failed to generate username:', error);
+        setUsername('Anonymous');
+      }
+    }
+    loadUsername();
+  }, []);
 
   const { data: patterns = [], isLoading } = useQuery({
     queryKey: ['/api/patterns'],
@@ -61,31 +79,63 @@ export default function PatternsPage() {
 
   if (isLoading) {
     return (
-      <MobileContainer>
+      <div className="flex flex-col min-h-screen bg-neutral-50">
+        {/* Status Bar */}
+        <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+            <span>{username || 'Loading...'}</span>
+          </div>
+        </div>
+
+        {/* App Header */}
+        <header className="bg-transparent px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">P</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-neutral-800">Pattern Library</h1>
+                <p className="text-xs text-neutral-400">253 architectural patterns for living spaces</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading patterns...</div>
         </div>
-      </MobileContainer>
+        <div className="h-20"></div>
+        <BottomNavigation activeTab="patterns" />
+      </div>
     );
   }
 
   return (
-    <MobileContainer>
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-10">
-        <div className="flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/')}
-            className="p-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">Pattern Library</h1>
-          <div className="w-9" />
+    <div className="flex flex-col min-h-screen bg-neutral-50">
+      {/* Status Bar */}
+      <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+          <span>{username || 'Loading...'}</span>
         </div>
       </div>
+
+      {/* App Header */}
+      <header className="bg-transparent px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">P</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-neutral-800">Pattern Library</h1>
+              <p className="text-xs text-neutral-400">253 architectural patterns for living spaces</p>
+            </div>
+          </div>
+        </div>
+      </header>
 
       <div className="p-4 space-y-4">
         {/* Search and Filter */}
@@ -191,6 +241,6 @@ export default function PatternsPage() {
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab="patterns" />
-    </MobileContainer>
+    </div>
   );
 }
