@@ -366,37 +366,41 @@ export default function ActivityPage() {
                 </div>
               )}
 
-              {/* Location Analysis Activities */}
-              {activities.filter(a => a.type === 'visit').length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-green-600" />
-                    <h4 className="font-medium text-neutral-800">Location Analysis</h4>
-                    <Badge variant="secondary" className="text-xs">
-                      {activities.filter(a => a.type === 'visit').length}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {activities.filter(a => a.type === 'visit').slice(0, 5).map((activity: ActivityType) => (
-                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
-                        <CardContent className="p-3">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                              <MapPin className="w-3 h-3 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-neutral-800">{activity.description}</p>
-                              <span className="text-xs text-neutral-400">
-                                {formatTimeAgo(activity.createdAt.toString())}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+              {/* Movement Tracking Summary */}
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Navigation className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-medium text-neutral-800">Movement Tracking</h4>
+                  <Badge variant="secondary" className="text-xs">
+                    {stats?.locationsTracked || 0} locations
+                  </Badge>
                 </div>
-              )}
+                <Card className="transition-shadow hover:shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Navigation className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-neutral-800">
+                            {stats?.locationsTracked || 0}
+                          </p>
+                          <p className="text-sm text-neutral-600">Total locations tracked</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-neutral-400">
+                          {stats?.hoursContributed || 0} hours contributed
+                        </p>
+                        <p className="text-xs text-neutral-400">
+                          Across all sessions
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Pattern Suggestions */}
               {activities.filter(a => a.type === 'suggestion').length > 0 && (
@@ -462,37 +466,7 @@ export default function ActivityPage() {
                 </div>
               )}
 
-              {/* Movement Tracking */}
-              {activities.filter(a => a.type === 'tracking').length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Navigation className="w-4 h-4 text-blue-600" />
-                    <h4 className="font-medium text-neutral-800">Movement Tracking</h4>
-                    <Badge variant="secondary" className="text-xs">
-                      {activities.filter(a => a.type === 'tracking').length}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {activities.filter(a => a.type === 'tracking').slice(0, 5).map((activity: ActivityType) => (
-                      <Card key={activity.id} className="transition-shadow hover:shadow-sm">
-                        <CardContent className="p-3">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Navigation className="w-3 h-3 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-neutral-800">{activity.description}</p>
-                              <span className="text-xs text-neutral-400">
-                                {formatTimeAgo(activity.createdAt.toString())}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* Other Activities */}
               {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
