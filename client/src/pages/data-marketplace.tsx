@@ -213,6 +213,7 @@ export default function DataMarketplace() {
               <span className="text-white font-bold text-sm">E</span>
             </div>
             <div>
+              <p className="text-xs text-neutral-400">{username || 'Loading...'}</p>
               <h1 className="text-lg font-semibold text-neutral-800">Data Marketplace</h1>
               <p className="text-xs text-neutral-400">Trade location insights & earn tokens</p>
             </div>
