@@ -207,18 +207,28 @@ export default function InsightsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium">{formatActivityType(item.activityType)}</p>
+                          <p className="font-medium">{formatActivityType(item.type || item.activityType)}</p>
                           <span className="text-sm text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleDateString()}
+                            {new Date(item.createdAt).toLocaleString()}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                        {item.locationName && (
-                          <div className="flex items-center space-x-1 mt-2">
-                            <MapPin className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">{item.locationName}</span>
-                          </div>
-                        )}
+                        <div className="mt-2 space-y-1">
+                          {item.locationName && (
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">{item.locationName}</span>
+                            </div>
+                          )}
+                          {(item.latitude && item.longitude) && (
+                            <div className="flex items-center space-x-1">
+                              <Target className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground font-mono">
+                                {Number(item.latitude).toFixed(6)}, {Number(item.longitude).toFixed(6)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
