@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Plus, Wifi, WifiOff, Shield, ChevronDown, ChevronUp } from "lucide-react";
-import type { PatternWithVotes, Activity } from "@shared/schema";
+import type { PatternWithVotes } from "@shared/schema";
 
 export default function DiscoverPage() {
   const [sessionId] = useState(() => generateSessionId());
@@ -223,15 +223,7 @@ export default function DiscoverPage() {
     }
   });
 
-  // Fetch recent activity
-  const { data: activities = [] } = useQuery({
-    queryKey: ['/api/activity'],
-    queryFn: async () => {
-      const response = await fetch('/api/activity?limit=3');
-      if (!response.ok) throw new Error('Failed to fetch activity');
-      return response.json();
-    }
-  });
+
 
   // Vote mutation
   const voteMutation = useMutation({
@@ -281,18 +273,7 @@ export default function DiscoverPage() {
     });
   };
 
-  const formatTimeAgo = (date: string) => {
-    const now = new Date();
-    const activityDate = new Date(date);
-    const diffInMinutes = Math.floor((now.getTime() - activityDate.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    const hours = Math.floor(diffInMinutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
@@ -412,19 +393,7 @@ export default function DiscoverPage() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Recent Activity */}
-        <div className="mt-6 py-4 bg-gray-50 -mx-4 px-4">
-          <h3 className="text-sm font-semibold text-neutral-800 mb-3">Recent Community Activity</h3>
-          <div className="space-y-2">
-            {activities.map((activity: Activity) => (
-              <div key={activity.id} className="flex items-center space-x-3 text-sm">
-                <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                <span className="text-neutral-600">{activity.description}</span>
-                <span className="text-neutral-400 ml-auto">{formatTimeAgo(activity.createdAt.toString())}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+
       </div>
 
 
