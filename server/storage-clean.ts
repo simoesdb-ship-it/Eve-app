@@ -210,9 +210,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentActivity(limit: number): Promise<Activity[]> {
-    return await db.select().from(activity)
-      .orderBy(sql`${activity.createdAt} DESC`)
-      .limit(limit);
+    const activities = await db.select({
+      id: activity.id,
+      type: activity.type,
+      description: activity.description,
+      sessionId: activity.sessionId,
+      locationId: activity.locationId,
+      createdAt: activity.createdAt,
+      latitude: locations.latitude,
+      longitude: locations.longitude,
+      locationName: locations.name
+    })
+    .from(activity)
+    .leftJoin(locations, eq(activity.locationId, locations.id))
+    .orderBy(sql`${activity.createdAt} DESC`)
+    .limit(limit);
+    
+    return activities as any;
   }
 
   async getStats(sessionId: string): Promise<{
