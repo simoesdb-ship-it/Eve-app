@@ -217,7 +217,6 @@ export class DatabaseStorage implements IStorage {
   }> {
     const userVotes = await db.select().from(votes).where(eq(votes.sessionId, sessionId));
     const userLocations = await this.getLocationsBySession(sessionId);
-    const trackingPoints = await this.getTrackingPointsBySession(sessionId);
     
     let suggestedPatterns = 0;
     for (const location of userLocations) {
@@ -225,15 +224,11 @@ export class DatabaseStorage implements IStorage {
       suggestedPatterns += suggestions.length;
     }
 
-    // Calculate hours contributed based on tracking points and activities
-    const activities = await db.select().from(activity).where(eq(activity.sessionId, sessionId));
-    const hoursContributed = Math.max(0.1, (trackingPoints.length * 0.1) + (activities.length * 0.05));
-
     return {
       suggestedPatterns,
       votesContributed: userVotes.length,
-      locationsTracked: userLocations.length + trackingPoints.length,
-      hoursContributed: Math.round(hoursContributed * 10) / 10
+      locationsTracked: userLocations.length,
+      hoursContributed: Math.max(0.1, userLocations.length * 0.5)
     };
   }
 
