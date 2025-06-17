@@ -20,7 +20,7 @@ export default function DiscoverPage() {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(false);
+  const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
   const { toast } = useToast();
 
   // Monitor online status
