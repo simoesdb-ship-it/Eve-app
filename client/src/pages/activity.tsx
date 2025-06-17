@@ -3,10 +3,12 @@ import BottomNavigation from "@/components/bottom-navigation";
 import { UsernameDisplay } from "@/components/username-display";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Vote, Activity, TrendingUp, Calendar, MapPin, Users, ChevronDown, Map, BookOpen, Heart, BarChart3, Navigation, Database } from "lucide-react";
+import { Vote, Activity, TrendingUp, Calendar, MapPin, Users, ChevronDown, Map, BookOpen, Heart, BarChart3, Navigation, Database, Settings } from "lucide-react";
 import type { Activity as ActivityType } from "@shared/schema";
 import { useState } from "react";
+import { PatternSelector } from "@/components/pattern-selector";
 
 export default function ActivityPage() {
   // State for collapsible sections
@@ -39,11 +41,14 @@ export default function ActivityPage() {
     }
   });
 
+  // Get session ID
+  const [sessionId] = useState(() => `anon_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`);
+
   // Fetch saved locations
   const { data: savedLocations = [] } = useQuery({
-    queryKey: ['/api/saved-locations'],
+    queryKey: ['/api/saved-locations', sessionId],
     queryFn: async () => {
-      const response = await fetch('/api/saved-locations');
+      const response = await fetch(`/api/saved-locations/${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch saved locations');
       return response.json();
     }

@@ -237,6 +237,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Assign pattern to saved location
+  app.post("/api/saved-locations/:locationId/patterns", async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.locationId);
+      const { patternId, sessionId } = req.body;
+      
+      if (!patternId || !sessionId) {
+        return res.status(400).json({ message: "Pattern ID and session ID are required" });
+      }
+
+      const assignment = await storage.assignPatternToSavedLocation({
+        savedLocationId: locationId,
+        patternId,
+        sessionId
+      });
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error assigning pattern to saved location:", error);
+      res.status(500).json({ message: "Failed to assign pattern" });
+    }
+  });
+
+  // Get patterns for saved location
+  app.get("/api/saved-locations/:locationId/patterns", async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.locationId);
+      const patterns = await storage.getPatternsByLocationId(locationId);
+      res.json(patterns);
+    } catch (error) {
+      console.error("Error fetching patterns for saved location:", error);
+      res.status(500).json({ message: "Failed to fetch patterns" });
+    }
+  });
+
+  // Remove pattern from saved location
+  app.delete("/api/saved-locations/:locationId/patterns/:patternId", async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.locationId);
+      const patternId = parseInt(req.params.patternId);
+      const sessionId = req.query.sessionId as string;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      await storage.removePatternFromSavedLocation(locationId, patternId, sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing pattern from saved location:", error);
+      res.status(500).json({ message: "Failed to remove pattern" });
+    }
+  });
+
   app.delete('/api/saved-locations/:id', async (req, res) => {
     try {
       const { id } = req.params;

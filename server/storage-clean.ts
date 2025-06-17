@@ -1,7 +1,7 @@
 import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations,
+  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, savedLocationPatterns,
   type User, type InsertUser,
   type Pattern, type InsertPattern,
   type Location, type InsertLocation,
@@ -9,7 +9,8 @@ import {
   type Vote, type InsertVote,
   type Activity, type InsertActivity,
   type SpatialPoint, type InsertSpatialPoint,
-  type SavedLocation, type InsertSavedLocation
+  type SavedLocation, type InsertSavedLocation,
+  type SavedLocationPattern, type InsertSavedLocationPattern
 } from "@shared/schema";
 
 export interface PatternWithVotes extends Pattern {
@@ -274,6 +275,36 @@ export class DatabaseStorage implements IStorage {
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
     await db.delete(savedLocations)
       .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
+  }
+
+  async assignPatternToSavedLocation(assignment: InsertSavedLocationPattern): Promise<SavedLocationPattern> {
+    const [savedLocationPattern] = await db.insert(savedLocationPatterns).values(assignment).returning();
+    return savedLocationPattern;
+  }
+
+  async getPatternsByLocationId(savedLocationId: number): Promise<(SavedLocationPattern & { pattern: Pattern })[]> {
+    const results = await db.select({
+      id: savedLocationPatterns.id,
+      savedLocationId: savedLocationPatterns.savedLocationId,
+      patternId: savedLocationPatterns.patternId,
+      sessionId: savedLocationPatterns.sessionId,
+      assignedAt: savedLocationPatterns.assignedAt,
+      pattern: patterns
+    })
+    .from(savedLocationPatterns)
+    .innerJoin(patterns, eq(savedLocationPatterns.patternId, patterns.id))
+    .where(eq(savedLocationPatterns.savedLocationId, savedLocationId));
+    
+    return results;
+  }
+
+  async removePatternFromSavedLocation(savedLocationId: number, patternId: number, sessionId: string): Promise<void> {
+    await db.delete(savedLocationPatterns)
+      .where(and(
+        eq(savedLocationPatterns.savedLocationId, savedLocationId),
+        eq(savedLocationPatterns.patternId, patternId),
+        eq(savedLocationPatterns.sessionId, sessionId)
+      ));
   }
 }
 
