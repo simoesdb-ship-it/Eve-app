@@ -329,6 +329,13 @@ export type InsertVote = z.infer<typeof insertVoteSchema>;
 export type Activity = typeof activity.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
+// Extended Activity type with location data for enhanced display
+export type ActivityWithLocation = Activity & {
+  latitude?: string | null;
+  longitude?: string | null;
+  locationName?: string | null;
+};
+
 export type SpatialPoint = typeof spatialPoints.$inferSelect;
 export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
 

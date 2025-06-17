@@ -208,7 +208,7 @@ export class DatabaseStorage implements IStorage {
     return activityRecord;
   }
 
-  async getRecentActivity(limit: number): Promise<Activity[]> {
+  async getRecentActivity(limit: number): Promise<ActivityWithLocation[]> {
     const activities = await db.select({
       id: activity.id,
       type: activity.type,
