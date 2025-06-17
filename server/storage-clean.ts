@@ -226,7 +226,13 @@ export class DatabaseStorage implements IStorage {
     .orderBy(sql`${activity.createdAt} DESC`)
     .limit(limit);
     
-    return activities as any;
+    // Clean up descriptions by removing the "New location visited:" prefix
+    const cleanedActivities = activities.map(act => ({
+      ...act,
+      description: act.description?.replace(/^New location visited:\s*/, '') || act.description
+    }));
+    
+    return cleanedActivities as any;
   }
 
   async getStats(sessionId: string): Promise<{

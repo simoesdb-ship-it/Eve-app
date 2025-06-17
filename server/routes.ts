@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log activity
       await storage.createActivity({
         type: "visit",
-        description: `New location visited: ${location.name || "Unknown"}`,
+        description: `${location.name || "Current Location"}`,
         locationId: location.id,
         sessionId: location.sessionId
       });

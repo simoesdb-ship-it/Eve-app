@@ -125,13 +125,17 @@ export default function InsightsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <TrendingUp className="w-6 h-6 text-primary" />
-              <h1 className="text-xl font-bold">Insights</h1>
+              <div className="w-5 h-5 bg-primary rounded flex items-center justify-center">
+                <span className="text-white font-bold text-xs">E</span>
+              </div>
+              <h1 className="text-lg font-semibold">Insights</h1>
             </div>
-            <UsernameDisplay />
+            <div className="flex items-center space-x-2">
+              <UsernameDisplay />
+            </div>
           </div>
         </div>
       </header>
