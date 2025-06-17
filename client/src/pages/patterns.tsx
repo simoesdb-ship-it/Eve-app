@@ -137,7 +137,7 @@ export default function PatternsPage() {
         </div>
       </header>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-24">
         {/* Search and Filter */}
         <div className="space-y-3">
           <div className="relative">

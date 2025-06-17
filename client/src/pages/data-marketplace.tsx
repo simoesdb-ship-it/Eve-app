@@ -224,7 +224,7 @@ export default function DataMarketplace() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4 pb-24">
         {/* Welcome Section */}
         <Card className="mb-6">
           <CardContent className="p-6">
