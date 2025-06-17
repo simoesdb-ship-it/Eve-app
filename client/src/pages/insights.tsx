@@ -235,12 +235,21 @@ export default function InsightsPage() {
             </Collapsible>
 
             {/* Saved Locations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Saved Locations</CardTitle>
-                <CardDescription>Places you've bookmarked for future analysis</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Collapsible open={expandedSections.savedLocations} onOpenChange={() => toggleSection('savedLocations')}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <CardTitle>Your Saved Locations</CardTitle>
+                        <CardDescription>Places you've bookmarked for future analysis</CardDescription>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.savedLocations ? 'rotate-180' : ''}`} />
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent>
                 <div className="space-y-3">
                   {savedLocations.slice(0, 5).map((location: any) => (
                     <div key={location.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -269,8 +278,10 @@ export default function InsightsPage() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </TabsContent>
 
           {/* COMMUNITY INSIGHTS TAB */}
