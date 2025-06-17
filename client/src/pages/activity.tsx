@@ -346,6 +346,18 @@ export default function ActivityPage() {
                                 Saved {formatTimeAgo(location.createdAt.toString())}
                               </span>
                             </div>
+                            <div className="ml-2">
+                              <PatternSelector
+                                savedLocationId={location.id}
+                                sessionId={sessionId}
+                                trigger={
+                                  <Button size="sm" variant="outline" className="h-8">
+                                    <Settings className="w-3 h-3 mr-1" />
+                                    Patterns
+                                  </Button>
+                                }
+                              />
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
