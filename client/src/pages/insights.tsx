@@ -40,8 +40,8 @@ export default function InsightsPage() {
   const [sessionId] = useState(getSessionId());
   const [username, setUsername] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState({
-    activity: true,
-    savedLocations: true,
+    activity: false,
+    savedLocations: false,
   });
 
   // Load username
