@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import BottomNavigation from "@/components/bottom-navigation";
-import { UsernameDisplay } from "@/components/username-display";
+import { getUserDisplayName } from "@/lib/username-generator";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -80,6 +81,22 @@ export default function TokenWallet() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const sessionId = getSessionId();
+  const [username, setUsername] = useState<string>('');
+
+  // Load username
+  useEffect(() => {
+    async function loadUsername() {
+      try {
+        const userId = await getConsistentUserId();
+        const displayName = getUserDisplayName(userId);
+        setUsername(displayName);
+      } catch (error) {
+        console.error('Failed to generate username:', error);
+        setUsername('Anonymous');
+      }
+    }
+    loadUsername();
+  }, []);
 
   // Fetch token balance
   const { data: tokenBalance, isLoading: balanceLoading } = useQuery<TokenBalance>({
