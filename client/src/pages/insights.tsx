@@ -163,7 +163,7 @@ export default function InsightsPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4 pb-24">
         <Tabs defaultValue="personal" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="personal" className="flex items-center space-x-2">

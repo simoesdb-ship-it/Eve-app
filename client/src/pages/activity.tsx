@@ -173,7 +173,7 @@ export default function ActivityPage() {
       </header>
 
       {/* Feature Categories */}
-      <div className="px-4 py-3 space-y-3">
+      <div className="px-4 py-3 space-y-3 pb-24">
         {/* Movement Tracking */}
         <Collapsible open={expandedSections.movement} onOpenChange={() => toggleSection('movement')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-white rounded-lg border hover:bg-gray-50">

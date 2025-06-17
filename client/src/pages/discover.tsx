@@ -353,7 +353,7 @@ export default function DiscoverPage() {
       )}
 
       {/* Pattern Suggestions */}
-      <div className="flex-1 px-4 py-4">
+      <div className="flex-1 px-4 py-4 pb-24">
         <Collapsible open={!isPatternsCollapsed} onOpenChange={(open) => setIsPatternsCollapsed(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between mb-4 cursor-pointer">
