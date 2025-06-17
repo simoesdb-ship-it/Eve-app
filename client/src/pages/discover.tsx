@@ -5,7 +5,8 @@ import MapView from "@/components/map-view";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
-import { UsernameDisplay } from "@/components/username-display";
+import { getUserDisplayName } from "@/lib/username-generator";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { generateSessionId } from "@/lib/geolocation";
 import { startGlobalTracking, stopGlobalTracking } from "@/lib/movement-tracker";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +23,23 @@ export default function DiscoverPage() {
   const [locationId, setLocationId] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
+  const [username, setUsername] = useState<string>('');
   const { toast } = useToast();
+
+  // Load username
+  useEffect(() => {
+    async function loadUsername() {
+      try {
+        const userId = await getConsistentUserId();
+        const displayName = getUserDisplayName(userId);
+        setUsername(displayName);
+      } catch (error) {
+        console.error('Failed to generate username:', error);
+        setUsername('Anonymous');
+      }
+    }
+    loadUsername();
+  }, []);
 
   // Monitor online status
   useEffect(() => {
@@ -279,15 +296,15 @@ export default function DiscoverPage() {
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
       {/* Status Bar */}
-      <div className="safe-area-top bg-primary text-white px-4 py-2 text-sm">
+      <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-          <UsernameDisplay sessionId={sessionId} />
+          <span>{username || 'Loading...'}</span>
         </div>
       </div>
 
       {/* App Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
+      <header className="bg-transparent px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
