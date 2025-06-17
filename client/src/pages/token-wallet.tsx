@@ -245,7 +245,7 @@ export default function TokenWallet() {
         </div>
       </header>
 
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-6 space-y-6 pb-24">
 
         {/* Balance Overview */}
         <Card className="border-2 border-primary/20">
