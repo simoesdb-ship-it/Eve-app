@@ -381,6 +381,11 @@ export type PatternWithVotes = Pattern & {
   confidence: number;
   suggestionId: number;
   userVote?: 'up' | 'down' | null;
+  isLive?: boolean; // Flag for live pattern suggestions
+  locationId?: number | null; // Optional for live patterns
+  votes?: number; // Vote count for display
+  contextualAnalysis?: string; // Enhanced analysis data
+  sessionId?: string; // Session identifier
 };
 
 export type LocationWithPatterns = Location & {

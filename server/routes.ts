@@ -206,6 +206,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live pattern suggestions endpoint for real-time updates
+  app.get('/api/patterns/live', async (req: any, res) => {
+    try {
+      const { lat, lng, sessionId, accuracy, movement } = req.query;
+      
+      if (!lat || !lng || !sessionId) {
+        return res.status(400).json({ message: 'Missing required parameters: lat, lng, sessionId' });
+      }
+
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      const gpsAccuracy = parseFloat(accuracy) || 100;
+      const movementType = movement || 'unknown';
+      
+      console.log(`Live pattern analysis for ${latitude}, ${longitude} (±${gpsAccuracy}m, ${movementType})`);
+      
+      // Enhanced pattern analysis using the enhanced pattern analyzer
+      const { enhancedPatternAnalyzer } = await import('./enhanced-pattern-analyzer');
+      
+      // Create architectural context for enhanced analysis
+      const architecturalContext = {
+        latitude,
+        longitude,
+        populationDensity: 2000, // Default urban density
+        areaSize: 1.0, // 1 km² analysis area
+        buildingHeights: {
+          averageStories: 3,
+          maxStories: 6,
+          predominantHeight: 'mid-rise' as const,
+          heightVariation: 0.7
+        },
+        spatialConfiguration: {
+          blockSize: 100,
+          streetWidth: 12,
+          openSpaceRatio: 0.2,
+          connectivity: 0.8,
+          permeability: 0.7
+        },
+        buildingTypology: {
+          predominantType: 'mixed' as const,
+          buildingFootprint: 400,
+          lotCoverage: 0.6,
+          setbackVariation: 0.5
+        },
+        humanScale: {
+          eyeLevelActivity: 0.7,
+          pedestrianComfort: 0.6,
+          socialSpaces: 3,
+          transitionalSpaces: 5
+        },
+        accessibilityMetrics: {
+          transitAccess: true,
+          bikeInfrastructure: 0.6,
+          walkability: 75,
+          carDependency: 0.4
+        },
+        landUsePattern: {
+          mixedUse: 0.8,
+          primaryUse: 'mixed' as const,
+          useDiversity: 0.7,
+          groundFloorUses: ['retail', 'cafe', 'residential']
+        },
+        naturalElements: {
+          treeCanopyCover: 0.3,
+          waterAccess: false,
+          topographyVariation: 0.2,
+          viewCorridors: 2
+        },
+        socialInfrastructure: {
+          communitySpaces: 2,
+          educationalFacilities: 1,
+          healthcareFacilities: 1,
+          culturalFacilities: 1,
+          religiousSpaces: 1
+        }
+      };
+
+      // Get enhanced pattern matches
+      const enhancedMatches = enhancedPatternAnalyzer.analyzePatterns(architecturalContext);
+      
+      // Convert to our pattern format and filter by confidence
+      const livePatterns = enhancedMatches
+        .filter(match => match.confidence > 0.4) // Lower threshold for live updates
+        .slice(0, 8) // Limit to top 8 patterns for performance
+        .map(match => ({
+          id: Date.now() + match.pattern.number, // Temporary ID for live patterns
+          number: match.pattern.number,
+          name: match.pattern.name,
+          description: match.pattern.description,
+          fullDescription: match.pattern.fullDescription,
+          category: match.pattern.category,
+          keywords: match.pattern.keywords,
+          iconName: match.pattern.iconName,
+          moodColor: match.pattern.moodColor,
+          confidence: match.confidence,
+          votes: 0,
+          userVote: null,
+          isLive: true, // Mark as live pattern
+          locationId: null,
+          contextualAnalysis: JSON.stringify({
+            architecturalFit: match.architecturalFit,
+            keyMetrics: match.keyMetrics,
+            implementationGuidance: match.implementationGuidance,
+            reasons: match.reasons,
+            movementContext: {
+              type: movementType,
+              accuracy: gpsAccuracy,
+              timestamp: new Date().toISOString()
+            }
+          }),
+          sessionId
+        }));
+
+      // Store live tracking data for pattern analysis
+      try {
+        await storage.createTrackingPoint({
+          sessionId,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          movementType,
+          speed: '0',
+          accuracy: gpsAccuracy.toString(),
+          metadata: JSON.stringify({
+            patternsGenerated: livePatterns.length,
+            topPatternConfidence: livePatterns[0]?.confidence || 0,
+            analysisType: 'live_enhanced',
+            timestamp: new Date().toISOString()
+          }),
+          type: 'live_pattern_analysis'
+        });
+      } catch (error) {
+        console.error('Failed to store live tracking data:', error);
+      }
+
+      console.log(`Generated ${livePatterns.length} live patterns with enhanced analysis`);
+      res.json(livePatterns);
+    } catch (error) {
+      console.error('Error generating live patterns:', error);
+      res.status(500).json({ message: 'Failed to generate live patterns' });
+    }
+  });
+
   // Search patterns
   app.get("/api/patterns/search", async (req, res) => {
     try {
