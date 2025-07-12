@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required parameter: locationId' });
       }
 
-      const recentActivity = await storage.getRecentVotingActivity(parseInt(locationId), parseInt(limit));
+      const recentActivity = await storage.getRecentVotingActivity(parseInt(locationId), parseInt(limit as string));
       
       // Format for display
       const formattedActivity = recentActivity.map((activity: any) => ({
@@ -473,16 +473,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Tracking endpoints
+  // Tracking endpoints with automated rewards
   app.post('/api/tracking', async (req, res) => {
     try {
-      const trackingData = {
-        ...req.body,
-        type: 'tracking' // Always set type to 'tracking' for movement tracking
-      };
-      console.log('Creating tracking point with data:', trackingData);
-      const trackingPoint = await storage.createTrackingPoint(trackingData);
-      res.json(trackingPoint);
+      const {
+        sessionId,
+        latitude,
+        longitude,
+        accuracy,
+        speed,
+        movementType,
+        metadata,
+        type = 'tracking'
+      } = req.body;
+
+      console.log('Creating tracking point with data:', {
+        sessionId,
+        latitude,
+        longitude,
+        movementType,
+        speed,
+        accuracy,
+        metadata,
+        type
+      });
+
+      if (!sessionId || latitude === undefined || longitude === undefined) {
+        return res.status(400).json({ 
+          message: "Missing required fields: sessionId, latitude, longitude" 
+        });
+      }
+
+      const trackingPoint = await storage.createTrackingPoint({
+        sessionId,
+        latitude: latitude.toString(),
+        longitude: longitude.toString(),
+        accuracy: accuracy?.toString() || "0",
+        speed: speed?.toString() || "0",
+        movementType: movementType || 'walking',
+        metadata: metadata || '{}',
+        type: type || 'tracking'
+      });
+
+      // Automated token rewards for location tracking
+      try {
+        const { automatedTokenService } = await import("./automated-token-service");
+        const rewardResult = await automatedTokenService.processLocationTracking(sessionId, trackingPoint.id);
+        
+        // Add reward information to response
+        res.json({
+          ...trackingPoint,
+          tokenReward: rewardResult.tokensAwarded > 0 ? rewardResult : undefined
+        });
+      } catch (rewardError) {
+        console.error('Error processing token rewards:', rewardError);
+        // Still return the tracking point even if rewards fail
+        res.json(trackingPoint);
+      }
     } catch (error) {
       console.error('Error creating tracking point:', error);
       res.status(500).json({ error: 'Failed to create tracking point' });
@@ -1232,6 +1279,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching transfer history:", error);
       res.status(500).json({ message: "Failed to fetch transfer history" });
+    }
+  });
+
+  // Automated Token Rewards Endpoints
+
+  // Process daily active bonus
+  app.post('/api/tokens/daily-bonus', async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: 'Session ID required' });
+      }
+
+      const { automatedTokenService } = await import("./automated-token-service");
+      const rewardResult = await automatedTokenService.processDailyActiveBonus(sessionId);
+      
+      res.json(rewardResult);
+    } catch (error) {
+      console.error('Error processing daily bonus:', error);
+      res.status(500).json({ message: 'Failed to process daily bonus' });
+    }
+  });
+
+  // Get token rewards summary
+  app.get('/api/tokens/rewards-summary', async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: 'Session ID required' });
+      }
+
+      // Get current balance and transaction history
+      const balance = await dataTokenService.getTokenBalance(sessionId as string);
+      const transactions = await dataTokenService.getTransactionHistory(sessionId as string, 20);
+      
+      // Calculate rewards breakdown from recent transactions
+      const recentRewards = transactions.filter(t => t.type === 'earned').slice(0, 10);
+      const totalEarned = transactions
+        .filter(t => t.type === 'earned')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      res.json({
+        currentBalance: balance.balance,
+        totalEarned,
+        recentRewards,
+        rewardSummary: {
+          locationTracking: recentRewards.filter(r => r.description?.includes('location')).length,
+          patternContributions: recentRewards.filter(r => r.description?.includes('pattern')).length,
+          communityVoting: recentRewards.filter(r => r.description?.includes('vote')).length
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching rewards summary:', error);
+      res.status(500).json({ message: 'Failed to fetch rewards summary' });
     }
   });
 

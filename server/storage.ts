@@ -358,6 +358,13 @@ export class DatabaseStorage implements IStorage {
       };
     });
   }
+
+  // Get tracking points within radius (needed for spatial density bonus)
+  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, excludeSessionId?: string): Promise<any[]> {
+    // For now, return empty array - would need to implement proper geospatial queries
+    // In a real implementation, would use PostGIS or similar for distance calculations
+    return [];
+  }
 }
 
 export const storage = new DatabaseStorage();
