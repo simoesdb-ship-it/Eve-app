@@ -13,6 +13,14 @@ A cutting-edge React web application for architectural pattern discovery, focusi
 
 ## Recent Changes (Latest First)
 
+### 2025-01-12: Weighted Voting System with Movement Pattern Analysis ✅
+- **Implemented comprehensive movement-based voting weights**
+- **Created speed-based movement classification:** walking (1.0x), biking (0.7x), driving (0.3x)
+- **Added weighted voting service** with sophisticated engagement analysis
+- **Enhanced spatial data storage** with movement type, speed, and time tracking
+- **Built voting eligibility calculator** based on time spent and movement patterns
+- **Created data architecture documentation** explaining storage and indexing systems
+
 ### 2025-01-12: GPS-Based Username Generation System ✅
 - **Added GPS location capture during device registration**
 - **Created global language pools for 6 world regions:**
