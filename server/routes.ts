@@ -400,7 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enhance with live voting data
       const activePatterns = await Promise.all(patterns.map(async (pattern) => {
         // Get recent vote activity
-        const recentVotes = await storage.getRecentVotesForPattern(pattern.suggestionId, 10);
+        const recentVotes = await storage.getRecentVotesForPattern(pattern.suggestionId);
         
         // Calculate voting trend and engagement
         const recentActivity = recentVotes.map((vote: any) => ({
