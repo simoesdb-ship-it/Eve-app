@@ -21,6 +21,7 @@ import InsightsPage from "@/pages/insights";
 import OnboardingPage from "@/pages/onboarding";
 import WeightedVotingDemo from "@/pages/weighted-voting-demo";
 import DataArchitecture from "@/pages/data-architecture";
+import EnhancedPatternDemo from "@/pages/enhanced-pattern-demo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/weighted-voting" component={WeightedVotingDemo} />
       <Route path="/data-architecture" component={DataArchitecture} />
+      <Route path="/enhanced-patterns" component={EnhancedPatternDemo} />
       <Route component={NotFound} />
     </Switch>
   );

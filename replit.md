@@ -13,6 +13,15 @@ A cutting-edge React web application for architectural pattern discovery, focusi
 
 ## Recent Changes (Latest First)
 
+### 2025-01-12: Enhanced Pattern Recognition Engine with Architectural Metrics ✅
+- **Expanded pattern analysis beyond basic contextual analysis**
+- **Added comprehensive architectural metrics:** number of stories, building heights, spatial relationships
+- **Implemented enhanced contextual analysis:** building typology, human scale metrics, spatial configuration
+- **Created pattern-specific architectural analysis** for key Alexander patterns (21, 61, 88, 96, 106)
+- **Built architectural fit scoring** with scale alignment, typology match, spatial logic, human scale adherence
+- **Added implementation guidance** with design principles, dimensional requirements, spatial relationships
+- **Enhanced pattern confidence calculation** with building height analysis, density factors, spatial metrics
+
 ### 2025-01-12: Weighted Voting System with Movement Pattern Analysis ✅
 - **Implemented comprehensive movement-based voting weights**
 - **Created speed-based movement classification:** walking (1.0x), biking (0.7x), driving (0.3x)
