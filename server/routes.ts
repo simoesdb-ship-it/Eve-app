@@ -364,6 +364,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Community Voting Endpoints
+
+  // Get voting eligibility for a location
+  app.get('/api/voting/eligibility', async (req: any, res) => {
+    try {
+      const { sessionId, locationId } = req.query;
+      
+      if (!sessionId || !locationId) {
+        return res.status(400).json({ message: 'Missing required parameters: sessionId, locationId' });
+      }
+
+      const { weightedVotingService } = await import("./weighted-voting-service");
+      const eligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, parseInt(locationId));
+      
+      res.json(eligibility);
+    } catch (error) {
+      console.error('Error checking voting eligibility:', error);
+      res.status(500).json({ message: 'Failed to check voting eligibility' });
+    }
+  });
+
+  // Get active voting patterns for a location with live data
+  app.get('/api/voting/active-patterns', async (req: any, res) => {
+    try {
+      const { locationId } = req.query;
+      
+      if (!locationId) {
+        return res.status(400).json({ message: 'Missing required parameter: locationId' });
+      }
+
+      // Get patterns for the location
+      const patterns = await storage.getPatternsForLocation(parseInt(locationId), 'system');
+      
+      // Enhance with live voting data
+      const activePatterns = await Promise.all(patterns.map(async (pattern) => {
+        // Get recent vote activity
+        const recentVotes = await storage.getRecentVotesForPattern(pattern.suggestionId, 10);
+        
+        // Calculate voting trend and engagement
+        const recentActivity = recentVotes.map((vote: any) => ({
+          voteType: vote.voteType,
+          weight: vote.weight || 1,
+          timeAgo: formatTimeAgo(vote.createdAt),
+          movementType: vote.movementData?.dominantMovement || 'walking'
+        }));
+
+        // Calculate voting trend
+        const recentUpvotes = recentVotes.filter((v: any) => v.voteType === 'up').length;
+        const recentDownvotes = recentVotes.filter((v: any) => v.voteType === 'down').length;
+        let votingTrend = 'stable';
+        
+        if (recentUpvotes > recentDownvotes * 1.5) votingTrend = 'rising';
+        else if (recentDownvotes > recentUpvotes * 1.5) votingTrend = 'falling';
+
+        // Calculate community engagement (0-1 based on recent activity)
+        const communityEngagement = Math.min(1, recentVotes.length / 20);
+
+        return {
+          ...pattern,
+          currentVotes: pattern.votes || 0,
+          recentVoteActivity: recentActivity,
+          votingTrend,
+          communityEngagement
+        };
+      }));
+
+      // Sort by engagement and recent activity
+      activePatterns.sort((a, b) => {
+        const aScore = a.communityEngagement + (a.recentVoteActivity.length / 10);
+        const bScore = b.communityEngagement + (b.recentVoteActivity.length / 10);
+        return bScore - aScore;
+      });
+
+      res.json(activePatterns);
+    } catch (error) {
+      console.error('Error fetching active patterns:', error);
+      res.status(500).json({ message: 'Failed to fetch active patterns' });
+    }
+  });
+
+  // Get recent voting activity for a location
+  app.get('/api/voting/recent-activity', async (req: any, res) => {
+    try {
+      const { locationId, limit = 10 } = req.query;
+      
+      if (!locationId) {
+        return res.status(400).json({ message: 'Missing required parameter: locationId' });
+      }
+
+      const recentActivity = await storage.getRecentVotingActivity(parseInt(locationId), parseInt(limit));
+      
+      // Format for display
+      const formattedActivity = recentActivity.map((activity: any) => ({
+        type: activity.voteType === 'up' ? 'vote_up' : 'vote_down',
+        patternNumber: activity.patternNumber,
+        patternName: activity.patternName,
+        weight: activity.weight,
+        movementType: activity.movementData?.dominantMovement || 'walking',
+        timestamp: activity.createdAt,
+        locationId: activity.locationId
+      }));
+
+      res.json(formattedActivity);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      res.status(500).json({ message: 'Failed to fetch recent activity' });
+    }
+  });
+
   // Tracking endpoints
   app.post('/api/tracking', async (req, res) => {
     try {
@@ -1128,6 +1237,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+function formatTimeAgo(timestamp: number | string | Date): string {
+  const time = timestamp instanceof Date ? timestamp.getTime() : 
+               typeof timestamp === 'string' ? new Date(timestamp).getTime() : 
+               timestamp;
+  const now = Date.now();
+  const diffMinutes = Math.floor((now - time) / (1000 * 60));
+  
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
+  return `${Math.floor(diffMinutes / 1440)}d ago`;
 }
 
 // Enhanced pattern matching algorithm
