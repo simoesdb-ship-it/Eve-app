@@ -55,6 +55,33 @@ export default function OnboardingPage() {
 
     setIsRegistering(true);
     try {
+      // Get current GPS location for username generation
+      const getCurrentLocation = (): Promise<{lat: number, lng: number}> => {
+        return new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Geolocation not supported'));
+            return;
+          }
+          
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              });
+            },
+            (error) => {
+              console.warn('Could not get GPS location:', error);
+              // Fallback to default coordinates (will use global language pool)
+              resolve({ lat: 0, lng: 0 });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          );
+        });
+      };
+
+      const location = await getCurrentLocation();
+      
       const deviceInfo = {
         screen: `${window.screen.width}x${window.screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -65,16 +92,22 @@ export default function OnboardingPage() {
       const response = await apiRequest('POST', '/api/register-device', {
         deviceId,
         userId,
-        username,
-        deviceFingerprint: JSON.stringify(deviceInfo)
+        deviceFingerprint: JSON.stringify(deviceInfo),
+        lat: location.lat,
+        lng: location.lng
       });
 
       const data = await response.json();
       
       if (data.registered) {
+        // Update username with the GPS-generated one from the server
+        if (data.username) {
+          setUsername(data.username);
+        }
+        
         toast({
           title: "Registration Complete",
-          description: "You can now start discovering patterns in your area",
+          description: `Username generated from ${data.languageRegion || 'Global'} language pool`,
         });
         setStep(6);
       }

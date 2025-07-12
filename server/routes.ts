@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Device registration endpoints for anonymous user identification
   app.post('/api/register-device', async (req, res) => {
     try {
-      const { deviceId, userId, deviceFingerprint, username } = req.body;
+      const { deviceId, userId, deviceFingerprint, lat, lng } = req.body;
       
       // Check if device is already registered
       const existingRegistration = await storage.getDeviceRegistration(deviceId);
@@ -731,17 +731,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           registered: true, 
           userId: existingRegistration.userId,
           username: existingRegistration.username,
+          languageRegion: existingRegistration.languageRegion,
           message: 'Device already registered' 
         });
         return;
       }
 
-      // Register new device
+      // Generate username based on GPS location using global language pools
+      const { generateUsernameServer, getRegionNameServer } = await import("./username-generator-server");
+      const username = generateUsernameServer(userId, lat, lng);
+      const languageRegion = lat && lng ? getRegionNameServer(lat, lng) : "Global";
+
+      // Register new device with GPS-based username
       const registration = await storage.createDeviceRegistration({
         deviceId,
         userId,
         username,
         deviceFingerprint,
+        creationLatitude: lat,
+        creationLongitude: lng,
+        languageRegion,
         isActive: true
       });
 
@@ -749,9 +758,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registered: true, 
         userId: registration.userId,
         username: registration.username,
-        message: 'Device registered successfully' 
+        languageRegion: registration.languageRegion,
+        message: 'Device registered successfully with GPS-based username' 
       });
     } catch (error: any) {
+      console.error("Device registration error:", error);
       res.status(500).json({ message: error.message });
     }
   });

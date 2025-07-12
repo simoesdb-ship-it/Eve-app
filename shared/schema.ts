@@ -212,8 +212,12 @@ export const deviceRegistrations = pgTable("device_registrations", {
   id: serial("id").primaryKey(),
   deviceId: text("device_id").unique().notNull(),
   userId: text("user_id").unique().notNull(),
-  username: text("username").notNull(), // Two-word fictitious name
+  username: text("username").notNull(), // Two-word fictitious name from global language pool
   deviceFingerprint: text("device_fingerprint").notNull(),
+  // GPS location where account was first created for language-based username generation
+  creationLatitude: decimal("creation_latitude", { precision: 10, scale: 8 }),
+  creationLongitude: decimal("creation_longitude", { precision: 11, scale: 8 }),
+  languageRegion: text("language_region"), // Region name (e.g., "North America", "Asia", etc.)
   registeredAt: timestamp("registered_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),
   isActive: boolean("is_active").default(true),
