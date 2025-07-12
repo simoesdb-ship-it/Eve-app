@@ -13,9 +13,10 @@ export class MovementTracker {
   private lastTrackingTime: number = 0;
   private readonly TRACKING_INTERVAL_MS = 30 * 1000; // 30 seconds for testing accumulation
   private readonly MIN_DISTANCE_METERS = 1; // 1 meter for testing clustering
-  private lastPosition: { lat: number; lng: number } | null = null;
+  private lastPosition: { lat: number; lng: number; timestamp: number } | null = null;
   private pendingPoints: InsertSpatialPoint[] = [];
   private syncInterval: NodeJS.Timeout | null = null;
+  private movementHistory: Array<{lat: number, lng: number, timestamp: number, speed?: number}> = [];
 
   constructor(sessionId?: string) {
     this.sessionId = sessionId || generateSessionId();
@@ -116,7 +117,7 @@ export class MovementTracker {
   }
 
   // Enhanced local storage for web persistence
-  private saveToLocalStorage(point: InsertTrackingPoint): void {
+  private saveToLocalStorage(point: InsertSpatialPoint): void {
     try {
       const key = `tracking_${this.sessionId}`;
       const existing = localStorage.getItem(key);
@@ -138,7 +139,7 @@ export class MovementTracker {
   }
 
   // Load tracking points from local storage
-  getLocalTrackingPoints(): TrackingPoint[] {
+  getLocalTrackingPoints(): SpatialPoint[] {
     try {
       const key = `tracking_${this.sessionId}`;
       const stored = localStorage.getItem(key);
@@ -182,12 +183,17 @@ export class MovementTracker {
     );
   }
 
-  // Record a tracking point if movement threshold is met
+  // Record a tracking point with movement analysis
   private async recordTrackingPoint(position: GeolocationPosition): Promise<void> {
     const { latitude, longitude, accuracy, speed, heading } = position.coords;
     const currentPos = { lat: latitude, lng: longitude };
+    const now = Date.now();
 
-    // Check if we've moved enough to warrant a new tracking point
+    // Calculate movement metrics
+    let calculatedSpeed = 0;
+    let movementType = 'stationary';
+    let timeSpent = 1; // Default 1 minute
+
     if (this.lastPosition) {
       const distance = this.calculateDistance(
         this.lastPosition.lat,
@@ -199,36 +205,77 @@ export class MovementTracker {
       if (distance < this.MIN_DISTANCE_METERS) {
         return; // Not enough movement
       }
+
+      // Calculate speed from movement
+      const timeElapsed = this.lastPosition.timestamp ? 
+        (now - this.lastPosition.timestamp) / 1000 : this.TRACKING_INTERVAL_MS / 1000;
+      calculatedSpeed = timeElapsed > 0 ? (distance / timeElapsed) * 3.6 : 0; // km/h
+
+      // Use GPS speed if available, otherwise calculated
+      const finalSpeed = (speed !== null && speed !== undefined && speed >= 0) ? 
+        speed * 3.6 : calculatedSpeed;
+
+      // Classify movement type
+      movementType = this.classifyMovementType(finalSpeed);
+      timeSpent = Math.max(1, timeElapsed / 60); // Convert to minutes, minimum 1
+
+      // Update movement history
+      this.movementHistory.push({
+        lat: this.lastPosition.lat,
+        lng: this.lastPosition.lng,
+        timestamp: this.lastPosition.timestamp || now - this.TRACKING_INTERVAL_MS,
+        speed: finalSpeed
+      });
+
+      if (this.movementHistory.length > 10) {
+        this.movementHistory.shift();
+      }
     }
 
-    const trackingPoint: InsertTrackingPoint = {
+    // Create spatial point for weighted voting system
+    const spatialPoint: InsertSpatialPoint = {
       latitude: latitude.toString(),
       longitude: longitude.toString(),
       sessionId: this.sessionId,
       accuracy: accuracy ? accuracy.toString() : null,
-      speed: speed ? speed.toString() : null,
-      heading: heading ? heading.toString() : null,
+      speed: calculatedSpeed.toString(),
+      movementType,
+      timeSpent: timeSpent.toString()
     };
 
     // Save to local storage immediately for offline persistence
-    this.saveToLocalStorage(trackingPoint);
+    this.saveToLocalStorage(spatialPoint);
 
     // Try to sync to server, add to pending queue if fails
     try {
-      await apiRequest('POST', '/api/tracking', trackingPoint);
-      console.log(`Tracking point recorded: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      await apiRequest('POST', '/api/tracking', spatialPoint);
+      console.log(`Movement tracked: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} [${movementType}, ${calculatedSpeed.toFixed(1)}km/h]`);
       
       // Trigger map update by dispatching a custom event
       window.dispatchEvent(new CustomEvent('trackingPointAdded', {
-        detail: trackingPoint
+        detail: { ...spatialPoint, movementType, calculatedSpeed }
       }));
     } catch (error) {
-      this.pendingPoints.push(trackingPoint);
+      this.pendingPoints.push(spatialPoint);
       console.warn('Added tracking point to pending queue (offline)');
     }
     
-    this.lastPosition = currentPos;
-    this.lastTrackingTime = Date.now();
+    this.lastPosition = { ...currentPos, timestamp: now };
+    this.lastTrackingTime = now;
+  }
+
+  // Classify movement type based on speed
+  private classifyMovementType(speedKmh: number): string {
+    if (speedKmh <= 0.5) return 'stationary';
+    if (speedKmh <= 6) return 'walking';
+    if (speedKmh <= 25) return 'biking';
+    if (speedKmh <= 80) return 'driving';
+    return 'driving';
+  }
+
+  // Get movement pattern analysis
+  getMovementAnalysis(): Array<{lat: number, lng: number, timestamp: number, speed?: number}> {
+    return [...this.movementHistory];
   }
 
   // Calculate distance between two points in meters
@@ -244,7 +291,7 @@ export class MovementTracker {
   }
 
   // Get all tracking points for current session
-  async getTrackingPoints(): Promise<TrackingPoint[]> {
+  async getTrackingPoints(): Promise<SpatialPoint[]> {
     try {
       const response = await fetch(`/api/tracking/${this.sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch tracking points');

@@ -19,6 +19,7 @@ import DataMarketplacePage from "@/pages/data-marketplace";
 import EconomyPage from "@/pages/economy";
 import InsightsPage from "@/pages/insights";
 import OnboardingPage from "@/pages/onboarding";
+import WeightedVotingDemo from "@/pages/weighted-voting-demo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/economy" component={EconomyPage} />
       <Route path="/insights" component={InsightsPage} />
       <Route path="/onboarding" component={OnboardingPage} />
+      <Route path="/weighted-voting" component={WeightedVotingDemo} />
       <Route component={NotFound} />
     </Switch>
   );

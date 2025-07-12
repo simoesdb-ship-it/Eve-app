@@ -67,6 +67,9 @@ export const spatialPoints = pgTable("spatial_points", {
   longitude: decimal("longitude", { precision: 12, scale: 8 }).notNull(),
   type: text("type").notNull(), // 'tracking', 'analyzed', 'saved'
   sessionId: text("session_id").notNull(),
+  movementType: text("movement_type").default("stationary").notNull(), // 'walking', 'biking', 'driving', 'stationary', 'transit'
+  speed: decimal("speed", { precision: 8, scale: 2 }), // km/h for movement analysis
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }), // GPS accuracy in meters
   metadata: text("metadata").default('{}').notNull(), // JSON string for patterns, analysis, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -101,36 +101,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote on a pattern suggestion
+  // Vote on a pattern suggestion with weighted voting based on movement patterns
   app.post("/api/votes", async (req, res) => {
     try {
-      const voteData = insertVoteSchema.parse(req.body);
+      const { suggestionId, sessionId, voteType, locationId } = req.body;
       
-      // Check if user already voted
-      const existingVote = await storage.getUserVoteForSuggestion(
-        voteData.suggestionId, 
-        voteData.sessionId
-      );
-
+      // Check if user already voted on this suggestion
+      const existingVote = await storage.getUserVoteForSuggestion(suggestionId, sessionId);
       if (existingVote) {
         return res.status(400).json({ message: "Already voted on this suggestion" });
       }
 
-      const vote = await storage.createVote(voteData);
+      // Use weighted voting service for comprehensive movement-based analysis
+      const { weightedVotingService } = await import("./weighted-voting-service");
+      
+      // Get weighted voting eligibility
+      const eligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
+      
+      if (!eligibility.canVote) {
+        return res.status(403).json({ 
+          message: "Not eligible to vote on this location", 
+          reason: eligibility.eligibilityReason,
+          timeSpent: eligibility.baseTimeMinutes,
+          movementBreakdown: eligibility.movementBreakdown
+        });
+      }
 
-      // Log activity
-      await storage.createActivity({
-        type: "vote",
-        description: `Vote cast: ${voteData.voteType} on pattern suggestion`,
-        sessionId: voteData.sessionId
+      // Cast weighted vote
+      await weightedVotingService.castWeightedVote({
+        suggestionId,
+        sessionId,
+        voteType,
+        weight: eligibility.totalWeight,
+        locationId,
+        movementData: eligibility.movementBreakdown,
+        timeSpentBreakdown: eligibility.movementBreakdown.reduce((acc, m) => {
+          acc[m.movementType] = m.timeSpentMinutes;
+          return acc;
+        }, {} as Record<string, number>)
       });
 
-      res.json(vote);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create vote" });
+      // Create activity record with movement details
+      const movementSummary = eligibility.movementBreakdown
+        .filter(m => m.timeSpentMinutes > 0)
+        .map(m => `${m.timeSpentMinutes.toFixed(1)}min ${m.movementType}`)
+        .join(', ');
+
+      await storage.createActivity({
+        type: "vote",
+        description: `Voted ${voteType} with ${eligibility.totalWeight.toFixed(2)}x weight from: ${movementSummary}`,
+        locationId,
+        sessionId
+      });
+
+      res.json({ 
+        success: true,
+        weight: eligibility.totalWeight,
+        timeSpent: eligibility.baseTimeMinutes,
+        movementBreakdown: eligibility.movementBreakdown,
+        weightComponents: eligibility.weightComponents,
+        eligibilityReason: eligibility.eligibilityReason
+      });
+    } catch (error: any) {
+      console.error("Weighted voting error:", error);
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -670,23 +704,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Time tracking and voting eligibility endpoints
+  // Time tracking and weighted voting eligibility endpoints
   app.get("/api/time-tracking/:locationId", async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string || "demo_session";
       const locationId = parseInt(req.params.locationId);
+      
+      // Use both old and new systems for comparison
       const { timeTrackingService } = await import("./time-tracking-service");
+      const { weightedVotingService } = await import("./weighted-voting-service");
       
       const timeSpent = await timeTrackingService.calculateTimeAtLocation(sessionId, locationId);
-      const eligibility = await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
+      const basicEligibility = await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
+      const weightedEligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
       
       res.json({
         timeTracking: timeSpent,
-        votingEligibility: eligibility
+        basicVotingEligibility: basicEligibility,
+        weightedVotingEligibility: weightedEligibility
       });
     } catch (error) {
       console.error("Error calculating time tracking:", error);
       res.status(500).json({ error: "Failed to calculate time tracking" });
+    }
+  });
+
+  // Get weighted voting eligibility for a location
+  app.get("/api/voting-eligibility/:locationId", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string || "demo_session";
+      const locationId = parseInt(req.params.locationId);
+      const { weightedVotingService } = await import("./weighted-voting-service");
+      
+      const eligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
+      
+      res.json(eligibility);
+    } catch (error) {
+      console.error("Error calculating voting eligibility:", error);
+      res.status(500).json({ error: "Failed to calculate voting eligibility" });
+    }
+  });
+
+  // Get voting statistics for a pattern suggestion
+  app.get("/api/voting-stats/:suggestionId", async (req, res) => {
+    try {
+      const suggestionId = parseInt(req.params.suggestionId);
+      const { weightedVotingService } = await import("./weighted-voting-service");
+      
+      const stats = await weightedVotingService.getVotingStats(suggestionId);
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting voting stats:", error);
+      res.status(500).json({ error: "Failed to get voting stats" });
     }
   });
 

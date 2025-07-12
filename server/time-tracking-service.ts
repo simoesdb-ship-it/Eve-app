@@ -17,6 +17,19 @@ export interface VotingEligibility {
   canVote: boolean;
   weight: number;
   timeSpentMinutes: number;
+  movementBreakdown: {
+    walkingMinutes: number;
+    bikingMinutes: number;
+    drivingMinutes: number;
+    stationaryMinutes: number;
+    transitMinutes: number;
+  };
+  weightFactors: {
+    baseTimeWeight: number;
+    movementTypeBonus: number;
+    frequencyMultiplier: number;
+    totalWeight: number;
+  };
   reason?: string;
 }
 
