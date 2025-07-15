@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 import MapView from "@/components/map-view";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
@@ -346,7 +347,9 @@ export default function DiscoverPage() {
             </div>
             <div className="flex-1 text-center border-l border-gray-200">
               <div className="text-lg font-semibold text-neutral-800">{stats.offlinePatterns}</div>
-              <div className="text-xs text-neutral-400">Offline Patterns</div>
+              <Link href="/offline-patterns">
+                <div className="text-xs text-neutral-400 hover:text-primary cursor-pointer">Offline Patterns</div>
+              </Link>
             </div>
           </div>
         </div>

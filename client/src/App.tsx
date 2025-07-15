@@ -19,6 +19,7 @@ import DataMarketplacePage from "@/pages/data-marketplace";
 import EconomyPage from "@/pages/economy";
 import InsightsPage from "@/pages/insights";
 import OnboardingPage from "@/pages/onboarding";
+import OfflinePatternsPage from "@/pages/offline-patterns";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/economy" component={EconomyPage} />
       <Route path="/insights" component={InsightsPage} />
       <Route path="/onboarding" component={OnboardingPage} />
+      <Route path="/offline-patterns" component={OfflinePatternsPage} />
       <Route component={NotFound} />
     </Switch>
   );
