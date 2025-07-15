@@ -453,17 +453,6 @@ export default function DiscoverPage() {
             <div className="flex items-center justify-between mb-4 cursor-pointer">
               <h2 className="text-lg font-semibold text-neutral-800">Pattern Validation</h2>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.location.href = '/patterns';
-                  }}
-                >
-                  View All
-                </Button>
                 {isPatternsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               </div>
             </div>
