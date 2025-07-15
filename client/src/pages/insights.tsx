@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 
 import BottomNavigation from "@/components/bottom-navigation";
@@ -44,6 +45,7 @@ export default function InsightsPage() {
   const [username, setUsername] = useState<string>('');
   const [persistentUserId, setPersistentUserId] = useState<string>('');
   const [showAllLocations, setShowAllLocations] = useState(false);
+  const [isHighlightsCollapsed, setIsHighlightsCollapsed] = useState(false);
   
   // Load username and persistent user ID
   useEffect(() => {
@@ -270,25 +272,34 @@ export default function InsightsPage() {
                         </div>
 
                         {/* Recent Activity Highlights */}
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Recent Highlights</h4>
-                          {activity.slice(0, 3).map((item: any, index: number) => (
-                            <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                {getActivityIcon(item.activityType)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium">{formatActivityType(item.type || item.activityType)}</p>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(item.createdAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                              </div>
+                        <Collapsible open={!isHighlightsCollapsed} onOpenChange={(open) => setIsHighlightsCollapsed(!open)}>
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between cursor-pointer py-2">
+                              <h4 className="text-sm font-medium text-muted-foreground">Recent Highlights</h4>
+                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
                             </div>
-                          ))}
-                        </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="space-y-2">
+                              {activity.slice(0, 3).map((item: any, index: number) => (
+                                <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                    {getActivityIcon(item.activityType)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm font-medium">{formatActivityType(item.type || item.activityType)}</p>
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(item.createdAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </div>
                     )}
                   </CardContent>
