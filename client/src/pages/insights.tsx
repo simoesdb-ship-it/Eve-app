@@ -40,39 +40,46 @@ function getSessionId(): string {
 export default function InsightsPage() {
   const [sessionId] = useState(getSessionId());
   const [username, setUsername] = useState<string>('');
-  // Load username
+  const [persistentUserId, setPersistentUserId] = useState<string>('');
+  
+  // Load username and persistent user ID
   useEffect(() => {
-    async function loadUsername() {
+    async function loadUserData() {
       try {
         const userId = await getConsistentUserId();
         const displayName = getUserDisplayName(userId);
         setUsername(displayName);
+        setPersistentUserId(userId);
       } catch (error) {
         console.error('Failed to generate username:', error);
         setUsername('Anonymous');
       }
     }
-    loadUsername();
+    loadUserData();
   }, []);
 
-  // Fetch user stats
+  // Fetch user stats using persistent user ID
   const { data: stats } = useQuery({
-    queryKey: ['/api/stats', sessionId],
+    queryKey: ['/api/stats', persistentUserId],
     queryFn: async () => {
-      const response = await fetch(`/api/stats?sessionId=${sessionId}`);
+      if (!persistentUserId) return null;
+      const response = await fetch(`/api/stats?userId=${persistentUserId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
-    }
+    },
+    enabled: !!persistentUserId
   });
 
-  // Fetch recent activity
+  // Fetch recent activity using persistent user ID
   const { data: activity = [] } = useQuery({
-    queryKey: ['/api/activity', sessionId],
+    queryKey: ['/api/activity', persistentUserId],
     queryFn: async () => {
-      const response = await fetch(`/api/activity?sessionId=${sessionId}`);
+      if (!persistentUserId) return [];
+      const response = await fetch(`/api/activity?userId=${persistentUserId}`);
       if (!response.ok) throw new Error('Failed to fetch activity');
       return response.json();
-    }
+    },
+    enabled: !!persistentUserId
   });
 
   // Fetch community analysis
@@ -95,14 +102,16 @@ export default function InsightsPage() {
     }
   });
 
-  // Fetch saved locations
+  // Fetch saved locations using persistent user ID
   const { data: savedLocations = [] } = useQuery({
-    queryKey: ['/api/saved-locations'],
+    queryKey: ['/api/saved-locations', persistentUserId],
     queryFn: async () => {
-      const response = await fetch('/api/saved-locations');
+      if (!persistentUserId) return [];
+      const response = await fetch(`/api/saved-locations?userId=${persistentUserId}`);
       if (!response.ok) throw new Error('Failed to fetch saved locations');
       return response.json();
-    }
+    },
+    enabled: !!persistentUserId
   });
 
   const getActivityIcon = (type: string) => {

@@ -138,7 +138,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/activity", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const activities = await storage.getRecentActivity(limit);
+      const sessionId = req.query.sessionId as string;
+      const userId = req.query.userId as string;
+      
+      // Use userId if provided (persistent tracking), fallback to sessionId, then global
+      const identifier = userId || sessionId;
+      const activities = await storage.getRecentActivity(limit, identifier);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch activities" });
@@ -149,8 +154,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/saved-locations", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
-      const savedLocations = await storage.getSavedLocations(limit);
-      res.json(savedLocations);
+      const sessionId = req.query.sessionId as string;
+      const userId = req.query.userId as string;
+      
+      if (userId || sessionId) {
+        // Get user-specific saved locations
+        const identifier = userId || sessionId;
+        const savedLocations = await storage.getSavedLocationsBySession(identifier);
+        res.json(savedLocations);
+      } else {
+        // Get community saved locations
+        const savedLocations = await storage.getSavedLocations(limit);
+        res.json(savedLocations);
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch saved locations" });
     }
@@ -160,12 +176,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string;
+      const userId = req.query.userId as string;
       
-      if (!sessionId) {
-        return res.status(400).json({ message: "Session ID is required" });
+      if (!sessionId && !userId) {
+        return res.status(400).json({ message: "Session ID or User ID is required" });
       }
 
-      const stats = await storage.getStats(sessionId);
+      // Use userId if provided (persistent tracking), fallback to sessionId
+      const identifier = userId || sessionId;
+      const stats = await storage.getStats(identifier);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch statistics" });

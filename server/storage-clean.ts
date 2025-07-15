@@ -50,7 +50,7 @@ export interface IStorage {
 
   // Activity methods
   createActivity(activity: InsertActivity): Promise<Activity>;
-  getRecentActivity(limit: number): Promise<Activity[]>;
+  getRecentActivity(limit: number, sessionId?: string): Promise<Activity[]>;
 
   // Statistics
   getStats(sessionId: string): Promise<{
@@ -209,8 +209,8 @@ export class DatabaseStorage implements IStorage {
     return activityRecord;
   }
 
-  async getRecentActivity(limit: number): Promise<Activity[]> {
-    const activities = await db.select({
+  async getRecentActivity(limit: number, sessionId?: string): Promise<Activity[]> {
+    let query = db.select({
       id: activity.id,
       type: activity.type,
       description: activity.description,
@@ -222,9 +222,16 @@ export class DatabaseStorage implements IStorage {
       locationName: locations.name
     })
     .from(activity)
-    .leftJoin(locations, eq(activity.locationId, locations.id))
-    .orderBy(sql`${activity.createdAt} DESC`)
-    .limit(limit);
+    .leftJoin(locations, eq(activity.locationId, locations.id));
+
+    // Add sessionId filter if provided
+    if (sessionId) {
+      query = query.where(eq(activity.sessionId, sessionId));
+    }
+
+    const activities = await query
+      .orderBy(sql`${activity.createdAt} DESC`)
+      .limit(limit);
     
     // Clean up descriptions by removing the "New location visited:" prefix
     const cleanedActivities = activities.map(act => ({

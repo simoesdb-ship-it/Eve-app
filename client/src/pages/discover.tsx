@@ -25,21 +25,23 @@ export default function DiscoverPage() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
   const [username, setUsername] = useState<string>('');
+  const [persistentUserId, setPersistentUserId] = useState<string>('');
   const { toast } = useToast();
 
-  // Load username
+  // Load username and persistent user ID
   useEffect(() => {
-    async function loadUsername() {
+    async function loadUserData() {
       try {
         const userId = await getConsistentUserId();
         const displayName = getUserDisplayName(userId);
         setUsername(displayName);
+        setPersistentUserId(userId);
       } catch (error) {
         console.error('Failed to generate username:', error);
         setUsername('Anonymous');
       }
     }
-    loadUsername();
+    loadUserData();
   }, []);
 
   // Monitor online status
@@ -100,7 +102,7 @@ export default function DiscoverPage() {
           latitude: fallbackLocation.lat.toString(),
           longitude: fallbackLocation.lng.toString(),
           name: "Default Location",
-          sessionId
+          sessionId: persistentUserId || sessionId // Use persistent user ID if available
         });
       }
       return;
@@ -127,7 +129,7 @@ export default function DiscoverPage() {
             latitude: lastLocation.lat.toString(),
             longitude: lastLocation.lng.toString(),
             name: "Last Known Location",
-            sessionId
+            sessionId: persistentUserId || sessionId // Use persistent user ID if available
           });
           
           console.log(`Using last tracked location: ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
@@ -177,7 +179,7 @@ export default function DiscoverPage() {
           latitude: latitude.toString(),
           longitude: longitude.toString(),
           name: "Current Location",
-          sessionId
+          sessionId: persistentUserId || sessionId // Use persistent user ID if available
         });
         
         console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy?.toFixed(1)}m)`);
@@ -194,11 +196,11 @@ export default function DiscoverPage() {
       latitude: fallbackLocation.lat.toString(),
       longitude: fallbackLocation.lng.toString(),
       name: "Default Location",
-      sessionId
+      sessionId: persistentUserId || sessionId // Use persistent user ID if available
     });
     
     console.log('Using fallback location (Minneapolis)');
-  }, [sessionId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
+  }, [sessionId, persistentUserId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
   // Acquire location only once on component mount
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -304,7 +306,7 @@ export default function DiscoverPage() {
     createLocationMutation.mutate({
       latitude: newLocation.lat.toString(),
       longitude: newLocation.lng.toString(),
-      sessionId,
+      sessionId: persistentUserId || sessionId, // Use persistent user ID if available
       metadata: JSON.stringify({
         accuracy: 'high',
         source: 'manual_refresh',
