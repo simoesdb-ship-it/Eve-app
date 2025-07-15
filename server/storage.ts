@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
@@ -75,10 +75,6 @@ export interface IStorage {
   getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined>;
   createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration>;
   updateDeviceLastSeen(deviceId: string): Promise<void>;
-
-  // Live voting methods
-  getRecentVotesForPattern(suggestionId: number, limit?: number): Promise<any[]>;
-  getRecentVotingActivity(locationId: number, limit?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -319,51 +315,6 @@ export class DatabaseStorage implements IStorage {
     await db.update(deviceRegistrations)
       .set({ lastSeenAt: new Date() })
       .where(eq(deviceRegistrations.deviceId, deviceId));
-  }
-
-  // Live voting methods
-  async getRecentVotesForPattern(suggestionId: number, limit: number = 10): Promise<any[]> {
-    const recentVotes = await db.select().from(votes)
-      .where(eq(votes.suggestionId, suggestionId))
-      .orderBy(desc(votes.createdAt))
-      .limit(limit);
-
-    return recentVotes.map(vote => ({
-      ...vote,
-      movementData: vote.movementData ? JSON.parse(vote.movementData) : null
-    }));
-  }
-
-  async getRecentVotingActivity(locationId: number, limit: number = 10): Promise<any[]> {
-    // Get patterns for this location
-    const locationPatterns = await this.getPatternsForLocation(locationId, 'system');
-    const patternIds = locationPatterns.map(p => p.suggestionId);
-    
-    if (patternIds.length === 0) return [];
-
-    const recentVotes = await db.select().from(votes)
-      .where(inArray(votes.suggestionId, patternIds))
-      .orderBy(desc(votes.createdAt))
-      .limit(limit);
-
-    // Enhance with pattern information
-    return recentVotes.map(vote => {
-      const pattern = locationPatterns.find(p => p.suggestionId === vote.suggestionId);
-      return {
-        ...vote,
-        patternNumber: pattern?.number || 0,
-        patternName: pattern?.name || 'Unknown Pattern',
-        locationId,
-        movementData: vote.movementData ? JSON.parse(vote.movementData) : null
-      };
-    });
-  }
-
-  // Get tracking points within radius (needed for spatial density bonus)
-  async getTrackingPointsInRadius(lat: number, lng: number, radiusKm: number, excludeSessionId?: string): Promise<any[]> {
-    // For now, return empty array - would need to implement proper geospatial queries
-    // In a real implementation, would use PostGIS or similar for distance calculations
-    return [];
   }
 }
 

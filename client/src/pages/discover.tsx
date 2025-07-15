@@ -6,8 +6,6 @@ import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
 import LivePatternSuggestions from "@/components/live-pattern-suggestions";
-import LiveCommunityVoting from "@/components/live-community-voting";
-import TokenRewardNotification from "@/components/token-reward-notification";
 import { getUserDisplayName } from "@/lib/username-generator";
 import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { generateSessionId } from "@/lib/geolocation";
@@ -27,7 +25,6 @@ export default function DiscoverPage() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
   const [username, setUsername] = useState<string>('');
-  const [currentTokenReward, setCurrentTokenReward] = useState<any>(null);
   const { toast } = useToast();
 
   // Load username
@@ -56,20 +53,6 @@ export default function DiscoverPage() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Listen for token rewards from tracking
-  useEffect(() => {
-    const handleTokenReward = (event: CustomEvent) => {
-      console.log('Token reward received:', event.detail);
-      setCurrentTokenReward(event.detail);
-    };
-
-    window.addEventListener('tokenRewardEarned', handleTokenReward as EventListener);
-    
-    return () => {
-      window.removeEventListener('tokenRewardEarned', handleTokenReward as EventListener);
     };
   }, []);
 
@@ -371,25 +354,10 @@ export default function DiscoverPage() {
       )}
 
       {/* Live Pattern Suggestions */}
-      <div className="flex-1 px-4 py-4 pb-24 space-y-6">
+      <div className="flex-1 px-4 py-4 pb-24">
         <LivePatternSuggestions 
           sessionId={sessionId}
           onPatternSelect={setSelectedPattern}
-        />
-
-        {/* Community Voting */}
-        <LiveCommunityVoting 
-          sessionId={sessionId} 
-          currentLocation={currentLocation ? {
-            ...currentLocation,
-            locationId: locationId || undefined
-          } : null}
-          onVoteSuccess={(patternId, voteType) => {
-            console.log(`Vote cast: Pattern ${patternId} - ${voteType}`);
-            // Refresh patterns and activity feed
-            queryClient.invalidateQueries({ queryKey: [`/api/locations/${locationId}/patterns`] });
-            queryClient.invalidateQueries({ queryKey: ['/api/activity'] });
-          }}
         />
         
         {/* Static Pattern Suggestions Fallback */}
@@ -467,13 +435,6 @@ export default function DiscoverPage() {
 
       {/* Bottom Navigation */}
       <BottomNavigation activeTab="discover" />
-
-      {/* Token Reward Notification */}
-      <TokenRewardNotification
-        reward={currentTokenReward}
-        onDismiss={() => setCurrentTokenReward(null)}
-        sessionId={sessionId}
-      />
 
       {/* Pattern Details Modal */}
       {selectedPattern && (
