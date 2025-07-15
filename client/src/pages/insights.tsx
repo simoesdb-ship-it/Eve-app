@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import BottomNavigation from "@/components/bottom-navigation";
 import { getUserDisplayName } from "@/lib/username-generator";
 import { getConsistentUserId } from "@/lib/device-fingerprint";
@@ -25,7 +25,7 @@ import {
   Eye,
   MessageSquare,
   Share2,
-  ChevronDown
+
 } from "lucide-react";
 
 function getSessionId(): string {
@@ -40,11 +40,6 @@ function getSessionId(): string {
 export default function InsightsPage() {
   const [sessionId] = useState(getSessionId());
   const [username, setUsername] = useState<string>('');
-  const [expandedSections, setExpandedSections] = useState({
-    activity: false,
-    savedLocations: false,
-  });
-
   // Load username
   useEffect(() => {
     async function loadUsername() {
@@ -59,13 +54,6 @@ export default function InsightsPage() {
     }
     loadUsername();
   }, []);
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
 
   // Fetch user stats
   const { data: stats } = useQuery({
@@ -220,20 +208,13 @@ export default function InsightsPage() {
             </div>
 
             {/* Personal Activity Feed */}
-            <Collapsible open={expandedSections.activity} onOpenChange={() => toggleSection('activity')}>
-              <Card>
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <CardTitle>Your Recent Activity</CardTitle>
-                        <CardDescription>Track your contributions and interactions</CardDescription>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.activity ? 'rotate-180' : ''}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
+            <Card>
+              <CardHeader>
+                <div className="text-left">
+                  <CardTitle>Your Recent Activity</CardTitle>
+                  <CardDescription>Track your contributions and interactions</CardDescription>
+                </div>
+              </CardHeader>
                   <CardContent>
                     {activity.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
@@ -299,25 +280,16 @@ export default function InsightsPage() {
                       </div>
                     )}
                   </CardContent>
-                </CollapsibleContent>
               </Card>
-            </Collapsible>
 
             {/* Saved Locations */}
-            <Collapsible open={expandedSections.savedLocations} onOpenChange={() => toggleSection('savedLocations')}>
-              <Card>
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <CardTitle>Your Saved Locations</CardTitle>
-                        <CardDescription>Places you've bookmarked for future analysis</CardDescription>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.savedLocations ? 'rotate-180' : ''}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
+            <Card>
+              <CardHeader>
+                <div className="text-left">
+                  <CardTitle>Your Saved Locations</CardTitle>
+                  <CardDescription>Places you've bookmarked for future analysis</CardDescription>
+                </div>
+              </CardHeader>
                   <CardContent>
                     {savedLocations.length === 0 ? (
                       <div className="text-center py-6 text-muted-foreground">
@@ -394,9 +366,7 @@ export default function InsightsPage() {
                       </div>
                     )}
                   </CardContent>
-                </CollapsibleContent>
               </Card>
-            </Collapsible>
           </TabsContent>
 
           {/* COMMUNITY INSIGHTS TAB */}
