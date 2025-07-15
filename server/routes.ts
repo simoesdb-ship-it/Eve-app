@@ -1030,89 +1030,266 @@ function getTimezoneFromCoordinates(lat: number, lng: number): string {
   return `UTC${utcOffset}`;
 }
 
-// Analyze contextual data from OpenStreetMap
+// Analyze contextual data from OpenStreetMap with comprehensive architectural details
 function analyzeContextualData(elements: any[]): any {
   const amenities = new Set<string>();
   const buildingTypes = new Set<string>();
+  const architecturalStyles = new Set<string>();
+  const buildingHeights = new Map<string, number>();
+  const buildingLevels = new Map<string, number>();
+  const buildingAges = new Map<string, number>();
+  const buildingMaterials = new Set<string>();
+  const roofShapes = new Set<string>();
+  const commercialTypes = new Set<string>();
+  const residentialTypes = new Set<string>();
+  const transportNodes = new Set<string>();
+  const naturalFeatures = new Set<string>();
+  const historicalFeatures = new Set<string>();
+  
   let roads = 0;
   let buildings = 0;
   let hasPublicTransport = false;
   let hasGreenSpace = false;
+  let hasWaterFeature = false;
+  let hasHistoricalSites = false;
+  let totalBuildingHeight = 0;
+  let totalBuildingLevels = 0;
+  let buildingsWithHeightData = 0;
+  let buildingsWithLevelData = 0;
   
   elements.forEach(element => {
     const tags = element.tags || {};
     
-    // Count roads for traffic analysis
+    // Enhanced road analysis with road types
     if (tags.highway) {
       roads++;
+      if (tags.highway === 'motorway' || tags.highway === 'trunk') {
+        transportNodes.add(`major_road: ${tags.highway}`);
+      } else if (tags.highway === 'residential' || tags.highway === 'living_street') {
+        transportNodes.add(`local_road: ${tags.highway}`);
+      }
     }
     
-    // Count buildings for density
+    // Comprehensive building analysis
     if (tags.building) {
       buildings++;
+      
+      // Building type classification
       if (tags.building !== 'yes') {
         buildingTypes.add(tags.building);
+        
+        // Categorize by function
+        if (['residential', 'apartments', 'house', 'detached', 'semidetached_house', 'terrace'].includes(tags.building)) {
+          residentialTypes.add(tags.building);
+        } else if (['commercial', 'retail', 'office', 'industrial', 'warehouse', 'supermarket'].includes(tags.building)) {
+          commercialTypes.add(tags.building);
+        }
+      }
+      
+      // Extract building height information
+      if (tags.height) {
+        const height = parseFloat(tags.height.replace('m', ''));
+        if (!isNaN(height)) {
+          buildingHeights.set(element.id, height);
+          totalBuildingHeight += height;
+          buildingsWithHeightData++;
+        }
+      }
+      
+      // Extract building levels/stories
+      if (tags['building:levels']) {
+        const levels = parseInt(tags['building:levels']);
+        if (!isNaN(levels)) {
+          buildingLevels.set(element.id, levels);
+          totalBuildingLevels += levels;
+          buildingsWithLevelData++;
+        }
+      }
+      
+      // Building age analysis
+      if (tags['start_date'] || tags['construction_date']) {
+        const dateStr = tags['start_date'] || tags['construction_date'];
+        const year = parseInt(dateStr.split('-')[0]);
+        if (!isNaN(year)) {
+          buildingAges.set(element.id, new Date().getFullYear() - year);
+        }
+      }
+      
+      // Architectural style
+      if (tags['architectural_style'] || tags['building:architecture']) {
+        const style = tags['architectural_style'] || tags['building:architecture'];
+        architecturalStyles.add(style);
+      }
+      
+      // Building materials
+      if (tags['building:material']) {
+        buildingMaterials.add(tags['building:material']);
+      }
+      
+      // Roof information
+      if (tags['roof:shape']) {
+        roofShapes.add(tags['roof:shape']);
       }
     }
     
-    // Collect amenities
+    // Enhanced amenity analysis
     if (tags.amenity) {
       amenities.add(tags.amenity);
-      if (tags.amenity === 'bus_station' || tags.amenity === 'subway_entrance') {
+      
+      // Public transport detection
+      if (['bus_station', 'subway_entrance', 'train_station', 'tram_stop', 'bus_stop'].includes(tags.amenity)) {
         hasPublicTransport = true;
+        transportNodes.add(`transport: ${tags.amenity}`);
+      }
+      
+      // Educational and cultural amenities
+      if (['school', 'university', 'library', 'museum', 'theatre', 'cinema'].includes(tags.amenity)) {
+        amenities.add(`cultural: ${tags.amenity}`);
+      }
+      
+      // Healthcare amenities
+      if (['hospital', 'clinic', 'pharmacy', 'dentist', 'veterinary'].includes(tags.amenity)) {
+        amenities.add(`healthcare: ${tags.amenity}`);
       }
     }
     
-    // Check for shops
+    // Shop analysis
     if (tags.shop) {
       amenities.add(`shop: ${tags.shop}`);
+      commercialTypes.add(`shop: ${tags.shop}`);
     }
     
-    // Check for public transport
+    // Public transport infrastructure
     if (tags.public_transport) {
       hasPublicTransport = true;
+      transportNodes.add(`transport: ${tags.public_transport}`);
     }
     
-    // Check for green spaces
-    if (tags.leisure === 'park' || tags.landuse === 'forest' || tags.landuse === 'grass') {
+    // Enhanced green space analysis
+    if (tags.leisure === 'park' || tags.landuse === 'forest' || tags.landuse === 'grass' || 
+        tags.leisure === 'garden' || tags.landuse === 'recreation_ground') {
       hasGreenSpace = true;
+      naturalFeatures.add(`green: ${tags.leisure || tags.landuse}`);
+    }
+    
+    // Water features
+    if (tags.water || tags.waterway || tags.natural === 'water') {
+      hasWaterFeature = true;
+      naturalFeatures.add(`water: ${tags.water || tags.waterway || tags.natural}`);
+    }
+    
+    // Historical and cultural features
+    if (tags.historic || tags.tourism === 'attraction') {
+      hasHistoricalSites = true;
+      historicalFeatures.add(`historic: ${tags.historic || tags.tourism}`);
     }
   });
 
-  // Calculate urban density based on building count
+  // Calculate comprehensive building statistics
+  const averageBuildingHeight = buildingsWithHeightData > 0 ? totalBuildingHeight / buildingsWithHeightData : null;
+  const averageBuildingLevels = buildingsWithLevelData > 0 ? totalBuildingLevels / buildingsWithLevelData : null;
+  
+  // Determine dominant building height category
+  let buildingHeightCategory = 'mixed';
+  if (averageBuildingLevels) {
+    if (averageBuildingLevels <= 2) buildingHeightCategory = 'low-rise';
+    else if (averageBuildingLevels <= 4) buildingHeightCategory = 'mid-rise';
+    else if (averageBuildingLevels <= 8) buildingHeightCategory = 'high-rise';
+    else buildingHeightCategory = 'skyscraper';
+  }
+  
+  // Calculate urban density based on building count and types
   let urbanDensity: 'low' | 'medium' | 'high' = 'low';
   if (buildings > 50) urbanDensity = 'high';
   else if (buildings > 20) urbanDensity = 'medium';
 
-  // Calculate walkability score based on amenities and infrastructure
+  // Enhanced walkability calculation
   let walkabilityScore = 30; // Base score
-  walkabilityScore += Math.min(amenities.size * 5, 40); // More amenities = better walkability
+  walkabilityScore += Math.min(amenities.size * 3, 30); // Amenity diversity
   walkabilityScore += hasPublicTransport ? 20 : 0;
-  walkabilityScore += hasGreenSpace ? 10 : 0;
+  walkabilityScore += hasGreenSpace ? 15 : 0;
+  walkabilityScore += hasWaterFeature ? 10 : 0;
+  walkabilityScore += Array.from(commercialTypes).length > 5 ? 15 : 0; // Commercial diversity
+  walkabilityScore += roads > 10 ? -10 : 0; // Too many roads reduce walkability
   
-  // Determine land use
+  // Determine primary land use
   let landUse = 'mixed';
-  if (amenities.has('shop: residential') || buildingTypes.has('residential')) {
+  const residentialCount = residentialTypes.size;
+  const commercialCount = commercialTypes.size;
+  
+  if (residentialCount > commercialCount * 2) {
     landUse = 'residential';
-  } else if (Array.from(amenities).some(a => a.startsWith('shop:')) || amenities.has('restaurant')) {
+  } else if (commercialCount > residentialCount * 2) {
     landUse = 'commercial';
+  } else if (Array.from(amenities).some(a => a.includes('industrial'))) {
+    landUse = 'industrial';
   }
 
-  // Traffic level based on road density
+  // Traffic level based on road density and types
   let trafficLevel: 'low' | 'medium' | 'high' = 'low';
-  if (roads > 15) trafficLevel = 'high';
+  const hasHighwayAccess = Array.from(transportNodes).some(t => t.includes('major_road'));
+  if (roads > 15 || hasHighwayAccess) trafficLevel = 'high';
   else if (roads > 8) trafficLevel = 'medium';
 
+  // Calculate Alexander pattern adherence indicators
+  const alexanderPatternIndicators = {
+    fourStoryLimit: averageBuildingLevels ? averageBuildingLevels <= 4 : null,
+    humanScale: buildingHeightCategory === 'low-rise' || buildingHeightCategory === 'mid-rise',
+    mixedUse: landUse === 'mixed',
+    pedestrianFriendly: walkabilityScore > 60,
+    greenSpaceAccess: hasGreenSpace,
+    publicTransportAccess: hasPublicTransport,
+    communitySpaces: Array.from(amenities).some(a => a.includes('community') || a.includes('park')),
+    architecturalDiversity: buildingTypes.size > 3
+  };
+
   return {
+    // Basic characteristics
     landUse,
     urbanDensity,
     walkabilityScore: Math.min(walkabilityScore, 100),
     publicTransportAccess: hasPublicTransport,
-    nearbyAmenities: Array.from(amenities).slice(0, 10), // Limit to first 10
-    buildingTypes: Array.from(buildingTypes).slice(0, 5),
-    greenSpaceDistance: hasGreenSpace ? 100 : 500, // Approximate distance in meters
     trafficLevel,
+    
+    // Building analysis
+    buildingCount: buildings,
+    buildingTypes: Array.from(buildingTypes).slice(0, 8),
+    averageBuildingHeight: averageBuildingHeight ? Math.round(averageBuildingHeight * 10) / 10 : null,
+    averageNumberOfStories: averageBuildingLevels ? Math.round(averageBuildingLevels * 10) / 10 : null,
+    buildingHeightCategory,
+    buildingsWithHeightData,
+    buildingsWithLevelData,
+    
+    // Architectural details
+    architecturalStyles: Array.from(architecturalStyles).slice(0, 5),
+    buildingMaterials: Array.from(buildingMaterials).slice(0, 5),
+    roofShapes: Array.from(roofShapes).slice(0, 5),
+    
+    // Land use breakdown
+    residentialTypes: Array.from(residentialTypes).slice(0, 5),
+    commercialTypes: Array.from(commercialTypes).slice(0, 8),
+    
+    // Infrastructure and amenities
+    nearbyAmenities: Array.from(amenities).slice(0, 12),
+    transportNodes: Array.from(transportNodes).slice(0, 8),
+    naturalFeatures: Array.from(naturalFeatures).slice(0, 6),
+    historicalFeatures: Array.from(historicalFeatures).slice(0, 4),
+    
+    // Environmental factors
+    hasGreenSpace,
+    hasWaterFeature,
+    hasHistoricalSites,
+    greenSpaceDistance: hasGreenSpace ? 100 : 500,
+    
+    // Derived metrics
     populationDensity: buildings * 25, // Rough estimate
-    noiseLevel: trafficLevel === 'high' ? 'loud' : trafficLevel === 'medium' ? 'moderate' : 'quiet'
+    noiseLevel: trafficLevel === 'high' ? 'loud' : trafficLevel === 'medium' ? 'moderate' : 'quiet',
+    
+    // Alexander pattern adherence
+    alexanderPatternIndicators,
+    
+    // Summary metrics
+    diversityScore: Math.min((buildingTypes.size + amenities.size + naturalFeatures.size) * 2, 100),
+    livabilityScore: Math.round((walkabilityScore + (hasGreenSpace ? 20 : 0) + (hasWaterFeature ? 10 : 0)) * 0.8)
   };
 }

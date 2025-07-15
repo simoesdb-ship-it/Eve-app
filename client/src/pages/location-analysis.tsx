@@ -30,16 +30,62 @@ interface LocationData {
 }
 
 interface ContextualData {
+  // Basic characteristics
   landUse: string;
   urbanDensity: 'low' | 'medium' | 'high';
   walkabilityScore: number;
   publicTransportAccess: boolean;
-  nearbyAmenities: string[];
-  buildingTypes: string[];
-  greenSpaceDistance: number;
   trafficLevel: 'low' | 'medium' | 'high';
+  
+  // Building analysis
+  buildingCount: number;
+  buildingTypes: string[];
+  averageBuildingHeight: number | null;
+  averageNumberOfStories: number | null;
+  buildingHeightCategory: string;
+  buildingsWithHeightData: number;
+  buildingsWithLevelData: number;
+  
+  // Architectural details
+  architecturalStyles: string[];
+  buildingMaterials: string[];
+  roofShapes: string[];
+  
+  // Land use breakdown
+  residentialTypes: string[];
+  commercialTypes: string[];
+  
+  // Infrastructure and amenities
+  nearbyAmenities: string[];
+  transportNodes: string[];
+  naturalFeatures: string[];
+  historicalFeatures: string[];
+  
+  // Environmental factors
+  hasGreenSpace: boolean;
+  hasWaterFeature: boolean;
+  hasHistoricalSites: boolean;
+  greenSpaceDistance: number;
+  
+  // Derived metrics
   populationDensity: number;
   noiseLevel: 'quiet' | 'moderate' | 'loud';
+  
+  // Alexander pattern adherence
+  alexanderPatternIndicators: {
+    fourStoryLimit: boolean | null;
+    humanScale: boolean;
+    mixedUse: boolean;
+    pedestrianFriendly: boolean;
+    greenSpaceAccess: boolean;
+    publicTransportAccess: boolean;
+    communitySpaces: boolean;
+    architecturalDiversity: boolean;
+  };
+  
+  // Summary metrics
+  diversityScore: number;
+  livabilityScore: number;
 }
 
 interface PatternCriteria {
@@ -408,38 +454,270 @@ export default function LocationAnalysisPage() {
                     <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
                   </div>
                 ) : contextualData ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="font-medium">Land Use:</span>
-                        <p className="text-sm text-gray-600">{contextualData.landUse}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Urban Density:</span>
-                        <Badge variant={contextualData.urbanDensity === 'high' ? 'destructive' : 'secondary'}>
-                          {contextualData.urbanDensity}
-                        </Badge>
-                      </div>
-                      <div>
-                        <span className="font-medium">Walkability:</span>
-                        <p className="text-sm text-gray-600">{contextualData.walkabilityScore}/100</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Public Transport:</span>
-                        <p className="text-sm text-gray-600">
-                          {contextualData.publicTransportAccess ? 'Available' : 'Limited'}
-                        </p>
+                  <div className="space-y-6">
+                    {/* Basic Urban Characteristics */}
+                    <div>
+                      <h3 className="font-medium text-sm mb-3 text-gray-800">Basic Characteristics</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="font-medium">Land Use:</span>
+                          <p className="text-sm text-gray-600">{contextualData.landUse}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Urban Density:</span>
+                          <Badge variant={contextualData.urbanDensity === 'high' ? 'destructive' : 'secondary'}>
+                            {contextualData.urbanDensity}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="font-medium">Walkability:</span>
+                          <p className="text-sm text-gray-600">{contextualData.walkabilityScore}/100</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Traffic Level:</span>
+                          <Badge variant={contextualData.trafficLevel === 'high' ? 'destructive' : 'outline'}>
+                            {contextualData.trafficLevel}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    
+
+                    {/* Building Analysis */}
                     <div>
-                      <span className="font-medium">Nearby Amenities:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {contextualData.nearbyAmenities.map((amenity, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {amenity}
+                      <h3 className="font-medium text-sm mb-3 text-gray-800">Building Analysis</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="font-medium">Building Count:</span>
+                          <p className="text-sm text-gray-600">{contextualData.buildingCount}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Height Category:</span>
+                          <p className="text-sm text-gray-600">{contextualData.buildingHeightCategory}</p>
+                        </div>
+                        {contextualData.averageNumberOfStories && (
+                          <div>
+                            <span className="font-medium">Average Stories:</span>
+                            <p className="text-sm text-gray-600">{contextualData.averageNumberOfStories} floors</p>
+                          </div>
+                        )}
+                        {contextualData.averageBuildingHeight && (
+                          <div>
+                            <span className="font-medium">Average Height:</span>
+                            <p className="text-sm text-gray-600">{contextualData.averageBuildingHeight}m</p>
+                          </div>
+                        )}
+                      </div>
+                      {contextualData.buildingTypes.length > 0 && (
+                        <div className="mt-3">
+                          <span className="font-medium">Building Types:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {contextualData.buildingTypes.map((type, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {type}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Architectural Details */}
+                    {(contextualData.architecturalStyles.length > 0 || contextualData.buildingMaterials.length > 0) && (
+                      <div>
+                        <h3 className="font-medium text-sm mb-3 text-gray-800">Architectural Details</h3>
+                        <div className="space-y-3">
+                          {contextualData.architecturalStyles.length > 0 && (
+                            <div>
+                              <span className="font-medium">Architectural Styles:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {contextualData.architecturalStyles.map((style, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {style}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {contextualData.buildingMaterials.length > 0 && (
+                            <div>
+                              <span className="font-medium">Building Materials:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {contextualData.buildingMaterials.map((material, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {material}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Land Use Breakdown */}
+                    {(contextualData.residentialTypes.length > 0 || contextualData.commercialTypes.length > 0) && (
+                      <div>
+                        <h3 className="font-medium text-sm mb-3 text-gray-800">Land Use Breakdown</h3>
+                        <div className="space-y-3">
+                          {contextualData.residentialTypes.length > 0 && (
+                            <div>
+                              <span className="font-medium">Residential Types:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {contextualData.residentialTypes.map((type, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {type}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {contextualData.commercialTypes.length > 0 && (
+                            <div>
+                              <span className="font-medium">Commercial Types:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {contextualData.commercialTypes.map((type, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {type}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Infrastructure & Amenities */}
+                    <div>
+                      <h3 className="font-medium text-sm mb-3 text-gray-800">Infrastructure & Amenities</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="font-medium">Public Transport:</span>
+                          <p className="text-sm text-gray-600">
+                            {contextualData.publicTransportAccess ? 'Available' : 'Limited'}
+                          </p>
+                        </div>
+                        {contextualData.nearbyAmenities.length > 0 && (
+                          <div>
+                            <span className="font-medium">Nearby Amenities:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {contextualData.nearbyAmenities.map((amenity, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {amenity}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {contextualData.transportNodes.length > 0 && (
+                          <div>
+                            <span className="font-medium">Transport Infrastructure:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {contextualData.transportNodes.map((node, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {node}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Environmental Features */}
+                    <div>
+                      <h3 className="font-medium text-sm mb-3 text-gray-800">Environmental Features</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="font-medium">Green Space:</span>
+                          <p className="text-sm text-gray-600">
+                            {contextualData.hasGreenSpace ? 'Available' : 'Limited'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Water Features:</span>
+                          <p className="text-sm text-gray-600">
+                            {contextualData.hasWaterFeature ? 'Present' : 'None'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Noise Level:</span>
+                          <Badge variant={contextualData.noiseLevel === 'loud' ? 'destructive' : 'outline'}>
+                            {contextualData.noiseLevel}
                           </Badge>
-                        ))}
+                        </div>
+                        <div>
+                          <span className="font-medium">Historical Sites:</span>
+                          <p className="text-sm text-gray-600">
+                            {contextualData.hasHistoricalSites ? 'Present' : 'None'}
+                          </p>
+                        </div>
+                      </div>
+                      {contextualData.naturalFeatures.length > 0 && (
+                        <div className="mt-3">
+                          <span className="font-medium">Natural Features:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {contextualData.naturalFeatures.map((feature, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {feature}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Alexander Pattern Analysis */}
+                    <div>
+                      <h3 className="font-medium text-sm mb-3 text-gray-800">Alexander Pattern Analysis</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="font-medium">Diversity Score:</span>
+                          <p className="text-sm text-gray-600">{contextualData.diversityScore}/100</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Livability Score:</span>
+                          <p className="text-sm text-gray-600">{contextualData.livabilityScore}/100</p>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <span className="font-medium">Pattern Adherence:</span>
+                        <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            {contextualData.alexanderPatternIndicators.fourStoryLimit === null ? (
+                              <AlertCircle className="w-4 h-4 text-gray-400" />
+                            ) : contextualData.alexanderPatternIndicators.fourStoryLimit ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            )}
+                            <span>Four-Story Limit</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {contextualData.alexanderPatternIndicators.humanScale ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            )}
+                            <span>Human Scale</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {contextualData.alexanderPatternIndicators.mixedUse ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            )}
+                            <span>Mixed Use</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {contextualData.alexanderPatternIndicators.pedestrianFriendly ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            )}
+                            <span>Pedestrian Friendly</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

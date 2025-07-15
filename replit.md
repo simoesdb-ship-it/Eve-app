@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### January 15, 2025 - Enhanced Contextual Analysis System
+- ✓ Significantly expanded building analysis with comprehensive architectural details
+- ✓ Added number of stories/floors analysis with average calculations
+- ✓ Implemented building height analysis in meters with categorization
+- ✓ Enhanced architectural style detection and material identification
+- ✓ Added detailed land use breakdown (residential vs commercial types)
+- ✓ Expanded transport infrastructure analysis with node categorization
+- ✓ Implemented environmental feature detection (green spaces, water, historical sites)
+- ✓ Added Alexander pattern adherence indicators with visual compliance checking
+- ✓ Created diversity and livability scoring metrics for comprehensive urban assessment
+- ✓ Enhanced frontend display with organized sections for all architectural data
+
 ### January 15, 2025 - Complete Saved Locations System Enhancement
 - ✓ Fixed saved locations not updating in insights tab after saving
 - ✓ Resolved user ID consistency issue between location saving and fetching
