@@ -44,7 +44,8 @@ Preferred communication style: Simple, everyday language.
 - **Real-world pattern conformance analysis**
 
 ### 2. Location Tracking & Analysis
-- **Continuous GPS tracking** every 30 seconds when active
+- **Enhanced GPS tracking** with high accuracy settings and drift prevention
+- **Accuracy validation** rejecting readings over 100m for precision
 - **Spatial clustering** to identify visit patterns
 - **Time accumulation** for voting power calculation
 - **Movement pattern analysis** for community insights
