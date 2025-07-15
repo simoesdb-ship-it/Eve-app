@@ -235,46 +235,69 @@ export default function InsightsPage() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent>
-                <div className="space-y-4">
-                  {activity.slice(0, 10).map((item: any, index: number) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        {getActivityIcon(item.activityType)}
+                    {activity.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>No activity yet. Start exploring locations to see your contributions here!</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{formatActivityType(item.type || item.activityType)}</p>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Activity Summary */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {activity.filter((item: any) => (item.type || item.activityType) === 'visit').length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Location Visits</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {activity.filter((item: any) => (item.type || item.activityType) === 'pattern_suggestion').length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Pattern Suggestions</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {activity.filter((item: any) => (item.type || item.activityType) === 'vote').length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Votes Cast</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {(() => {
+                                const today = new Date();
+                                const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                return activity.filter((item: any) => 
+                                  new Date(item.createdAt) >= sevenDaysAgo
+                                ).length;
+                              })()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">This Week</div>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                        <div className="mt-2 space-y-1">
-                          {item.locationName && (
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">{item.locationName}</span>
+
+                        {/* Recent Activity Highlights */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Recent Highlights</h4>
+                          {activity.slice(0, 3).map((item: any, index: number) => (
+                            <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                {getActivityIcon(item.activityType)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium">{formatActivityType(item.type || item.activityType)}</p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(item.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                              </div>
                             </div>
-                          )}
-                          {(item.latitude && item.longitude) && (
-                            <div className="flex items-center space-x-1">
-                              <Target className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground font-mono">
-                                {Number(item.latitude).toFixed(6)}, {Number(item.longitude).toFixed(6)}
-                              </span>
-                            </div>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {activity.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No activity yet. Start exploring locations to see your contributions here!</p>
-                    </div>
-                  )}
-                </div>
+                    )}
                   </CardContent>
                 </CollapsibleContent>
               </Card>
