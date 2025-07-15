@@ -81,6 +81,7 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
   const [mapLoaded, setMapLoaded] = useState(false);
   const [trackingPoints, setTrackingPoints] = useState<SpatialPoint[]>([]);
   const [isRecentering, setIsRecentering] = useState(false);
+  const [hasInitialCentered, setHasInitialCentered] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [location, navigate] = useLocation();
@@ -356,18 +357,29 @@ export default function MapView({ currentLocation, patterns, onPatternSelect, se
     return () => window.removeEventListener('trackingPointAdded', handleTrackingPointAdded);
   }, [sessionId]);
 
-  // Update map when location changes
+  // Update map when location changes, with special handling for first-time GPS centering
   useEffect(() => {
     if (mapRef.current && currentLocation) {
       try {
-        mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+        // For first-time GPS acquisition, center with a slightly higher zoom level for better context
+        if (!hasInitialCentered) {
+          console.log(`Centering map on first GPS coordinates: ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`);
+          mapRef.current.setView([currentLocation.lat, currentLocation.lng], 15, {
+            animate: true,
+            duration: 1.0
+          });
+          setHasInitialCentered(true);
+        } else {
+          // Subsequent location updates use normal zoom level
+          mapRef.current.setView([currentLocation.lat, currentLocation.lng], zoomLevel);
+        }
       } catch (error) {
         console.warn('Error updating map view:', error);
         // Trigger map reload if update fails
         setMapLoaded(false);
       }
     }
-  }, [currentLocation, zoomLevel]);
+  }, [currentLocation, zoomLevel, hasInitialCentered]);
 
   // Periodic map health check to maintain functionality
   useEffect(() => {

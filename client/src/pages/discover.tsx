@@ -113,6 +113,7 @@ export default function DiscoverPage() {
           console.log(`Using IP geolocation: ${ipData.city}, ${ipData.country}`);
           setCurrentLocation(ipLocation);
           setIsLocationLoading(false);
+          
           createLocationMutation.mutate({
             latitude: ipLocation.lat.toString(),
             longitude: ipLocation.lng.toString(),
@@ -153,6 +154,7 @@ export default function DiscoverPage() {
           
           setCurrentLocation(lastLocation);
           setIsLocationLoading(false);
+          
           createLocationMutation.mutate({
             latitude: lastLocation.lat.toString(),
             longitude: lastLocation.lng.toString(),
@@ -201,8 +203,12 @@ export default function DiscoverPage() {
           }
         }
         
-        setCurrentLocation({ lat: latitude, lng: longitude });
+        const newLocation = { lat: latitude, lng: longitude };
+        setCurrentLocation(newLocation);
         setIsLocationLoading(false);
+        
+        // Center the map on the GPS coordinates for first-time users
+        console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy?.toFixed(1)}m)`);
         
         createLocationMutation.mutate({
           latitude: latitude.toString(),
@@ -211,7 +217,6 @@ export default function DiscoverPage() {
           sessionId: persistentUserId || sessionId // Use persistent user ID if available
         });
         
-        console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy?.toFixed(1)}m)`);
         return;
       } catch (gpsError) {
         console.warn('GPS location failed:', gpsError);
