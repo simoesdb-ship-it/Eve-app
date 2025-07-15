@@ -173,7 +173,11 @@ export default function LocationAnalysisPage() {
       setSaveDialogOpen(false);
       setLocationName("");
       setLocationDescription("");
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-locations'] });
+      // Invalidate all saved-locations queries including those with persistentUserId
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/saved-locations'],
+        exact: false // This will invalidate all queries that start with this key
+      });
     },
     onError: () => {
       toast({

@@ -245,10 +245,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get saved locations by session ID (path parameter)
   app.get('/api/saved-locations/:sessionId', async (req, res) => {
     try {
       const { sessionId } = req.params;
       const savedLocations = await storage.getSavedLocationsBySession(sessionId);
+      res.json(savedLocations);
+    } catch (error) {
+      console.error('Error fetching saved locations:', error);
+      res.status(500).json({ error: 'Failed to fetch saved locations' });
+    }
+  });
+
+  // Get saved locations by user ID (query parameter) - for insights page  
+  app.get('/api/saved-locations', async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+      const savedLocations = await storage.getSavedLocationsBySession(userId as string);
       res.json(savedLocations);
     } catch (error) {
       console.error('Error fetching saved locations:', error);
