@@ -8,6 +8,16 @@ This is a mobile-first web application built on a peer-to-peer data economy wher
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### January 15, 2025 - Onboarding & GPS Centering Implementation
+- ✓ Implemented one-time location access control during user onboarding
+- ✓ Enhanced map centering to automatically focus on GPS coordinates when first acquired
+- ✓ Added smooth map animations with appropriate zoom levels for initial GPS positioning
+- ✓ Onboarding state persistence in localStorage to prevent repeated permission requests
+- ✓ Clean user experience flow from welcome screens through location setup
+- ✓ Verified GPS accuracy handling and pattern suggestion generation working correctly
+
 ## System Architecture
 
 ### Frontend Architecture
