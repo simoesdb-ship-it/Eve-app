@@ -90,19 +90,39 @@ export default function DiscoverPage() {
       return;
     }
     
-    // Stop trying after 2 failed attempts per session to prevent spam
-    if (locationAttempts >= 2) {
-      console.log('Max location attempts reached, using fallback');
-      const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
+    // Stop trying after 3 failed attempts per session to prevent spam
+    if (locationAttempts >= 3) {
+      console.log('Max location attempts reached, asking user for permission or trying IP geolocation');
       
-      // Only set location if we don't already have one
+      // Try IP-based geolocation as a last resort
+      try {
+        const ipResponse = await fetch('https://ipapi.co/json/');
+        const ipData = await ipResponse.json();
+        if (ipData.latitude && ipData.longitude) {
+          const ipLocation = { lat: ipData.latitude, lng: ipData.longitude };
+          console.log(`Using IP geolocation: ${ipData.city}, ${ipData.country}`);
+          setCurrentLocation(ipLocation);
+          createLocationMutation.mutate({
+            latitude: ipLocation.lat.toString(),
+            longitude: ipLocation.lng.toString(),
+            name: `${ipData.city}, ${ipData.country}`,
+            sessionId: persistentUserId || sessionId
+          });
+          return;
+        }
+      } catch (ipError) {
+        console.warn('IP geolocation failed:', ipError);
+      }
+      
+      // Final fallback only if we have no location at all
       if (!currentLocation) {
+        const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
         setCurrentLocation(fallbackLocation);
         createLocationMutation.mutate({
           latitude: fallbackLocation.lat.toString(),
           longitude: fallbackLocation.lng.toString(),
-          name: "Default Location",
-          sessionId: persistentUserId || sessionId // Use persistent user ID if available
+          name: "Default Location (Please Enable GPS)",
+          sessionId: persistentUserId || sessionId
         });
       }
       return;
@@ -145,17 +165,17 @@ export default function DiscoverPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, // Use high accuracy for precise location
-            timeout: 15000, // Increased timeout for better accuracy
-            maximumAge: 30000 // Use more recent location data (30 seconds)
+            enableHighAccuracy: false, // Use lower accuracy for faster response
+            timeout: 10000, // Reduced timeout for quicker fallback
+            maximumAge: 60000 // Allow older cached location data (1 minute)
           });
         });
         
         const { latitude, longitude, accuracy } = position.coords;
         
-        // Validate GPS accuracy - only use if accuracy is reasonable (less than 100 meters)
-        if (accuracy && accuracy > 100) {
-          console.warn(`GPS accuracy too low (${accuracy}m), using fallback`);
+        // Be more permissive with GPS accuracy - allow up to 1000 meters for initial location
+        if (accuracy && accuracy > 1000) {
+          console.warn(`GPS accuracy too low (${accuracy}m), trying again with lower precision`);
           throw new Error('GPS accuracy insufficient');
         }
         
@@ -188,18 +208,6 @@ export default function DiscoverPage() {
         console.warn('GPS location failed:', gpsError);
       }
     }
-    
-    // Strategy 3: Use fallback location
-    const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
-    setCurrentLocation(fallbackLocation);
-    createLocationMutation.mutate({
-      latitude: fallbackLocation.lat.toString(),
-      longitude: fallbackLocation.lng.toString(),
-      name: "Default Location",
-      sessionId: persistentUserId || sessionId // Use persistent user ID if available
-    });
-    
-    console.log('Using fallback location (Minneapolis)');
   }, [sessionId, persistentUserId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
   // Acquire location only once on component mount
@@ -339,13 +347,39 @@ export default function DiscoverPage() {
               <p className="text-xs text-neutral-400">
                 {currentLocation ? 
                   `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}` : 
-                  "Getting location..."
+                  "Location access needed"
                 }
               </p>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Location Permission Prompt */}
+      {!currentLocation && (
+        <div className="mx-4 my-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <span className="text-amber-600 text-sm">📍</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800">Location Access Needed</h3>
+              <p className="text-xs text-amber-600 mt-1">
+                Enable GPS to discover architectural patterns around you
+              </p>
+            </div>
+            <button 
+              onClick={() => {
+                setLocationAttempts(0);
+                acquireLocation();
+              }}
+              className="px-3 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
+            >
+              Enable
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Map Container */}
       <MapView 
