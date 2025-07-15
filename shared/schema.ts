@@ -67,9 +67,6 @@ export const spatialPoints = pgTable("spatial_points", {
   longitude: decimal("longitude", { precision: 12, scale: 8 }).notNull(),
   type: text("type").notNull(), // 'tracking', 'analyzed', 'saved'
   sessionId: text("session_id").notNull(),
-  movementType: text("movement_type").default("stationary").notNull(), // 'walking', 'biking', 'driving', 'stationary', 'transit'
-  speed: decimal("speed", { precision: 8, scale: 2 }), // km/h for movement analysis
-  accuracy: decimal("accuracy", { precision: 8, scale: 2 }), // GPS accuracy in meters
   metadata: text("metadata").default('{}').notNull(), // JSON string for patterns, analysis, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -215,12 +212,8 @@ export const deviceRegistrations = pgTable("device_registrations", {
   id: serial("id").primaryKey(),
   deviceId: text("device_id").unique().notNull(),
   userId: text("user_id").unique().notNull(),
-  username: text("username").notNull(), // Two-word fictitious name from global language pool
+  username: text("username").notNull(), // Two-word fictitious name
   deviceFingerprint: text("device_fingerprint").notNull(),
-  // GPS location where account was first created for language-based username generation
-  creationLatitude: decimal("creation_latitude", { precision: 10, scale: 8 }),
-  creationLongitude: decimal("creation_longitude", { precision: 11, scale: 8 }),
-  languageRegion: text("language_region"), // Region name (e.g., "North America", "Asia", etc.)
   registeredAt: timestamp("registered_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),
   isActive: boolean("is_active").default(true),
@@ -381,11 +374,6 @@ export type PatternWithVotes = Pattern & {
   confidence: number;
   suggestionId: number;
   userVote?: 'up' | 'down' | null;
-  isLive?: boolean; // Flag for live pattern suggestions
-  locationId?: number | null; // Optional for live patterns
-  votes?: number; // Vote count for display
-  contextualAnalysis?: string; // Enhanced analysis data
-  sessionId?: string; // Session identifier
 };
 
 export type LocationWithPatterns = Location & {

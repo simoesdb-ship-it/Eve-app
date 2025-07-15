@@ -101,70 +101,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote on a pattern suggestion with weighted voting based on movement patterns
+  // Vote on a pattern suggestion
   app.post("/api/votes", async (req, res) => {
     try {
-      const { suggestionId, sessionId, voteType, locationId } = req.body;
+      const voteData = insertVoteSchema.parse(req.body);
       
-      // Check if user already voted on this suggestion
-      const existingVote = await storage.getUserVoteForSuggestion(suggestionId, sessionId);
+      // Check if user already voted
+      const existingVote = await storage.getUserVoteForSuggestion(
+        voteData.suggestionId, 
+        voteData.sessionId
+      );
+
       if (existingVote) {
         return res.status(400).json({ message: "Already voted on this suggestion" });
       }
 
-      // Use weighted voting service for comprehensive movement-based analysis
-      const { weightedVotingService } = await import("./weighted-voting-service");
-      
-      // Get weighted voting eligibility
-      const eligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
-      
-      if (!eligibility.canVote) {
-        return res.status(403).json({ 
-          message: "Not eligible to vote on this location", 
-          reason: eligibility.eligibilityReason,
-          timeSpent: eligibility.baseTimeMinutes,
-          movementBreakdown: eligibility.movementBreakdown
-        });
-      }
+      const vote = await storage.createVote(voteData);
 
-      // Cast weighted vote
-      await weightedVotingService.castWeightedVote({
-        suggestionId,
-        sessionId,
-        voteType,
-        weight: eligibility.totalWeight,
-        locationId,
-        movementData: eligibility.movementBreakdown,
-        timeSpentBreakdown: eligibility.movementBreakdown.reduce((acc, m) => {
-          acc[m.movementType] = m.timeSpentMinutes;
-          return acc;
-        }, {} as Record<string, number>)
-      });
-
-      // Create activity record with movement details
-      const movementSummary = eligibility.movementBreakdown
-        .filter(m => m.timeSpentMinutes > 0)
-        .map(m => `${m.timeSpentMinutes.toFixed(1)}min ${m.movementType}`)
-        .join(', ');
-
+      // Log activity
       await storage.createActivity({
         type: "vote",
-        description: `Voted ${voteType} with ${eligibility.totalWeight.toFixed(2)}x weight from: ${movementSummary}`,
-        locationId,
-        sessionId
+        description: `Vote cast: ${voteData.voteType} on pattern suggestion`,
+        sessionId: voteData.sessionId
       });
 
-      res.json({ 
-        success: true,
-        weight: eligibility.totalWeight,
-        timeSpent: eligibility.baseTimeMinutes,
-        movementBreakdown: eligibility.movementBreakdown,
-        weightComponents: eligibility.weightComponents,
-        eligibilityReason: eligibility.eligibilityReason
-      });
-    } catch (error: any) {
-      console.error("Weighted voting error:", error);
-      res.status(500).json({ message: error.message });
+      res.json(vote);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create vote" });
     }
   });
 
@@ -203,148 +169,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch statistics" });
-    }
-  });
-
-  // Live pattern suggestions endpoint for real-time updates
-  app.get('/api/patterns/live', async (req: any, res) => {
-    try {
-      const { lat, lng, sessionId, accuracy, movement } = req.query;
-      
-      if (!lat || !lng || !sessionId) {
-        return res.status(400).json({ message: 'Missing required parameters: lat, lng, sessionId' });
-      }
-
-      const latitude = parseFloat(lat);
-      const longitude = parseFloat(lng);
-      const gpsAccuracy = parseFloat(accuracy) || 100;
-      const movementType = movement || 'unknown';
-      
-      console.log(`Live pattern analysis for ${latitude}, ${longitude} (±${gpsAccuracy}m, ${movementType})`);
-      
-      // Enhanced pattern analysis using the enhanced pattern analyzer
-      const { enhancedPatternAnalyzer } = await import('./enhanced-pattern-analyzer');
-      
-      // Create architectural context for enhanced analysis
-      const architecturalContext = {
-        latitude,
-        longitude,
-        populationDensity: 2000, // Default urban density
-        areaSize: 1.0, // 1 km² analysis area
-        buildingHeights: {
-          averageStories: 3,
-          maxStories: 6,
-          predominantHeight: 'mid-rise' as const,
-          heightVariation: 0.7
-        },
-        spatialConfiguration: {
-          blockSize: 100,
-          streetWidth: 12,
-          openSpaceRatio: 0.2,
-          connectivity: 0.8,
-          permeability: 0.7
-        },
-        buildingTypology: {
-          predominantType: 'mixed' as const,
-          buildingFootprint: 400,
-          lotCoverage: 0.6,
-          setbackVariation: 0.5
-        },
-        humanScale: {
-          eyeLevelActivity: 0.7,
-          pedestrianComfort: 0.6,
-          socialSpaces: 3,
-          transitionalSpaces: 5
-        },
-        accessibilityMetrics: {
-          transitAccess: true,
-          bikeInfrastructure: 0.6,
-          walkability: 75,
-          carDependency: 0.4
-        },
-        landUsePattern: {
-          mixedUse: 0.8,
-          primaryUse: 'mixed' as const,
-          useDiversity: 0.7,
-          groundFloorUses: ['retail', 'cafe', 'residential']
-        },
-        naturalElements: {
-          treeCanopyCover: 0.3,
-          waterAccess: false,
-          topographyVariation: 0.2,
-          viewCorridors: 2
-        },
-        socialInfrastructure: {
-          communitySpaces: 2,
-          educationalFacilities: 1,
-          healthcareFacilities: 1,
-          culturalFacilities: 1,
-          religiousSpaces: 1
-        }
-      };
-
-      // Get enhanced pattern matches
-      const enhancedMatches = enhancedPatternAnalyzer.analyzePatterns(architecturalContext);
-      
-      // Convert to our pattern format and filter by confidence
-      const livePatterns = enhancedMatches
-        .filter(match => match.confidence > 0.4) // Lower threshold for live updates
-        .slice(0, 8) // Limit to top 8 patterns for performance
-        .map(match => ({
-          id: Date.now() + match.pattern.number, // Temporary ID for live patterns
-          number: match.pattern.number,
-          name: match.pattern.name,
-          description: match.pattern.description,
-          fullDescription: match.pattern.fullDescription,
-          category: match.pattern.category,
-          keywords: match.pattern.keywords,
-          iconName: match.pattern.iconName,
-          moodColor: match.pattern.moodColor,
-          confidence: match.confidence,
-          votes: 0,
-          userVote: null,
-          isLive: true, // Mark as live pattern
-          locationId: null,
-          contextualAnalysis: JSON.stringify({
-            architecturalFit: match.architecturalFit,
-            keyMetrics: match.keyMetrics,
-            implementationGuidance: match.implementationGuidance,
-            reasons: match.reasons,
-            movementContext: {
-              type: movementType,
-              accuracy: gpsAccuracy,
-              timestamp: new Date().toISOString()
-            }
-          }),
-          sessionId
-        }));
-
-      // Store live tracking data for pattern analysis
-      try {
-        await storage.createTrackingPoint({
-          sessionId,
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
-          movementType,
-          speed: '0',
-          accuracy: gpsAccuracy.toString(),
-          metadata: JSON.stringify({
-            patternsGenerated: livePatterns.length,
-            topPatternConfidence: livePatterns[0]?.confidence || 0,
-            analysisType: 'live_enhanced',
-            timestamp: new Date().toISOString()
-          }),
-          type: 'live_pattern_analysis'
-        });
-      } catch (error) {
-        console.error('Failed to store live tracking data:', error);
-      }
-
-      console.log(`Generated ${livePatterns.length} live patterns with enhanced analysis`);
-      res.json(livePatterns);
-    } catch (error) {
-      console.error('Error generating live patterns:', error);
-      res.status(500).json({ message: 'Failed to generate live patterns' });
     }
   });
 
@@ -846,59 +670,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Time tracking and weighted voting eligibility endpoints
+  // Time tracking and voting eligibility endpoints
   app.get("/api/time-tracking/:locationId", async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string || "demo_session";
       const locationId = parseInt(req.params.locationId);
-      
-      // Use both old and new systems for comparison
       const { timeTrackingService } = await import("./time-tracking-service");
-      const { weightedVotingService } = await import("./weighted-voting-service");
       
       const timeSpent = await timeTrackingService.calculateTimeAtLocation(sessionId, locationId);
-      const basicEligibility = await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
-      const weightedEligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
+      const eligibility = await timeTrackingService.calculateVotingEligibility(sessionId, locationId);
       
       res.json({
         timeTracking: timeSpent,
-        basicVotingEligibility: basicEligibility,
-        weightedVotingEligibility: weightedEligibility
+        votingEligibility: eligibility
       });
     } catch (error) {
       console.error("Error calculating time tracking:", error);
       res.status(500).json({ error: "Failed to calculate time tracking" });
-    }
-  });
-
-  // Get weighted voting eligibility for a location
-  app.get("/api/voting-eligibility/:locationId", async (req, res) => {
-    try {
-      const sessionId = req.query.sessionId as string || "demo_session";
-      const locationId = parseInt(req.params.locationId);
-      const { weightedVotingService } = await import("./weighted-voting-service");
-      
-      const eligibility = await weightedVotingService.calculateWeightedVotingEligibility(sessionId, locationId);
-      
-      res.json(eligibility);
-    } catch (error) {
-      console.error("Error calculating voting eligibility:", error);
-      res.status(500).json({ error: "Failed to calculate voting eligibility" });
-    }
-  });
-
-  // Get voting statistics for a pattern suggestion
-  app.get("/api/voting-stats/:suggestionId", async (req, res) => {
-    try {
-      const suggestionId = parseInt(req.params.suggestionId);
-      const { weightedVotingService } = await import("./weighted-voting-service");
-      
-      const stats = await weightedVotingService.getVotingStats(suggestionId);
-      
-      res.json(stats);
-    } catch (error) {
-      console.error("Error getting voting stats:", error);
-      res.status(500).json({ error: "Failed to get voting stats" });
     }
   });
 
@@ -932,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Device registration endpoints for anonymous user identification
   app.post('/api/register-device', async (req, res) => {
     try {
-      const { deviceId, userId, deviceFingerprint, lat, lng } = req.body;
+      const { deviceId, userId, deviceFingerprint, username } = req.body;
       
       // Check if device is already registered
       const existingRegistration = await storage.getDeviceRegistration(deviceId);
@@ -943,26 +731,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           registered: true, 
           userId: existingRegistration.userId,
           username: existingRegistration.username,
-          languageRegion: existingRegistration.languageRegion,
           message: 'Device already registered' 
         });
         return;
       }
 
-      // Generate username based on GPS location using global language pools
-      const { generateUsernameServer, getRegionNameServer } = await import("./username-generator-server");
-      const username = generateUsernameServer(userId, lat, lng);
-      const languageRegion = lat && lng ? getRegionNameServer(lat, lng) : "Global";
-
-      // Register new device with GPS-based username
+      // Register new device
       const registration = await storage.createDeviceRegistration({
         deviceId,
         userId,
         username,
         deviceFingerprint,
-        creationLatitude: lat,
-        creationLongitude: lng,
-        languageRegion,
         isActive: true
       });
 
@@ -970,11 +749,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registered: true, 
         userId: registration.userId,
         username: registration.username,
-        languageRegion: registration.languageRegion,
-        message: 'Device registered successfully with GPS-based username' 
+        message: 'Device registered successfully' 
       });
     } catch (error: any) {
-      console.error("Device registration error:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1132,7 +909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Enhanced pattern matching algorithm
 function calculatePatternConfidence(pattern: any, location: any): number {
-  let confidence = 0.3; // Base confidence
+  let confidence = 0.3; // Lower base confidence
 
   // Location name analysis
   const locationName = (location.name || '').toLowerCase();
@@ -1148,93 +925,23 @@ function calculatePatternConfidence(pattern: any, location: any): number {
     confidence += 0.4;
   }
 
-  // Enhanced architectural context analysis
-  const contextualData = analyzeContextualData([location]);
-  
-  // Building height and scale analysis (Alexander's key metric)
-  if (pattern.number === 21) { // Four-Story Limit
-    const estimatedStories = Math.min(6, Math.max(1, Math.floor(Math.random() * 4) + 1)); // Simulated building height data
-    if (estimatedStories <= 4) {
-      confidence += 0.4;
-    } else {
-      confidence -= 0.2;
-    }
-  }
-
-  // Number of stories pattern analysis
-  if (pattern.number === 96) { // Number of Stories
-    const densityFactor = contextualData.populationDensity || 200;
-    const idealStories = densityFactor > 300 ? 3 : 2;
-    const estimatedStories = Math.min(8, Math.max(1, Math.floor(densityFactor / 150)));
-    const deviation = Math.abs(estimatedStories - idealStories);
-    if (deviation < 1) {
-      confidence += 0.35;
-    }
-  }
-
-  // Urban spatial configuration patterns
+  // Urban context patterns
   const urbanIndicators = ['plaza', 'square', 'park', 'street', 'avenue', 'center', 'market', 'station'];
   const hasUrbanContext = urbanIndicators.some(indicator => locationName.includes(indicator));
   
   if (hasUrbanContext) {
-    // Spatial relationship patterns
-    if (pattern.number === 61) { // Small Public Squares
-      confidence += 0.35; // Squares are ideal for this pattern
-    }
-    if (pattern.number === 100) { // Pedestrian Street
-      if (locationName.includes('street') || locationName.includes('avenue')) {
-        confidence += 0.4;
-      }
-    }
-    if (pattern.number === 106) { // Positive Outdoor Space
-      if (locationName.includes('plaza') || locationName.includes('square') || locationName.includes('park')) {
-        confidence += 0.35;
-      }
-    }
-    
-    // General urban patterns
+    // Boost patterns related to urban design
     const urbanPatterns = ['pedestrian', 'public', 'community', 'activity', 'circulation', 'open'];
     const isUrbanPattern = urbanPatterns.some(urban => 
       patternKeywords.some(keyword => keyword.includes(urban)) || patternName.includes(urban)
     );
     
     if (isUrbanPattern) {
-      confidence += 0.25;
-    }
-  }
-
-  // Building typology and land use patterns
-  if (pattern.number === 95) { // Building Complex
-    const mixedUseIndicators = ['center', 'complex', 'plaza', 'mall'];
-    if (mixedUseIndicators.some(indicator => locationName.includes(indicator))) {
       confidence += 0.3;
     }
   }
 
-  if (pattern.number === 88) { // Street Café
-    const commercialIndicators = ['restaurant', 'cafe', 'shop', 'market', 'commercial'];
-    if (commercialIndicators.some(indicator => locationName.includes(indicator))) {
-      confidence += 0.4;
-    }
-  }
-
-  // Accessibility and movement patterns
-  if (pattern.number === 30) { // Activity Nodes
-    const nodeIndicators = ['station', 'terminal', 'center', 'hub', 'interchange'];
-    if (nodeIndicators.some(indicator => locationName.includes(indicator))) {
-      confidence += 0.4;
-    }
-  }
-
-  // Natural and environmental patterns
-  if (pattern.number === 171) { // Tree Places
-    const naturalIndicators = ['park', 'garden', 'grove', 'green', 'forest'];
-    if (naturalIndicators.some(indicator => locationName.includes(indicator))) {
-      confidence += 0.35;
-    }
-  }
-
-  // Human scale and social patterns
+  // Community and social patterns get higher confidence
   const socialKeywords = ['community', 'gathering', 'meeting', 'social', 'public', 'common'];
   const isSocialPattern = socialKeywords.some(social => 
     patternKeywords.some(keyword => keyword.includes(social)) || patternName.includes(social)
@@ -1244,38 +951,14 @@ function calculatePatternConfidence(pattern: any, location: any): number {
     confidence += 0.2;
   }
 
-  // Density-based pattern matching
-  const densityLevel = contextualData.populationDensity || 200;
-  if (densityLevel > 500) { // High density
-    const highDensityPatterns = [21, 30, 88, 100]; // Patterns that work well in dense areas
-    if (highDensityPatterns.includes(pattern.number)) {
-      confidence += 0.15;
-    }
-  } else if (densityLevel < 100) { // Low density
-    const lowDensityPatterns = [37, 106, 171]; // Patterns for lower density areas
-    if (lowDensityPatterns.includes(pattern.number)) {
-      confidence += 0.15;
-    }
-  }
-
-  // Transportation and accessibility context
-  const transitIndicators = ['station', 'stop', 'terminal', 'transit'];
-  const hasTransitAccess = transitIndicators.some(indicator => locationName.includes(indicator));
-  if (hasTransitAccess) {
-    const transitPatterns = [16, 30, 52]; // Patterns enhanced by transit access
-    if (transitPatterns.includes(pattern.number)) {
-      confidence += 0.2;
-    }
-  }
-
-  // Frequently applicable Alexander patterns
-  const commonPatterns = [61, 106, 125, 171, 183];
+  // Popular Alexander patterns that apply to most locations
+  const commonPatterns = [61, 106, 125, 171, 183]; // Common patterns that often apply
   if (commonPatterns.includes(pattern.number)) {
-    confidence += 0.1;
+    confidence += 0.15;
   }
 
-  // Add controlled variation for realistic analysis
-  confidence += (Math.random() - 0.5) * 0.08;
+  // Add slight randomization for variety
+  confidence += Math.random() * 0.1;
   
   return Math.max(0.1, Math.min(0.95, confidence));
 }
@@ -1288,7 +971,7 @@ function getTimezoneFromCoordinates(lat: number, lng: number): string {
   return `UTC${utcOffset}`;
 }
 
-// Enhanced contextual analysis with architectural metrics from Alexander's patterns
+// Analyze contextual data from OpenStreetMap
 function analyzeContextualData(elements: any[]): any {
   const amenities = new Set<string>();
   const buildingTypes = new Set<string>();
@@ -1297,123 +980,80 @@ function analyzeContextualData(elements: any[]): any {
   let hasPublicTransport = false;
   let hasGreenSpace = false;
   
-  // Process OpenStreetMap data
   elements.forEach(element => {
     const tags = element.tags || {};
     
-    if (tags.highway) roads++;
+    // Count roads for traffic analysis
+    if (tags.highway) {
+      roads++;
+    }
+    
+    // Count buildings for density
     if (tags.building) {
       buildings++;
-      if (tags.building !== 'yes') buildingTypes.add(tags.building);
+      if (tags.building !== 'yes') {
+        buildingTypes.add(tags.building);
+      }
     }
+    
+    // Collect amenities
     if (tags.amenity) {
       amenities.add(tags.amenity);
       if (tags.amenity === 'bus_station' || tags.amenity === 'subway_entrance') {
         hasPublicTransport = true;
       }
     }
-    if (tags.shop) amenities.add(`shop: ${tags.shop}`);
-    if (tags.public_transport) hasPublicTransport = true;
+    
+    // Check for shops
+    if (tags.shop) {
+      amenities.add(`shop: ${tags.shop}`);
+    }
+    
+    // Check for public transport
+    if (tags.public_transport) {
+      hasPublicTransport = true;
+    }
+    
+    // Check for green spaces
     if (tags.leisure === 'park' || tags.landuse === 'forest' || tags.landuse === 'grass') {
       hasGreenSpace = true;
     }
   });
 
-  // Enhanced analysis with Alexander's architectural metrics
-  const analysis = {
-    // Basic demographic and land use
-    populationDensity: buildings * 25 + Math.floor(Math.random() * 200), // Enhanced estimate
-    landUse: 'mixed' as any,
-    
-    // Enhanced building metrics (Alexander's key focus)
-    buildingHeights: {
-      averageStories: Math.min(6, Math.max(1, Math.floor(buildings / 20) + 1)), // Stories based on building density
-      maxStories: Math.min(12, Math.max(2, Math.floor(buildings / 10) + 2)),
-      predominantHeight: 'low-rise' as any,
-      heightVariation: Math.min(1, buildings / 100) // Height diversity based on building count
-    },
-    
-    // Spatial configuration metrics
-    spatialConfiguration: {
-      blockSize: Math.max(60, Math.min(200, 120 - (roads * 5))), // Smaller blocks with more roads
-      streetWidth: Math.min(15, Math.max(4, 6 + (roads / 10))), // Wider streets with more roads
-      openSpaceRatio: hasGreenSpace ? Math.random() * 0.4 + 0.3 : Math.random() * 0.2 + 0.1,
-      connectivity: Math.min(1, roads / 15), // Road density affects connectivity
-      permeability: Math.min(1, (amenities.size + roads) / 20) // Amenities and roads improve permeability
-    },
-    
-    // Building typology
-    buildingTypology: {
-      predominantType: buildings > 30 ? 'attached' : 'detached' as any,
-      buildingFootprint: Math.max(200, Math.min(2000, buildings * 15)),
-      lotCoverage: Math.min(0.8, Math.max(0.2, buildings / 100)),
-      setbackVariation: Math.random() * 0.8 + 0.1
-    },
-    
-    // Human scale metrics (crucial for Alexander's patterns)
-    humanScale: {
-      eyeLevelActivity: Math.min(1, amenities.size / 10), // More amenities = more street activity
-      pedestrianComfort: hasGreenSpace ? Math.random() * 0.4 + 0.5 : Math.random() * 0.6,
-      socialSpaces: hasGreenSpace ? Math.floor(Math.random() * 4) + 2 : Math.floor(Math.random() * 3),
-      transitionalSpaces: Math.floor(amenities.size / 5)
-    },
-    
-    // Accessibility and movement
-    accessibilityScore: Math.min(100, 30 + (amenities.size * 5) + (hasPublicTransport ? 20 : 0) + (hasGreenSpace ? 10 : 0)),
-    transitAccess: hasPublicTransport,
-    walkabilityScore: Math.min(100, 30 + (amenities.size * 5) + (hasPublicTransport ? 20 : 0) + (hasGreenSpace ? 10 : 0)),
-    bikeInfrastructure: hasGreenSpace ? Math.random() * 0.6 + 0.2 : Math.random() * 0.4,
-    carDependency: roads > 10 ? Math.random() * 0.4 + 0.4 : Math.random() * 0.6,
-    
-    // Land use diversity
-    landUsePattern: {
-      mixedUse: Math.min(1, amenities.size / 15), // More amenities = more mixed use
-      useDiversity: Math.min(1, buildingTypes.size / 8),
-      groundFloorUses: Array.from(amenities).slice(0, 3).map(a => a.includes('shop') ? 'commercial' : 'institutional')
-    },
-    
-    // Natural elements
-    naturalElements: {
-      treeCanopyCover: hasGreenSpace ? Math.random() * 0.5 + 0.3 : Math.random() * 0.3,
-      waterAccess: Math.random() > 0.8, // 20% chance
-      topographyVariation: Math.random() * 0.8,
-      viewCorridors: hasGreenSpace ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 2)
-    },
-    
-    // Social infrastructure
-    socialInfrastructure: {
-      communitySpaces: hasGreenSpace ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 2),
-      educationalFacilities: amenities.has('school') ? 1 : 0,
-      healthcareFacilities: amenities.has('hospital') || amenities.has('clinic') ? 1 : 0,
-      culturalFacilities: amenities.has('library') || amenities.has('theatre') ? 1 : 0,
-      religiousSpaces: amenities.has('place_of_worship') ? 1 : 0
-    },
-    
-    // Legacy metrics for compatibility
-    urbanDensity: buildings > 50 ? 'high' : buildings > 20 ? 'medium' : 'low',
-    publicTransportAccess: hasPublicTransport,
-    nearbyAmenities: Array.from(amenities).slice(0, 10),
-    buildingTypes: Array.from(buildingTypes).slice(0, 5),
-    greenSpaceDistance: hasGreenSpace ? 100 : 500,
-    trafficLevel: roads > 15 ? 'high' : roads > 8 ? 'medium' : 'low',
-    noiseLevel: roads > 15 ? 'loud' : roads > 8 ? 'moderate' : 'quiet'
-  };
+  // Calculate urban density based on building count
+  let urbanDensity: 'low' | 'medium' | 'high' = 'low';
+  if (buildings > 50) urbanDensity = 'high';
+  else if (buildings > 20) urbanDensity = 'medium';
 
-  // Determine land use based on amenities
+  // Calculate walkability score based on amenities and infrastructure
+  let walkabilityScore = 30; // Base score
+  walkabilityScore += Math.min(amenities.size * 5, 40); // More amenities = better walkability
+  walkabilityScore += hasPublicTransport ? 20 : 0;
+  walkabilityScore += hasGreenSpace ? 10 : 0;
+  
+  // Determine land use
+  let landUse = 'mixed';
   if (amenities.has('shop: residential') || buildingTypes.has('residential')) {
-    analysis.landUse = 'residential';
-    analysis.buildingHeights.averageStories = Math.min(3, analysis.buildingHeights.averageStories);
-    analysis.buildingHeights.predominantHeight = 'low-rise';
+    landUse = 'residential';
   } else if (Array.from(amenities).some(a => a.startsWith('shop:')) || amenities.has('restaurant')) {
-    analysis.landUse = 'commercial';
-    analysis.humanScale.eyeLevelActivity = Math.min(1, analysis.humanScale.eyeLevelActivity + 0.3);
+    landUse = 'commercial';
   }
 
-  // Adjust building heights based on density
-  if (analysis.populationDensity > 500) {
-    analysis.buildingHeights.averageStories = Math.max(4, analysis.buildingHeights.averageStories);
-    analysis.buildingHeights.predominantHeight = analysis.buildingHeights.averageStories > 6 ? 'high-rise' : 'mid-rise';
-  }
+  // Traffic level based on road density
+  let trafficLevel: 'low' | 'medium' | 'high' = 'low';
+  if (roads > 15) trafficLevel = 'high';
+  else if (roads > 8) trafficLevel = 'medium';
 
-  return analysis;
+  return {
+    landUse,
+    urbanDensity,
+    walkabilityScore: Math.min(walkabilityScore, 100),
+    publicTransportAccess: hasPublicTransport,
+    nearbyAmenities: Array.from(amenities).slice(0, 10), // Limit to first 10
+    buildingTypes: Array.from(buildingTypes).slice(0, 5),
+    greenSpaceDistance: hasGreenSpace ? 100 : 500, // Approximate distance in meters
+    trafficLevel,
+    populationDensity: buildings * 25, // Rough estimate
+    noiseLevel: trafficLevel === 'high' ? 'loud' : trafficLevel === 'medium' ? 'moderate' : 'quiet'
+  };
 }

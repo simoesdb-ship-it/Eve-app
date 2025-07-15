@@ -5,7 +5,6 @@ import MapView from "@/components/map-view";
 import PatternCard from "@/components/pattern-card";
 import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
-import LivePatternSuggestions from "@/components/live-pattern-suggestions";
 import { getUserDisplayName } from "@/lib/username-generator";
 import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { generateSessionId } from "@/lib/geolocation";
@@ -353,18 +352,12 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Live Pattern Suggestions */}
+      {/* Pattern Suggestions */}
       <div className="flex-1 px-4 py-4 pb-24">
-        <LivePatternSuggestions 
-          sessionId={sessionId}
-          onPatternSelect={setSelectedPattern}
-        />
-        
-        {/* Static Pattern Suggestions Fallback */}
         <Collapsible open={!isPatternsCollapsed} onOpenChange={(open) => setIsPatternsCollapsed(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between mb-4 cursor-pointer">
-              <h2 className="text-lg font-semibold text-neutral-800">Saved Location Patterns</h2>
+              <h2 className="text-lg font-semibold text-neutral-800">Current Position Potential</h2>
               <div className="flex items-center gap-2">
                 <Button 
                   variant="ghost" 
