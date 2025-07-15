@@ -319,34 +319,80 @@ export default function InsightsPage() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent>
-                <div className="space-y-3">
-                  {savedLocations.slice(0, 5).map((location: any) => (
-                    <div key={location.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <div>
-                          <div className="font-medium">{location.name || 'Unknown Location'}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {location.latitude && location.longitude ? 
-                              `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
-                              'Coordinates unavailable'
-                            }
+                    {savedLocations.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p>No saved locations yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Saved Locations Summary */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {savedLocations.length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Saved</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {(() => {
+                                const today = new Date();
+                                const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                return savedLocations.filter((location: any) => 
+                                  new Date(location.createdAt) >= oneWeekAgo
+                                ).length;
+                              })()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">This Week</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {savedLocations.filter((location: any) => location.name && location.name !== 'Unknown Location').length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Named Places</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {(() => {
+                                const today = new Date();
+                                const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                                return savedLocations.filter((location: any) => 
+                                  new Date(location.createdAt) >= oneMonthAgo
+                                ).length;
+                              })()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">This Month</div>
                           </div>
                         </div>
+
+                        {/* Recent Saved Locations */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Recently Saved</h4>
+                          {savedLocations.slice(0, 3).map((location: any) => (
+                            <div key={location.id} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                <MapPin className="w-3 h-3 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(location.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {location.latitude && location.longitude ? 
+                                    `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                                    'Coordinates unavailable'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  ))}
-                  {savedLocations.length === 0 && (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p>No saved locations yet</p>
-                    </div>
-                  )}
-                </div>
+                    )}
                   </CardContent>
                 </CollapsibleContent>
               </Card>
