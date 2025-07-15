@@ -10,6 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### January 15, 2025 - Saved Locations Cache Update Fix
+- ✓ Fixed saved locations not updating in insights tab after saving
+- ✓ Resolved user ID consistency issue between location saving and fetching
+- ✓ Updated location analysis page to use persistent user ID instead of session-based ID
+- ✓ Enhanced backend API routes to handle both query parameter and path parameter patterns
+- ✓ Improved cache invalidation with broader scope to catch all saved-locations queries
+- ✓ Ensured data consistency across activity and insights pages
+
 ### January 15, 2025 - Onboarding & GPS Centering Implementation
 - ✓ Implemented one-time location access control during user onboarding
 - ✓ Enhanced map centering to automatically focus on GPS coordinates when first acquired

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { generateSessionId } from "@/lib/geolocation";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import MobileContainer from "@/components/mobile-container";
 
 interface LocationData {
@@ -56,7 +57,7 @@ export default function LocationAnalysisPage() {
   const [locationName, setLocationName] = useState("");
   const [locationDescription, setLocationDescription] = useState("");
   const { toast } = useToast();
-  const sessionId = generateSessionId();
+  const [persistentUserId, setPersistentUserId] = useState<string>('');
   const [openSections, setOpenSections] = useState<{[key: string]: boolean}>({
     geographic: true,
     contextual: false,
@@ -64,6 +65,21 @@ export default function LocationAnalysisPage() {
     evaluation: false
   });
   const [patternEvaluations, setPatternEvaluations] = useState<{[key: string]: 'positive' | 'negative' | 'neutral'}>({});
+
+  // Load persistent user ID
+  useEffect(() => {
+    async function loadUserId() {
+      try {
+        const userId = await getConsistentUserId();
+        setPersistentUserId(userId);
+      } catch (error) {
+        console.error('Failed to get user ID:', error);
+        // Fallback to session-based ID
+        setPersistentUserId(generateSessionId());
+      }
+    }
+    loadUserId();
+  }, []);
 
   // Parse coordinates from URL query params
   useEffect(() => {
@@ -189,10 +205,10 @@ export default function LocationAnalysisPage() {
   });
 
   const handleSaveLocation = () => {
-    if (!coordinates || !locationData) return;
+    if (!coordinates || !locationData || !persistentUserId) return;
     
     const saveData = {
-      sessionId,
+      sessionId: persistentUserId,
       latitude: coordinates.lat.toString(),
       longitude: coordinates.lng.toString(),
       name: locationName || `Location at ${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}`,
