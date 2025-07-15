@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,34 +181,42 @@ export default function InsightsPage() {
           <TabsContent value="personal" className="space-y-4">
             {/* Personal Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <Target className="w-6 h-6 mx-auto mb-1 text-primary" />
-                  <div className="text-xl font-bold">{stats?.suggestedPatterns || 0}</div>
-                  <div className="text-xs text-muted-foreground leading-tight">Patterns Suggested</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <Vote className="w-6 h-6 mx-auto mb-1 text-primary" />
-                  <div className="text-xl font-bold">{stats?.votesContributed || 0}</div>
-                  <div className="text-xs text-muted-foreground leading-tight">Votes Cast</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <MapPin className="w-6 h-6 mx-auto mb-1 text-primary" />
-                  <div className="text-xl font-bold">{stats?.locationsTracked || 0}</div>
-                  <div className="text-xs text-muted-foreground leading-tight">Locations Tracked</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <Clock className="w-6 h-6 mx-auto mb-1 text-primary" />
-                  <div className="text-xl font-bold">{stats?.hoursContributed || 0}</div>
-                  <div className="text-xs text-muted-foreground leading-tight text-center">Hours Contributed</div>
-                </CardContent>
-              </Card>
+              <Link href="/patterns-suggested-info">
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <CardContent className="p-3 text-center">
+                    <Target className="w-6 h-6 mx-auto mb-1 text-primary" />
+                    <div className="text-xl font-bold">{stats?.suggestedPatterns || 0}</div>
+                    <div className="text-xs text-muted-foreground leading-tight">Patterns Suggested</div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/votes-cast-info">
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <CardContent className="p-3 text-center">
+                    <Vote className="w-6 h-6 mx-auto mb-1 text-primary" />
+                    <div className="text-xl font-bold">{stats?.votesContributed || 0}</div>
+                    <div className="text-xs text-muted-foreground leading-tight">Votes Cast</div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/locations-tracked-info">
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <CardContent className="p-3 text-center">
+                    <MapPin className="w-6 h-6 mx-auto mb-1 text-primary" />
+                    <div className="text-xl font-bold">{stats?.locationsTracked || 0}</div>
+                    <div className="text-xs text-muted-foreground leading-tight">Locations Tracked</div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/hours-contributed-info">
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <CardContent className="p-3 text-center">
+                    <Clock className="w-6 h-6 mx-auto mb-1 text-primary" />
+                    <div className="text-xl font-bold">{stats?.hoursContributed || 0}</div>
+                    <div className="text-xs text-muted-foreground leading-tight text-center">Hours Contributed</div>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
 
             {/* Personal Activity Feed */}

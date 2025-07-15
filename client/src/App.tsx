@@ -20,6 +20,10 @@ import EconomyPage from "@/pages/economy";
 import InsightsPage from "@/pages/insights";
 import OnboardingPage from "@/pages/onboarding";
 import OfflinePatternsPage from "@/pages/offline-patterns";
+import PatternsSuggestedInfo from "@/pages/patterns-suggested-info";
+import VotesCastInfo from "@/pages/votes-cast-info";
+import LocationsTrackedInfo from "@/pages/locations-tracked-info";
+import HoursContributedInfo from "@/pages/hours-contributed-info";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -41,6 +45,10 @@ function Router() {
       <Route path="/insights" component={InsightsPage} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/offline-patterns" component={OfflinePatternsPage} />
+      <Route path="/patterns-suggested-info" component={PatternsSuggestedInfo} />
+      <Route path="/votes-cast-info" component={VotesCastInfo} />
+      <Route path="/locations-tracked-info" component={LocationsTrackedInfo} />
+      <Route path="/hours-contributed-info" component={HoursContributedInfo} />
       <Route component={NotFound} />
     </Switch>
   );
