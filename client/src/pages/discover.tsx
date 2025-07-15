@@ -26,6 +26,8 @@ export default function DiscoverPage() {
   const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
   const [username, setUsername] = useState<string>('');
   const [persistentUserId, setPersistentUserId] = useState<string>('');
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Load username and persistent user ID
@@ -83,10 +85,13 @@ export default function DiscoverPage() {
   
   const acquireLocation = useCallback(async () => {
     const now = Date.now();
+    setIsLocationLoading(true);
+    setLocationError(null);
     
-      // Rate limiting: don't attempt more than once every 30 seconds
+    // Rate limiting: don't attempt more than once every 30 seconds
     if (now - lastLocationAttempt < 30000) {
       console.log('Location request rate limited');
+      setIsLocationLoading(false);
       return;
     }
     
@@ -102,6 +107,7 @@ export default function DiscoverPage() {
           const ipLocation = { lat: ipData.latitude, lng: ipData.longitude };
           console.log(`Using IP geolocation: ${ipData.city}, ${ipData.country}`);
           setCurrentLocation(ipLocation);
+          setIsLocationLoading(false);
           createLocationMutation.mutate({
             latitude: ipLocation.lat.toString(),
             longitude: ipLocation.lng.toString(),
@@ -116,15 +122,11 @@ export default function DiscoverPage() {
       
       // Final fallback only if we have no location at all
       if (!currentLocation) {
-        const fallbackLocation = { lat: 44.9799652, lng: -93.289345 }; // Minneapolis
-        setCurrentLocation(fallbackLocation);
-        createLocationMutation.mutate({
-          latitude: fallbackLocation.lat.toString(),
-          longitude: fallbackLocation.lng.toString(),
-          name: "Default Location (Please Enable GPS)",
-          sessionId: persistentUserId || sessionId
-        });
+        setLocationError('GPS access denied or unavailable');
+        setIsLocationLoading(false);
+        return;
       }
+      setIsLocationLoading(false);
       return;
     }
     
@@ -145,6 +147,7 @@ export default function DiscoverPage() {
           };
           
           setCurrentLocation(lastLocation);
+          setIsLocationLoading(false);
           createLocationMutation.mutate({
             latitude: lastLocation.lat.toString(),
             longitude: lastLocation.lng.toString(),
@@ -194,6 +197,7 @@ export default function DiscoverPage() {
         }
         
         setCurrentLocation({ lat: latitude, lng: longitude });
+        setIsLocationLoading(false);
         
         createLocationMutation.mutate({
           latitude: latitude.toString(),
@@ -206,8 +210,11 @@ export default function DiscoverPage() {
         return;
       } catch (gpsError) {
         console.warn('GPS location failed:', gpsError);
+        setLocationError('Unable to access GPS location');
       }
     }
+    
+    setIsLocationLoading(false);
   }, [sessionId, persistentUserId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
   // Acquire location only once on component mount
@@ -347,7 +354,7 @@ export default function DiscoverPage() {
               <p className="text-xs text-neutral-400">
                 {currentLocation ? 
                   `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}` : 
-                  "Location access needed"
+                  isLocationLoading ? "Getting location..." : "Location access needed"
                 }
               </p>
             </div>
@@ -356,7 +363,7 @@ export default function DiscoverPage() {
       </header>
 
       {/* Location Permission Prompt */}
-      {!currentLocation && (
+      {(!currentLocation && !isLocationLoading) && (
         <div className="mx-4 my-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
@@ -365,18 +372,54 @@ export default function DiscoverPage() {
             <div className="flex-1">
               <h3 className="text-sm font-medium text-amber-800">Location Access Needed</h3>
               <p className="text-xs text-amber-600 mt-1">
-                Enable GPS to discover architectural patterns around you
+                {locationError || "Enable GPS to discover architectural patterns around you"}
               </p>
             </div>
-            <button 
-              onClick={() => {
-                setLocationAttempts(0);
-                acquireLocation();
-              }}
-              className="px-3 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
-            >
-              Enable
-            </button>
+            <div className="flex flex-col space-y-2">
+              <button 
+                onClick={() => {
+                  setLocationAttempts(0);
+                  acquireLocation();
+                }}
+                className="px-3 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
+              >
+                Try Again
+              </button>
+              <button 
+                onClick={() => {
+                  // Use a default location for demonstration
+                  const defaultLocation = { lat: 44.9537, lng: -93.0900 }; // Minneapolis downtown
+                  setCurrentLocation(defaultLocation);
+                  setIsLocationLoading(false);
+                  createLocationMutation.mutate({
+                    latitude: defaultLocation.lat.toString(),
+                    longitude: defaultLocation.lng.toString(),
+                    name: "Demo Location",
+                    sessionId: persistentUserId || sessionId
+                  });
+                }}
+                className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+              >
+                Use Demo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLocationLoading && (
+        <div className="mx-4 my-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-blue-800">Getting Your Location</h3>
+              <p className="text-xs text-blue-600 mt-1">
+                Please allow location access when prompted
+              </p>
+            </div>
           </div>
         </div>
       )}
