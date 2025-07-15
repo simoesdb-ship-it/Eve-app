@@ -205,7 +205,7 @@ export default function InsightsPage() {
                 <CardContent className="p-3 text-center">
                   <Clock className="w-6 h-6 mx-auto mb-1 text-primary" />
                   <div className="text-xl font-bold">{stats?.hoursContributed || 0}</div>
-                  <div className="text-xs text-muted-foreground leading-tight">Hours Contributed</div>
+                  <div className="text-xs text-muted-foreground leading-tight text-center">Hours Contributed</div>
                 </CardContent>
               </Card>
             </div>
