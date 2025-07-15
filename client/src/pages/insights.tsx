@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import BottomNavigation from "@/components/bottom-navigation";
 import { getUserDisplayName } from "@/lib/username-generator";
@@ -25,6 +26,8 @@ import {
   Eye,
   MessageSquare,
   Share2,
+  ChevronDown,
+  ChevronUp
 
 } from "lucide-react";
 
@@ -41,6 +44,7 @@ export default function InsightsPage() {
   const [sessionId] = useState(getSessionId());
   const [username, setUsername] = useState<string>('');
   const [persistentUserId, setPersistentUserId] = useState<string>('');
+  const [isLocationsExpanded, setIsLocationsExpanded] = useState(false);
   
   // Load username and persistent user ID
   useEffect(() => {
@@ -347,31 +351,41 @@ export default function InsightsPage() {
                           </div>
                         </div>
 
-                        {/* Recent Saved Locations */}
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Recently Saved</h4>
-                          {savedLocations.slice(0, 3).map((location: any) => (
-                            <div key={location.id} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                              <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                <MapPin className="w-3 h-3 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(location.createdAt).toLocaleDateString()}
-                                  </span>
+                        {/* All Saved Locations - Collapsible */}
+                        <Collapsible open={isLocationsExpanded} onOpenChange={setIsLocationsExpanded}>
+                          <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+                            <h4 className="text-sm font-medium text-muted-foreground">All Saved Locations ({savedLocations.length})</h4>
+                            {isLocationsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="space-y-2 mt-2">
+                            <div className="max-h-96 overflow-y-auto space-y-2">
+                              {savedLocations.map((location: any) => (
+                                <div key={location.id} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <MapPin className="w-3 h-3 text-primary" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(location.createdAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-mono">
+                                      {location.latitude && location.longitude ? 
+                                        `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                                        'Coordinates unavailable'
+                                      }
+                                    </p>
+                                  </div>
                                 </div>
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  {location.latitude && location.longitude ? 
-                                    `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
-                                    'Coordinates unavailable'
-                                  }
-                                </p>
-                              </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                            {savedLocations.length === 0 && (
+                              <p className="text-sm text-muted-foreground text-center py-4">No saved locations yet</p>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
                       </div>
                     )}
                   </CardContent>
