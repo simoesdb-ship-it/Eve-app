@@ -279,6 +279,12 @@ export default function InsightsPage() {
                               <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
                             </div>
                           </CollapsibleTrigger>
+                          <div className="text-xs text-muted-foreground mb-2 px-1">
+                            Shows your latest contributions: location visits, pattern suggestions, votes, and community insights. 
+                            <Link href="/activity" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                              View full activity →
+                            </Link>
+                          </div>
                           <CollapsibleContent>
                             <div className="space-y-2">
                               {activity.slice(0, 3).map((item: any, index: number) => (
