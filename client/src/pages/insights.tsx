@@ -179,33 +179,33 @@ export default function InsightsPage() {
           {/* PERSONAL INSIGHTS TAB */}
           <TabsContent value="personal" className="space-y-4">
             {/* Personal Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card>
-                <CardContent className="p-4 text-center">
-                  <Target className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{stats?.suggestedPatterns || 0}</div>
-                  <div className="text-sm text-muted-foreground">Patterns Suggested</div>
+                <CardContent className="p-3 text-center">
+                  <Target className="w-6 h-6 mx-auto mb-1 text-primary" />
+                  <div className="text-xl font-bold">{stats?.suggestedPatterns || 0}</div>
+                  <div className="text-xs text-muted-foreground leading-tight">Patterns Suggested</div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4 text-center">
-                  <Vote className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{stats?.votesContributed || 0}</div>
-                  <div className="text-sm text-muted-foreground">Votes Cast</div>
+                <CardContent className="p-3 text-center">
+                  <Vote className="w-6 h-6 mx-auto mb-1 text-primary" />
+                  <div className="text-xl font-bold">{stats?.votesContributed || 0}</div>
+                  <div className="text-xs text-muted-foreground leading-tight">Votes Cast</div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4 text-center">
-                  <MapPin className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{stats?.locationsTracked || 0}</div>
-                  <div className="text-sm text-muted-foreground">Locations Tracked</div>
+                <CardContent className="p-3 text-center">
+                  <MapPin className="w-6 h-6 mx-auto mb-1 text-primary" />
+                  <div className="text-xl font-bold">{stats?.locationsTracked || 0}</div>
+                  <div className="text-xs text-muted-foreground leading-tight">Locations Tracked</div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4 text-center">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold">{stats?.hoursContributed || 0}</div>
-                  <div className="text-sm text-muted-foreground">Hours Contributed</div>
+                <CardContent className="p-3 text-center">
+                  <Clock className="w-6 h-6 mx-auto mb-1 text-primary" />
+                  <div className="text-xl font-bold">{stats?.hoursContributed || 0}</div>
+                  <div className="text-xs text-muted-foreground leading-tight">Hours Contributed</div>
                 </CardContent>
               </Card>
             </div>
