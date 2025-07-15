@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNavigation from "@/components/bottom-navigation";
 import { UsernameDisplay } from "@/components/username-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getUserDisplayName } from "@/lib/username-generator";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { 
   Settings, 
   Shield, 
@@ -23,6 +25,22 @@ export default function SettingsPage() {
   const [locationTracking, setLocationTracking] = useState(true);
   const [notifications, setNotifications] = useState(false);
   const [offlineMode, setOfflineMode] = useState(true);
+  const [username, setUsername] = useState<string>('');
+
+  // Load username
+  useEffect(() => {
+    async function loadUsername() {
+      try {
+        const userId = await getConsistentUserId();
+        const displayName = getUserDisplayName(userId);
+        setUsername(displayName);
+      } catch (error) {
+        console.error('Failed to generate username:', error);
+        setUsername('Anonymous');
+      }
+    }
+    loadUsername();
+  }, []);
 
   const handleClearData = () => {
     if (confirm("Are you sure you want to clear all local data? This action cannot be undone.")) {
@@ -56,12 +74,20 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
+      {/* Status Bar */}
+      <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+          <span>{username || 'Loading...'}</span>
+        </div>
+      </div>
+
+      {/* App Header */}
+      <header className="bg-transparent px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Settings className="w-4 h-4 text-white" />
+              <span className="text-white font-bold text-sm">E</span>
             </div>
             <div>
               <h1 className="text-lg font-semibold text-neutral-800">Settings</h1>
