@@ -1,22 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getDeviceId, getConsistentUserId } from "@/lib/device-fingerprint";
+import { getConsistentUserId } from "@/lib/device-fingerprint";
 import { getUserDisplayName, getUserColor, getUserInitials } from "@/lib/username-generator";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Fingerprint, Shield, MapPin, Coins, Check, User } from "lucide-react";
 
 export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
-  const [deviceId, setDeviceId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isExistingUser, setIsExistingUser] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,292 +24,231 @@ export default function OnboardingPage() {
 
   const initializeDevice = async () => {
     try {
-      const deviceFingerprint = await getDeviceId();
       const anonymousUserId = await getConsistentUserId();
-      
-      setDeviceId(deviceFingerprint);
       setUserId(anonymousUserId);
 
       // Generate consistent username from device fingerprint
       const generatedUsername = getUserDisplayName(anonymousUserId);
       setUsername(generatedUsername);
 
-      // Check if device is already registered
-      const response = await fetch(`/api/check-device/${deviceFingerprint}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.exists && data.isActive) {
-          setIsExistingUser(true);
-          setUsername(data.username || generatedUsername);
-          setStep(4); // Show username step for existing users too
-        }
+      // Check if user has already completed onboarding
+      const onboardingComplete = localStorage.getItem(`onboarding_complete_${anonymousUserId}`);
+      if (onboardingComplete === 'true') {
+        // Redirect to main app
+        setLocation('/');
+        return;
       }
     } catch (error) {
       console.error('Failed to initialize device:', error);
     }
   };
 
-  const registerDevice = async () => {
-    if (!deviceId || !userId) return;
+  const acquireLocation = useCallback(async () => {
+    setIsLocationLoading(true);
+    setLocationError(null);
 
-    setIsRegistering(true);
-    try {
-      const deviceInfo = {
-        screen: `${window.screen.width}x${window.screen.height}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language,
-        platform: navigator.platform
-      };
-
-      const response = await apiRequest('POST', '/api/register-device', {
-        deviceId,
-        userId,
-        username,
-        deviceFingerprint: JSON.stringify(deviceInfo)
-      });
-
-      const data = await response.json();
-      
-      if (data.registered) {
-        toast({
-          title: "Registration Complete",
-          description: "You can now start discovering patterns in your area",
+    // Try GPS location
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 60000
+          });
         });
-        setStep(6);
+
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // Be permissive with GPS accuracy for onboarding
+        if (accuracy && accuracy > 5000) {
+          throw new Error('GPS accuracy insufficient');
+        }
+
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        setIsLocationLoading(false);
+        return;
+      } catch (gpsError) {
+        console.warn('GPS location failed:', gpsError);
       }
-    } catch (error: any) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRegistering(false);
     }
-  };
 
-  const completeOnboarding = () => {
-    setLocation('/');
-  };
+    // Try IP-based geolocation as fallback
+    try {
+      const ipResponse = await fetch('https://ipapi.co/json/');
+      const ipData = await ipResponse.json();
+      if (ipData.latitude && ipData.longitude) {
+        const ipLocation = { lat: ipData.latitude, lng: ipData.longitude };
+        setCurrentLocation(ipLocation);
+        setIsLocationLoading(false);
+        return;
+      }
+    } catch (ipError) {
+      console.warn('IP geolocation failed:', ipError);
+    }
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-              <MapPin className="w-8 h-8 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">Welcome to Pattern Discovery</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Discover and influence architectural patterns in your community through location-based democratic participation.
-              </p>
-            </div>
-            <Button onClick={() => setStep(2)} size="lg" className="w-full">
-              Get Started
-            </Button>
-          </div>
-        );
+    // Set error state
+    setLocationError('Unable to determine location');
+    setIsLocationLoading(false);
+  }, []);
 
-      case 2:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-              <Shield className="w-8 h-8 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">Anonymous & Secure</h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                Your privacy is protected. We use device fingerprinting to create a unique anonymous identity that prevents multiple accounts while keeping you completely anonymous.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>No personal information required</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>One account per device</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>Complete privacy protection</span>
-                </div>
-              </div>
-            </div>
-            <Button onClick={() => setStep(3)} size="lg" className="w-full">
-              Continue
-            </Button>
-          </div>
-        );
+  const completeOnboarding = async () => {
+    if (!userId) return;
 
-      case 3:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <Coins className="w-8 h-8 text-green-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">Earn Tokens for Location Data</h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                Contribute valuable spatial data and earn tokens based on data quality and quantity.
-              </p>
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                  <span>GPS Coordinates</span>
-                  <Badge variant="secondary">0.5 tokens each</Badge>
-                </div>
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                  <span>High Accuracy Bonus</span>
-                  <Badge variant="secondary">2x multiplier</Badge>
-                </div>
-                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                  <span>Time Tracking</span>
-                  <Badge variant="secondary">0.1 tokens/min</Badge>
-                </div>
-              </div>
-            </div>
-            <Button onClick={() => setStep(4)} size="lg" className="w-full">
-              Continue
-            </Button>
-          </div>
-        );
+    try {
+      // Mark onboarding as complete in localStorage
+      localStorage.setItem(`onboarding_complete_${userId}`, 'true');
+      
+      toast({
+        title: "Welcome to Pattern Discovery!",
+        description: "You're all set to start exploring architectural patterns"
+      });
 
-      case 4:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
-              <User className="w-8 h-8 text-orange-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">
-                {isExistingUser ? "Welcome Back!" : "Your Anonymous Identity"}
-              </h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                {isExistingUser 
-                  ? "Here's your unique anonymous identity. This username is always the same when you use this device."
-                  : "You'll be known by this unique two-word name that's generated from your device. This keeps you anonymous while giving you a memorable identity."
-                }
-              </p>
-              
-              {username && (
-                <div className="flex flex-col items-center space-y-4 mb-6">
-                  <div 
-                    className="w-20 h-20 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                    style={{ backgroundColor: getUserColor(username) }}
-                  >
-                    {getUserInitials(username)}
-                  </div>
-                  <div className="text-xl font-semibold text-foreground">
-                    {username}
-                  </div>
-                </div>
-              )}
-              
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2 text-sm">
-                <div className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>Same username every time you use the app</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>Completely anonymous - no personal data</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>Unique to your device</span>
-                </div>
-              </div>
-            </div>
-            <Button onClick={() => setStep(5)} size="lg" className="w-full">
-              Continue
-            </Button>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-              <Fingerprint className="w-8 h-8 text-purple-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">
-                {isExistingUser ? "Welcome Back!" : "Register Your Device"}
-              </h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                {isExistingUser 
-                  ? "Your device is already registered. You can continue using the app with your existing anonymous identity."
-                  : "Complete the registration to secure your anonymous identity and start earning tokens."
-                }
-              </p>
-              {!isExistingUser && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2 text-sm">
-                  <div className="font-medium">Your Anonymous ID:</div>
-                  <div className="font-mono text-xs bg-white dark:bg-gray-700 p-2 rounded border break-all">
-                    {userId}
-                  </div>
-                </div>
-              )}
-            </div>
-            <Button 
-              onClick={isExistingUser ? completeOnboarding : registerDevice}
-              size="lg" 
-              className="w-full"
-              disabled={isRegistering}
-            >
-              {isRegistering ? "Registering..." : isExistingUser ? "Start Exploring" : "Complete Registration"}
-            </Button>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <Check className="w-8 h-8 text-green-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-3">You're All Set!</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Your anonymous identity has been created. You can now discover patterns, contribute location data, and participate in democratic urban planning.
-              </p>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg text-sm">
-              <div className="font-medium mb-2">Starting Balance:</div>
-              <div className="text-2xl font-bold text-blue-600">100 Tokens</div>
-            </div>
-            <Button onClick={completeOnboarding} size="lg" className="w-full">
-              Start Exploring
-            </Button>
-          </div>
-        );
-
-      default:
-        return null;
+      // Navigate to main app
+      setLocation('/');
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      toast({
+        title: "Setup Error",
+        description: "Failed to complete setup. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardContent className="p-8">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="flex space-x-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full ${
-                    i <= step ? 'bg-primary' : 'bg-gray-200'
-                  }`}
-                />
-              ))}
+        <CardContent className="p-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">E</span>
             </div>
+            <h1 className="text-2xl font-bold text-gray-800">Welcome to EVE</h1>
+            <p className="text-gray-600 mt-2">Pattern Discovery Platform</p>
           </div>
 
-          {renderStep()}
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <User className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                <h2 className="text-lg font-semibold mb-2">Your Anonymous Identity</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  We'll create a unique anonymous identity for you based on your device.
+                </p>
+                
+                <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                  <p className="text-sm font-medium text-gray-700">Your Username:</p>
+                  <Badge variant="secondary" className="mt-1">{username}</Badge>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={() => setStep(2)}
+                className="w-full"
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <MapPin className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                <h2 className="text-lg font-semibold mb-2">Location Access</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  We need location access to suggest architectural patterns for your area.
+                </p>
+                
+                {isLocationLoading && (
+                  <div className="flex items-center justify-center space-x-2 py-4">
+                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600">Getting your location...</span>
+                  </div>
+                )}
+                
+                {locationError && (
+                  <div className="bg-red-50 border border-red-200 p-3 rounded-lg mb-4">
+                    <p className="text-sm text-red-600">{locationError}</p>
+                  </div>
+                )}
+                
+                {currentLocation && (
+                  <div className="bg-green-50 border border-green-200 p-3 rounded-lg mb-4">
+                    <p className="text-sm text-green-600">
+                      ✓ Location acquired: {currentLocation.lat.toFixed(4)}, {currentLocation.lng.toFixed(4)}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                {!currentLocation && !isLocationLoading && (
+                  <Button 
+                    onClick={acquireLocation}
+                    className="w-full"
+                  >
+                    Enable Location Access
+                  </Button>
+                )}
+                
+                {currentLocation && (
+                  <Button 
+                    onClick={() => setStep(3)}
+                    className="w-full"
+                  >
+                    Continue
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={() => {
+                    // Skip location for now
+                    setStep(3);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Skip for Now
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <Check className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                <h2 className="text-lg font-semibold mb-2">You're All Set!</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Start discovering and voting on architectural patterns in your area.
+                </p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                    <Shield className="w-4 h-4" />
+                    <span>Anonymous and privacy-focused</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                    <MapPin className="w-4 h-4" />
+                    <span>Location-based pattern discovery</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                    <Coins className="w-4 h-4" />
+                    <span>Earn tokens for valuable contributions</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={completeOnboarding}
+                className="w-full"
+              >
+                Start Exploring
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -26,8 +26,9 @@ export default function DiscoverPage() {
   const [isPatternsCollapsed, setIsPatternsCollapsed] = useState(true);
   const [username, setUsername] = useState<string>('');
   const [persistentUserId, setPersistentUserId] = useState<string>('');
-  const [isLocationLoading, setIsLocationLoading] = useState(true);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const { toast } = useToast();
 
   // Load username and persistent user ID
@@ -38,6 +39,10 @@ export default function DiscoverPage() {
         const displayName = getUserDisplayName(userId);
         setUsername(displayName);
         setPersistentUserId(userId);
+        
+        // Check if user has completed onboarding
+        const onboardingComplete = localStorage.getItem(`onboarding_complete_${userId}`);
+        setHasCompletedOnboarding(onboardingComplete === 'true');
       } catch (error) {
         console.error('Failed to generate username:', error);
         setUsername('Anonymous');
@@ -217,15 +222,15 @@ export default function DiscoverPage() {
     setIsLocationLoading(false);
   }, [sessionId, persistentUserId, createLocationMutation, lastLocationAttempt, locationAttempts, currentLocation]);
 
-  // Acquire location only once on component mount
+  // Acquire location only for users who have completed onboarding
   const [hasInitialized, setHasInitialized] = useState(false);
   
   useEffect(() => {
-    if (!hasInitialized) {
+    if (!hasInitialized && hasCompletedOnboarding && persistentUserId) {
       acquireLocation();
       setHasInitialized(true);
     }
-  }, [hasInitialized, acquireLocation]);
+  }, [hasInitialized, hasCompletedOnboarding, persistentUserId, acquireLocation]);
 
   // Monitor app visibility changes for location refresh (rate limited)
   const [lastVisibilityChange, setLastVisibilityChange] = useState<number>(0);
@@ -362,47 +367,28 @@ export default function DiscoverPage() {
         </div>
       </header>
 
-      {/* Location Permission Prompt */}
-      {(!currentLocation && !isLocationLoading) && (
-        <div className="mx-4 my-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      {/* Onboarding Prompt - Only show if user hasn't completed onboarding */}
+      {!hasCompletedOnboarding && (
+        <div className="mx-4 my-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-              <span className="text-amber-600 text-sm">📍</span>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 text-sm">🚀</span>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-amber-800">Location Access Needed</h3>
-              <p className="text-xs text-amber-600 mt-1">
-                {locationError || "Enable GPS to discover architectural patterns around you"}
+              <h3 className="text-sm font-medium text-blue-800">Welcome to Pattern Discovery</h3>
+              <p className="text-xs text-blue-600 mt-1">
+                Complete setup to start discovering architectural patterns
               </p>
             </div>
-            <div className="flex flex-col space-y-2">
-              <button 
-                onClick={() => {
-                  setLocationAttempts(0);
-                  acquireLocation();
-                }}
-                className="px-3 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
-              >
-                Try Again
-              </button>
-              <button 
-                onClick={() => {
-                  // Use a default location for demonstration
-                  const defaultLocation = { lat: 44.9537, lng: -93.0900 }; // Minneapolis downtown
-                  setCurrentLocation(defaultLocation);
-                  setIsLocationLoading(false);
-                  createLocationMutation.mutate({
-                    latitude: defaultLocation.lat.toString(),
-                    longitude: defaultLocation.lng.toString(),
-                    name: "Demo Location",
-                    sessionId: persistentUserId || sessionId
-                  });
-                }}
-                className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
-              >
-                Use Demo
-              </button>
-            </div>
+            <button 
+              onClick={() => {
+                // Navigate to onboarding
+                window.location.href = "/onboarding";
+              }}
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            >
+              Get Started
+            </button>
           </div>
         </div>
       )}
