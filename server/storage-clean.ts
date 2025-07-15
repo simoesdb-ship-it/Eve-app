@@ -69,6 +69,8 @@ export interface IStorage {
   getSavedLocations(limit: number): Promise<SavedLocation[]>;
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
+  getAllSavedLocations(): Promise<SavedLocation[]>;
+  migrateSavedLocations(newUserId: string, locationIds: number[]): Promise<number>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
   
   // Saved location patterns
@@ -297,6 +299,19 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(savedLocations)
       .where(eq(savedLocations.sessionId, sessionId))
       .orderBy(desc(savedLocations.createdAt));
+  }
+
+  async getAllSavedLocations(): Promise<SavedLocation[]> {
+    return await db.select().from(savedLocations)
+      .orderBy(desc(savedLocations.createdAt));
+  }
+
+  async migrateSavedLocations(newUserId: string, locationIds: number[]): Promise<number> {
+    const updates = await db.update(savedLocations)
+      .set({ sessionId: newUserId })
+      .where(sql`${savedLocations.id} = ANY(ARRAY[${locationIds.join(', ')}])`)
+      .returning();
+    return updates.length;
   }
 
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {

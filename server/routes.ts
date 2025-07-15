@@ -260,15 +260,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get saved locations by user ID (query parameter) - for insights page  
   app.get('/api/saved-locations', async (req, res) => {
     try {
-      const { userId } = req.query;
+      const { userId, includeAll } = req.query;
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
-      const savedLocations = await storage.getSavedLocationsBySession(userId as string);
-      res.json(savedLocations);
+      
+      // If includeAll is true, show all saved locations for potential migration
+      if (includeAll === 'true') {
+        const allLocations = await storage.getAllSavedLocations();
+        res.json(allLocations);
+      } else {
+        const savedLocations = await storage.getSavedLocationsBySession(userId as string);
+        res.json(savedLocations);
+      }
     } catch (error) {
       console.error('Error fetching saved locations:', error);
       res.status(500).json({ error: 'Failed to fetch saved locations' });
+    }
+  });
+
+  // Migrate old saved locations to current user
+  app.post('/api/saved-locations/migrate', async (req, res) => {
+    try {
+      const { currentUserId, locationIds } = req.body;
+      
+      if (!currentUserId || !locationIds || !Array.isArray(locationIds)) {
+        return res.status(400).json({ error: 'Current user ID and location IDs array are required' });
+      }
+      
+      const result = await storage.migrateSavedLocations(currentUserId, locationIds);
+      res.json({ success: true, migratedCount: result });
+    } catch (error) {
+      console.error('Error migrating saved locations:', error);
+      res.status(500).json({ error: 'Failed to migrate saved locations' });
     }
   });
 
