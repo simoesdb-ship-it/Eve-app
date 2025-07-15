@@ -46,9 +46,9 @@ export class MovementTracker {
           }
         },
         {
-          enableHighAccuracy: false, // Use standard accuracy for background tracking
-          timeout: 15000,
-          maximumAge: 300000 // Accept 5-minute-old locations
+          enableHighAccuracy: true, // Use high accuracy for consistent tracking
+          timeout: 20000,
+          maximumAge: 60000 // Accept 1-minute-old locations for fresher data
         }
       );
 
@@ -187,6 +187,12 @@ export class MovementTracker {
     const { latitude, longitude, accuracy, speed, heading } = position.coords;
     const currentPos = { lat: latitude, lng: longitude };
 
+    // Validate GPS accuracy - reject very inaccurate readings
+    if (accuracy && accuracy > 100) {
+      console.warn(`Tracking point accuracy too low (${accuracy}m), skipping`);
+      return;
+    }
+
     // Check if we've moved enough to warrant a new tracking point
     if (this.lastPosition) {
       const distance = this.calculateDistance(
@@ -195,6 +201,12 @@ export class MovementTracker {
         latitude,
         longitude
       );
+
+      // Skip if location jump is unrealistic (more than 1km per interval)
+      if (distance > 1000) {
+        console.warn(`Tracking point jump too large (${distance}m), skipping`);
+        return;
+      }
 
       if (distance < this.MIN_DISTANCE_METERS) {
         return; // Not enough movement

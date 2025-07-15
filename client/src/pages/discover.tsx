@@ -8,7 +8,7 @@ import BottomNavigation from "@/components/bottom-navigation";
 import PatternDetailsModal from "@/components/pattern-details-modal";
 import { getUserDisplayName } from "@/lib/username-generator";
 import { getConsistentUserId } from "@/lib/device-fingerprint";
-import { generateSessionId } from "@/lib/geolocation";
+import { generateSessionId, calculateDistance } from "@/lib/geolocation";
 import { startGlobalTracking, stopGlobalTracking } from "@/lib/movement-tracker";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -143,13 +143,34 @@ export default function DiscoverPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: false, // Use standard accuracy to be more reliable
-            timeout: 8000,
-            maximumAge: 300000 // Accept cached location up to 5 minutes old
+            enableHighAccuracy: true, // Use high accuracy for precise location
+            timeout: 15000, // Increased timeout for better accuracy
+            maximumAge: 30000 // Use more recent location data (30 seconds)
           });
         });
         
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // Validate GPS accuracy - only use if accuracy is reasonable (less than 100 meters)
+        if (accuracy && accuracy > 100) {
+          console.warn(`GPS accuracy too low (${accuracy}m), using fallback`);
+          throw new Error('GPS accuracy insufficient');
+        }
+        
+        // Additional validation: prevent extreme coordinate jumps
+        if (currentLocation) {
+          const distance = calculateDistance(
+            currentLocation.lat, currentLocation.lng,
+            latitude, longitude
+          );
+          
+          // If location jumped more than 10km, it's likely an error
+          if (distance > 10000) {
+            console.warn(`GPS location jump too large (${distance}m), using previous location`);
+            return;
+          }
+        }
+        
         setCurrentLocation({ lat: latitude, lng: longitude });
         
         createLocationMutation.mutate({
@@ -159,7 +180,7 @@ export default function DiscoverPage() {
           sessionId
         });
         
-        console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        console.log(`Using GPS location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (accuracy: ${accuracy?.toFixed(1)}m)`);
         return;
       } catch (gpsError) {
         console.warn('GPS location failed:', gpsError);
