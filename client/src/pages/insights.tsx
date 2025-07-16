@@ -55,7 +55,6 @@ export default function InsightsPage() {
         const displayName = getUserDisplayName(userId);
         setUsername(displayName);
         setPersistentUserId(userId);
-        console.log('User ID for saved locations:', userId);
       } catch (error) {
         console.error('Failed to generate username:', error);
         setUsername('Anonymous');

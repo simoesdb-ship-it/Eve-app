@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### January 15, 2025 - Saved Locations Display Fix
+- ✓ Fixed saved locations not appearing in web browser insights tab
+- ✓ Verified device fingerprint system generates consistent user IDs
+- ✓ Confirmed saved locations API correctly fetches data using persistent user ID
+- ✓ Added collapsible Recent Highlights section with explanatory text and activity link
+- ✓ System properly handles user_device_* format for persistent identification
+
 ### January 15, 2025 - UI Consistency & Header Formatting
 - ✓ Fixed Economy and Settings tab username display formatting inconsistencies
 - ✓ Standardized status bar with animated pulse indicator and username display
