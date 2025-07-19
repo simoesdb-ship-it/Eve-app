@@ -193,6 +193,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location time breakdown endpoint
+  app.get('/api/location-time-breakdown/:userId', async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const breakdown = await storage.getLocationTimeBreakdown(userId);
+      res.json(breakdown);
+    } catch (error) {
+      console.error('Error fetching location time breakdown:', error);
+      res.status(500).json({ message: "Failed to fetch location time breakdown" });
+    }
+  });
+
   // Search patterns
   app.get("/api/patterns/search", async (req, res) => {
     try {
