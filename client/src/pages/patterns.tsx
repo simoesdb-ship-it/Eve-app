@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Search, ExternalLink } from "lucide-react";
+import { ArrowLeft, Search, ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,6 +138,48 @@ export default function PatternsPage() {
       </header>
 
       <div className="p-4 space-y-4 pb-24">
+        {/* Pattern Library Explanation */}
+        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <BookOpen className="w-6 h-6 text-amber-600 mt-1" />
+              <div>
+                <h3 className="font-semibold text-amber-900 mb-2">Christopher Alexander's Pattern Language</h3>
+                <p className="text-sm text-amber-800 mb-3">
+                  Explore all 253 architectural patterns from "A Pattern Language" - a revolutionary approach 
+                  to urban design and building that creates living, breathing spaces. Each pattern describes 
+                  a problem and solution for making places more livable and beautiful.
+                </p>
+                <div className="text-xs text-amber-700">
+                  The app automatically suggests relevant patterns based on your location's architectural context and urban layout.
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{patterns.length}</div>
+              <div className="text-xs text-muted-foreground">Total Patterns</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{categories.length - 1}</div>
+              <div className="text-xs text-muted-foreground">Categories</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{filteredPatterns.length}</div>
+              <div className="text-xs text-muted-foreground">Showing</div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Search and Filter */}
         <div className="space-y-3">
           <div className="relative">

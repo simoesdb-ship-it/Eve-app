@@ -181,6 +181,26 @@ export default function InsightsPage() {
 
           {/* PERSONAL INSIGHTS TAB */}
           <TabsContent value="personal" className="space-y-4">
+            {/* Personal Insights Explanation */}
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <BarChart3 className="w-6 h-6 text-green-600 mt-1" />
+                  <div>
+                    <h3 className="font-semibold text-green-900 mb-2">Your Data Insights</h3>
+                    <p className="text-sm text-green-800 mb-3">
+                      Track your contributions to the community knowledge base. Every location you visit, 
+                      pattern you identify, and vote you cast helps build a comprehensive understanding 
+                      of urban design based on Christopher Alexander's architectural principles.
+                    </p>
+                    <div className="text-xs text-green-700">
+                      Your anonymous data earns tokens and helps other users discover better designed spaces.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Personal Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Link href="/patterns-suggested-info">
@@ -417,6 +437,26 @@ export default function InsightsPage() {
 
           {/* COMMUNITY INSIGHTS TAB */}
           <TabsContent value="community" className="space-y-4">
+            {/* Community Insights Explanation */}
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <Users className="w-6 h-6 text-purple-600 mt-1" />
+                  <div>
+                    <h3 className="font-semibold text-purple-900 mb-2">Community Intelligence</h3>
+                    <p className="text-sm text-purple-800 mb-3">
+                      See how the entire community is using the app to discover architectural patterns. 
+                      This data shows collective movement patterns, popular locations, and consensus 
+                      on which places follow good design principles.
+                    </p>
+                    <div className="text-xs text-purple-700">
+                      All community data is anonymized and aggregated to protect individual privacy while revealing urban insights.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Community Overview */}
             <Card>
               <CardHeader>

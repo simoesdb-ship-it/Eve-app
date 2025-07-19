@@ -172,8 +172,28 @@ export default function ActivityPage() {
         </div>
       </header>
 
-      {/* Feature Categories */}
+      {/* What Does This App Track? */}
       <div className="px-4 py-3 space-y-3 pb-24">
+        {/* Overview Card */}
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <Database className="w-6 h-6 text-blue-600 mt-1" />
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-2">What This App Tracks</h3>
+                <p className="text-sm text-blue-800 mb-3">
+                  This app continuously analyzes your location and movement to discover architectural patterns 
+                  based on Christopher Alexander's "A Pattern Language" - helping build a community understanding 
+                  of what makes places livable and beautiful.
+                </p>
+                <div className="text-xs text-blue-700">
+                  All data is anonymous and contributes to a peer-to-peer economy where quality insights earn tokens.
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Movement Tracking */}
         <Collapsible open={expandedSections.movement} onOpenChange={() => toggleSection('movement')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-white rounded-lg border hover:bg-gray-50">
@@ -181,17 +201,21 @@ export default function ActivityPage() {
               <Navigation className="w-5 h-5 text-blue-600" />
               <div className="text-left">
                 <h3 className="font-medium text-neutral-800">Movement Tracking</h3>
-                <p className="text-xs text-neutral-500">GPS location recording every 3 minutes</p>
+                <p className="text-xs text-neutral-500">GPS location recording every 30 seconds</p>
               </div>
             </div>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.movement ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 py-2">
-            <div className="text-sm text-neutral-600 space-y-1">
-              <p>• Records precise coordinates (latitude/longitude)</p>
-              <p>• Creates accumulating dots on map showing movement patterns</p>
-              <p>• Maintains anonymous session-based tracking for privacy</p>
-              <p>• Currently tracking {stats?.offlinePatterns || 0} active sessions</p>
+            <div className="text-sm text-neutral-600 space-y-2">
+              <p>• Records precise coordinates (latitude/longitude) with high accuracy GPS</p>
+              <p>• Creates accumulating dots on map showing movement patterns over time</p>
+              <p>• Clusters nearby points to identify frequent locations and time spent</p>
+              <p>• Maintains anonymous session-based tracking for complete privacy</p>
+              <p>• Earns tokens for valuable location data contributions</p>
+              <div className="bg-gray-50 p-2 rounded text-xs">
+                Currently tracking {stats?.offlinePatterns || 0} community contributors
+              </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -209,11 +233,15 @@ export default function ActivityPage() {
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.location ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 py-2">
-            <div className="text-sm text-neutral-600 space-y-1">
-              <p>• Analyzes specific locations when users tap to investigate</p>
-              <p>• Generates contextual Alexander pattern suggestions</p>
-              <p>• Creates persistent location records with associated patterns</p>
-              <p>• Links real places to relevant design patterns</p>
+            <div className="text-sm text-neutral-600 space-y-2">
+              <p>• Analyzes specific locations when you tap to investigate on the map</p>
+              <p>• Generates contextual Alexander pattern suggestions using AI algorithms</p>
+              <p>• Evaluates building height, architectural style, walkability, and urban density</p>
+              <p>• Creates persistent location records with detailed architectural insights</p>
+              <p>• Links real places to relevant design patterns from "A Pattern Language"</p>
+              <div className="bg-gray-50 p-2 rounded text-xs">
+                {stats?.suggestedPatterns || 0} pattern suggestions generated across all locations
+              </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
