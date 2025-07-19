@@ -281,37 +281,6 @@ export default function Communication() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      {/* Communication Platform Explanation */}
-      <Card className="bg-gradient-to-r from-indigo-50 to-cyan-50 border-indigo-200">
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-4">
-            <Lock className="w-8 h-8 text-indigo-600 mt-1" />
-            <div>
-              <h2 className="text-xl font-bold text-indigo-900 mb-3">Encrypted Peer-to-Peer Communication</h2>
-              <p className="text-sm text-indigo-800 mb-4">
-                This is a secure, anonymous communication platform where you can exchange location insights, 
-                architectural patterns, and route data with other users. All messages are encrypted end-to-end 
-                and protected by a token-gated system that ensures valuable information is fairly compensated.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <div className="font-semibold text-indigo-900 mb-1">🔒 End-to-End Encryption</div>
-                  <div className="text-indigo-700">All communications use AES-256-GCM encryption with unique keys per conversation.</div>
-                </div>
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <div className="font-semibold text-indigo-900 mb-1">🪙 Token-Gated Messages</div>
-                  <div className="text-indigo-700">Text costs 1 token, location sharing 3 tokens, pattern insights 15+ tokens.</div>
-                </div>
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <div className="font-semibold text-indigo-900 mb-1">👤 Anonymous Identity</div>
-                  <div className="text-indigo-700">Your device fingerprint generates a unique username while preserving privacy.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Bitcoin-Powered Communication</h1>

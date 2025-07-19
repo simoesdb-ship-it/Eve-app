@@ -10,34 +10,6 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### January 19, 2025 - Activity Categories & Movement Tracking Explanations
-- ✓ Created comprehensive activity explanation page with clickable links for 1,344 total activities
-- ✓ Added detailed breakdown of activity categories: 1,197 visits + 147 votes across all users
-- ✓ Built movement tracking explanation page addressing "0 hours" display issue
-- ✓ Fixed stats API endpoint to properly accept session ID parameters for movement tracking
-- ✓ Added clickable explanatory links throughout activity section for user education
-- ✓ Documented technical root causes of movement tracking display issues
-- ✓ Created routes for /activity-explanation and /movement-tracking-explanation pages
-- ✓ Enhanced activity page to show "1,344 total" instead of incorrect "50 total" count
-- ✓ Provided comprehensive technical documentation for GPS tracking system functionality
-
-### January 19, 2025 - Location Time Breakdown Feature Implementation  
-- ✓ Added detailed location time breakdown feature under "Hours Contributed" section
-- ✓ Created new API endpoint `/api/location-time-breakdown/:userId` for fetching detailed time data
-- ✓ Implemented smart location clustering algorithm using 50-meter radius grouping
-- ✓ Enhanced hours-contributed-info page with expandable breakdown interface showing:
-  - Total hours and visit counts per location with summary statistics
-  - Location names, coordinates, and visit date ranges
-  - Interactive collapsible interface with scrollable location list
-- ✓ Fixed SQL syntax errors and database column name issues (created_at vs timestamp)
-- ✓ Added demo tracking data to test functionality with realistic time intervals
-- ✓ System now calculates time by analyzing gaps between GPS tracking points
-- ✓ Only includes locations with meaningful activity and handles visit frequency analysis
-- ✓ Fixed mobile session ID mismatch between automatic tracking and time breakdown calculation
-- ✓ Resolved type errors in MovementTracker class (InsertTrackingPoint vs InsertSpatialPoint)
-- ✓ Added fallback endpoint for finding tracking data across different session ID formats
-- ✓ Mobile devices now properly show location time breakdown with real GPS tracking data
-
 ### January 19, 2025 - Bitcoin-Powered Communication Platform Implementation  
 - ✓ Successfully implemented Phase 1 of communication transformation roadmap
 - ✓ Created comprehensive database schema for encrypted messaging, peer connections, and shared paths

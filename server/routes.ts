@@ -193,40 +193,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Location time breakdown endpoint
-  app.get('/api/location-time-breakdown/:userId', async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const breakdown = await storage.getLocationTimeBreakdown(userId);
-      res.json(breakdown);
-    } catch (error) {
-      console.error('Error fetching location time breakdown:', error);
-      res.status(500).json({ message: "Failed to fetch location time breakdown" });
-    }
-  });
-
-  // Fallback endpoint to find tracking data by any session ID
-  app.get('/api/location-time-breakdown/any-session', async (req, res) => {
-    try {
-      const devicePrefix = req.query.devicePrefix as string;
-      
-      // Get all session IDs and find the most recent one with tracking data
-      const sessions = await storage.getAllSessionsWithTrackingData();
-      console.log('Available sessions with tracking data:', sessions);
-      
-      // Use the session with the most recent activity
-      if (sessions.length > 0) {
-        const breakdown = await storage.getLocationTimeBreakdown(sessions[0].sessionId);
-        res.json(breakdown);
-      } else {
-        res.json([]);
-      }
-    } catch (error) {
-      console.error('Error fetching fallback location breakdown:', error);
-      res.status(500).json({ message: "Failed to fetch fallback location breakdown" });
-    }
-  });
-
   // Search patterns
   app.get("/api/patterns/search", async (req, res) => {
     try {

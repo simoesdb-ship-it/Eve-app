@@ -181,26 +181,6 @@ export default function InsightsPage() {
 
           {/* PERSONAL INSIGHTS TAB */}
           <TabsContent value="personal" className="space-y-4">
-            {/* Personal Insights Explanation */}
-            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
-                  <BarChart3 className="w-6 h-6 text-green-600 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-green-900 mb-2">Your Data Insights</h3>
-                    <p className="text-sm text-green-800 mb-3">
-                      Track your contributions to the community knowledge base. Every location you visit, 
-                      pattern you identify, and vote you cast helps build a comprehensive understanding 
-                      of urban design based on Christopher Alexander's architectural principles.
-                    </p>
-                    <div className="text-xs text-green-700">
-                      Your anonymous data earns tokens and helps other users discover better designed spaces.
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Personal Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Link href="/patterns-suggested-info">
@@ -293,23 +273,19 @@ export default function InsightsPage() {
 
                         {/* Recent Activity Highlights */}
                         <Collapsible open={!isHighlightsCollapsed} onOpenChange={(open) => setIsHighlightsCollapsed(!open)}>
-                          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-white rounded-lg border hover:bg-gray-50 mb-2">
-                            <div className="flex items-center space-x-3">
-                              <Activity className="w-5 h-5 text-blue-600" />
-                              <div className="text-left">
-                                <h4 className="font-medium text-neutral-800">Recent Highlights</h4>
-                                <p className="text-xs text-neutral-500">Latest contributions and interactions</p>
-                              </div>
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between cursor-pointer py-2">
+                              <h4 className="text-sm font-medium text-muted-foreground">Recent Highlights</h4>
+                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
                             </div>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
                           </CollapsibleTrigger>
-                          <div className="text-xs text-muted-foreground mb-2 px-3">
+                          <div className="text-xs text-muted-foreground mb-2 px-1">
                             Shows your latest contributions: location visits, pattern suggestions, votes, and community insights. 
                             <Link href="/activity" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
                               View full activity →
                             </Link>
                           </div>
-                          <CollapsibleContent className="px-3 py-2">
+                          <CollapsibleContent>
                             <div className="space-y-2">
                               {activity.slice(0, 3).map((item: any, index: number) => (
                                 <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -441,26 +417,6 @@ export default function InsightsPage() {
 
           {/* COMMUNITY INSIGHTS TAB */}
           <TabsContent value="community" className="space-y-4">
-            {/* Community Insights Explanation */}
-            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
-                  <Users className="w-6 h-6 text-purple-600 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-purple-900 mb-2">Community Intelligence</h3>
-                    <p className="text-sm text-purple-800 mb-3">
-                      See how the entire community is using the app to discover architectural patterns. 
-                      This data shows collective movement patterns, popular locations, and consensus 
-                      on which places follow good design principles.
-                    </p>
-                    <div className="text-xs text-purple-700">
-                      All community data is anonymized and aggregated to protect individual privacy while revealing urban insights.
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Community Overview */}
             <Card>
               <CardHeader>

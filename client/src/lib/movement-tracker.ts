@@ -11,8 +11,8 @@ export class MovementTracker {
   private sessionId: string;
   private isTracking: boolean = false;
   private lastTrackingTime: number = 0;
-  private readonly TRACKING_INTERVAL_MS = 30 * 1000; // 30 seconds for testing accumulation  
-  private readonly MIN_DISTANCE_METERS = 0.5; // 0.5 meter for mobile testing clustering
+  private readonly TRACKING_INTERVAL_MS = 30 * 1000; // 30 seconds for testing accumulation
+  private readonly MIN_DISTANCE_METERS = 1; // 1 meter for testing clustering
   private lastPosition: { lat: number; lng: number } | null = null;
   private pendingPoints: InsertSpatialPoint[] = [];
   private syncInterval: NodeJS.Timeout | null = null;
@@ -116,7 +116,7 @@ export class MovementTracker {
   }
 
   // Enhanced local storage for web persistence
-  private saveToLocalStorage(point: InsertSpatialPoint): void {
+  private saveToLocalStorage(point: InsertTrackingPoint): void {
     try {
       const key = `tracking_${this.sessionId}`;
       const existing = localStorage.getItem(key);
@@ -138,7 +138,7 @@ export class MovementTracker {
   }
 
   // Load tracking points from local storage
-  getLocalTrackingPoints(): SpatialPoint[] {
+  getLocalTrackingPoints(): TrackingPoint[] {
     try {
       const key = `tracking_${this.sessionId}`;
       const stored = localStorage.getItem(key);
@@ -213,17 +213,13 @@ export class MovementTracker {
       }
     }
 
-    const trackingPoint: InsertSpatialPoint = {
+    const trackingPoint: InsertTrackingPoint = {
       latitude: latitude.toString(),
       longitude: longitude.toString(),
       sessionId: this.sessionId,
-      type: 'tracking',
-      metadata: JSON.stringify({
-        accuracy: accuracy || 0,
-        speed: speed || 0,
-        heading: heading || 0,
-        timestamp: new Date().toISOString()
-      })
+      accuracy: accuracy ? accuracy.toString() : null,
+      speed: speed ? speed.toString() : null,
+      heading: heading ? heading.toString() : null,
     };
 
     // Save to local storage immediately for offline persistence
