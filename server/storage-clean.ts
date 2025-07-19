@@ -477,19 +477,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deductTokens(userId: string, amount: number): Promise<void> {
+    // First check if device registration exists, create if not
+    let registration = await this.getDeviceRegistration(userId);
+    if (!registration) {
+      registration = await this.createDeviceRegistration({
+        deviceId: userId,
+        userId: userId, // Add user_id field
+        tokenBalance: 100,
+        totalTokensEarned: 100,
+        totalTokensSpent: 0,
+        lastSeenAt: new Date()
+      });
+    }
+
     await db.update(deviceRegistrations)
       .set({ 
-        tokenBalance: sql`GREATEST(0, ${deviceRegistrations.tokenBalance} - ${amount})`,
-        totalTokensSpent: sql`${deviceRegistrations.totalTokensSpent} + ${amount}`
+        tokenBalance: Math.max(0, registration.tokenBalance - amount),
+        totalTokensSpent: (registration.totalTokensSpent || 0) + amount
       })
       .where(eq(deviceRegistrations.deviceId, userId));
   }
 
   async awardTokens(userId: string, amount: number): Promise<void> {
+    // First check if device registration exists, create if not
+    let registration = await this.getDeviceRegistration(userId);
+    if (!registration) {
+      registration = await this.createDeviceRegistration({
+        deviceId: userId,
+        userId: userId, // Add user_id field
+        tokenBalance: 100,
+        totalTokensEarned: 100,
+        totalTokensSpent: 0,
+        lastSeenAt: new Date()
+      });
+    }
+
     await db.update(deviceRegistrations)
       .set({ 
-        tokenBalance: sql`${deviceRegistrations.tokenBalance} + ${amount}`,
-        totalTokensEarned: sql`${deviceRegistrations.totalTokensEarned} + ${amount}`
+        tokenBalance: registration.tokenBalance + amount,
+        totalTokensEarned: (registration.totalTokensEarned || 0) + amount
       })
       .where(eq(deviceRegistrations.deviceId, userId));
   }
