@@ -2,6 +2,7 @@ import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
+  peerConnections, messages, sharedPaths, pathAccesses,
   type User, type InsertUser,
   type Pattern, type InsertPattern,
   type Location, type InsertLocation,
@@ -11,7 +12,11 @@ import {
   type ActivityWithLocation,
   type SpatialPoint, type InsertSpatialPoint,
   type SavedLocation, type InsertSavedLocation,
-  type DeviceRegistration, type InsertDeviceRegistration
+  type DeviceRegistration, type InsertDeviceRegistration,
+  type PeerConnection, type InsertPeerConnection,
+  type Message, type InsertMessage,
+  type SharedPath, type InsertSharedPath,
+  type PathAccess, type InsertPathAccess
 } from "@shared/schema";
 
 export interface PatternWithVotes extends Pattern {
@@ -75,6 +80,26 @@ export interface IStorage {
   getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined>;
   createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration>;
   updateDeviceLastSeen(deviceId: string): Promise<void>;
+  
+  // Communication methods for Bitcoin-powered location sharing
+  createPeerConnection(connection: InsertPeerConnection): Promise<PeerConnection>;
+  getPeerConnections(userId: string): Promise<PeerConnection[]>;
+  updatePeerConnection(connectionId: number, updates: Partial<PeerConnection>): Promise<void>;
+  
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessages(userId: string, peerId?: string): Promise<Message[]>;
+  markMessageDelivered(messageId: number): Promise<void>;
+  markMessageRead(messageId: number): Promise<void>;
+  
+  createSharedPath(path: InsertSharedPath): Promise<SharedPath>;
+  getSharedPaths(sharerId?: string): Promise<SharedPath[]>;
+  getSharedPath(pathId: number): Promise<SharedPath | undefined>;
+  recordPathAccess(access: InsertPathAccess): Promise<PathAccess>;
+  
+  // Token operations for communication economy
+  getUserTokenBalance(userId: string): Promise<number>;
+  deductTokens(userId: string, amount: number): Promise<void>;
+  awardTokens(userId: string, amount: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -315,6 +340,121 @@ export class DatabaseStorage implements IStorage {
     await db.update(deviceRegistrations)
       .set({ lastSeenAt: new Date() })
       .where(eq(deviceRegistrations.deviceId, deviceId));
+  }
+
+  // Communication methods for Bitcoin-powered location sharing
+  async createPeerConnection(connection: InsertPeerConnection): Promise<PeerConnection> {
+    const [newConnection] = await db.insert(peerConnections)
+      .values(connection)
+      .returning();
+    return newConnection;
+  }
+
+  async getPeerConnections(userId: string): Promise<PeerConnection[]> {
+    return await db.select().from(peerConnections)
+      .where(eq(peerConnections.localUserId, userId))
+      .orderBy(desc(peerConnections.lastActive));
+  }
+
+  async updatePeerConnection(connectionId: number, updates: Partial<PeerConnection>): Promise<void> {
+    await db.update(peerConnections)
+      .set({ ...updates, lastActive: new Date() })
+      .where(eq(peerConnections.id, connectionId));
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages)
+      .values(message)
+      .returning();
+    return newMessage;
+  }
+
+  async getMessages(userId: string, peerId?: string): Promise<Message[]> {
+    let query = db.select().from(messages)
+      .where(
+        sql`${messages.senderId} = ${userId} OR ${messages.recipientId} = ${userId}`
+      );
+    
+    if (peerId) {
+      query = query.where(
+        sql`(${messages.senderId} = ${userId} AND ${messages.recipientId} = ${peerId}) OR 
+            (${messages.senderId} = ${peerId} AND ${messages.recipientId} = ${userId})`
+      );
+    }
+    
+    return await query.orderBy(desc(messages.createdAt));
+  }
+
+  async markMessageDelivered(messageId: number): Promise<void> {
+    await db.update(messages)
+      .set({ deliveredAt: new Date() })
+      .where(eq(messages.id, messageId));
+  }
+
+  async markMessageRead(messageId: number): Promise<void> {
+    await db.update(messages)
+      .set({ readAt: new Date() })
+      .where(eq(messages.id, messageId));
+  }
+
+  async createSharedPath(path: InsertSharedPath): Promise<SharedPath> {
+    const [newPath] = await db.insert(sharedPaths)
+      .values(path)
+      .returning();
+    return newPath;
+  }
+
+  async getSharedPaths(sharerId?: string): Promise<SharedPath[]> {
+    let query = db.select().from(sharedPaths);
+    
+    if (sharerId) {
+      query = query.where(eq(sharedPaths.sharerId, sharerId));
+    }
+    
+    return await query.orderBy(desc(sharedPaths.createdAt));
+  }
+
+  async getSharedPath(pathId: number): Promise<SharedPath | undefined> {
+    const [path] = await db.select().from(sharedPaths)
+      .where(eq(sharedPaths.id, pathId));
+    return path;
+  }
+
+  async recordPathAccess(access: InsertPathAccess): Promise<PathAccess> {
+    const [newAccess] = await db.insert(pathAccesses)
+      .values(access)
+      .returning();
+    
+    // Increment total accesses count
+    await db.update(sharedPaths)
+      .set({ totalAccesses: sql`${sharedPaths.totalAccesses} + 1` })
+      .where(eq(sharedPaths.id, access.pathId));
+    
+    return newAccess;
+  }
+
+  async getUserTokenBalance(userId: string): Promise<number> {
+    // For now, get from device registration or return default
+    const registration = await this.getDeviceRegistration(userId);
+    return registration?.tokenBalance || 100; // Default starting balance
+  }
+
+  async deductTokens(userId: string, amount: number): Promise<void> {
+    await db.update(deviceRegistrations)
+      .set({ 
+        tokenBalance: sql`GREATEST(0, ${deviceRegistrations.tokenBalance} - ${amount})`,
+        totalTokensSpent: sql`${deviceRegistrations.totalTokensSpent} + ${amount}`
+      })
+      .where(eq(deviceRegistrations.deviceId, userId));
+  }
+
+  async awardTokens(userId: string, amount: number): Promise<void> {
+    await db.update(deviceRegistrations)
+      .set({ 
+        tokenBalance: sql`${deviceRegistrations.tokenBalance} + ${amount}`,
+        totalTokensEarned: sql`${deviceRegistrations.totalTokensEarned} + ${amount}`
+      })
+      .where(eq(deviceRegistrations.deviceId, userId));
   }
 }
 

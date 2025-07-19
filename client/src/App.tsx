@@ -25,6 +25,7 @@ import VotesCastInfo from "@/pages/votes-cast-info";
 import LocationsTrackedInfo from "@/pages/locations-tracked-info";
 import HoursContributedInfo from "@/pages/hours-contributed-info";
 import NotFound from "@/pages/not-found";
+import Communication from "@/pages/communication";
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/time-tracking" component={TimeTrackingDemoPage} />
       <Route path="/token-wallet" component={TokenWalletPage} />
       <Route path="/community-demo" component={CommunityDemoPage} />
+      <Route path="/communication" component={Communication} />
       <Route path="/data-marketplace" component={DataMarketplacePage} />
       <Route path="/economy" component={EconomyPage} />
       <Route path="/insights" component={InsightsPage} />

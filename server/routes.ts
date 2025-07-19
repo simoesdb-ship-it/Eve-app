@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage-clean";
+// import CommunicationServer from "./websocket-communication";
+import encryptionService from "./encryption-service";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
@@ -962,7 +964,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Communication API routes for Bitcoin-powered location sharing
+  app.get('/api/communication/peers/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const peers = await storage.getPeerConnections(userId);
+      res.json(peers);
+    } catch (error) {
+      console.error('Error fetching peers:', error);
+      res.status(500).json({ error: 'Failed to fetch peers' });
+    }
+  });
+
+  app.get('/api/communication/messages/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { peerId } = req.query;
+      const messages = await storage.getMessages(userId, peerId as string);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
+  app.post('/api/communication/share-path', async (req, res) => {
+    try {
+      const { sharerId, pathName, pathData, accessType, tokenCost } = req.body;
+      
+      if (!sharerId || !pathName || !pathData) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Calculate token cost if not provided
+      const finalTokenCost = tokenCost || encryptionService.calculateLocationShareCost(pathData);
+      
+      // Extract pattern insights
+      const patternInsights = {
+        patternsObserved: pathData.patterns || [],
+        architecturalInsights: pathData.insights || [],
+        qualityScore: calculatePathQualityForCommunication(pathData)
+      };
+
+      const sharedPath = await storage.createSharedPath({
+        sharerId,
+        pathName,
+        pathData,
+        accessType: accessType || 'token_gated',
+        tokenCost: finalTokenCost,
+        patternInsights
+      });
+
+      res.json({
+        success: true,
+        pathId: sharedPath.id,
+        pathName,
+        tokenCost: finalTokenCost
+      });
+    } catch (error) {
+      console.error('Error sharing path:', error);
+      res.status(500).json({ error: 'Failed to share path' });
+    }
+  });
+
+  app.get('/api/communication/shared-paths', async (req, res) => {
+    try {
+      const { sharerId } = req.query;
+      const paths = await storage.getSharedPaths(sharerId as string);
+      res.json(paths);
+    } catch (error) {
+      console.error('Error fetching shared paths:', error);
+      res.status(500).json({ error: 'Failed to fetch shared paths' });
+    }
+  });
+
+  app.post('/api/communication/access-path/:pathId', async (req, res) => {
+    try {
+      const { pathId } = req.params;
+      const { userId } = req.body;
+      
+      const sharedPath = await storage.getSharedPath(parseInt(pathId));
+      if (!sharedPath) {
+        return res.status(404).json({ error: 'Path not found' });
+      }
+
+      // Check user token balance
+      const balance = await storage.getUserTokenBalance(userId);
+      if (balance < sharedPath.tokenCost) {
+        return res.status(400).json({ error: 'Insufficient tokens' });
+      }
+
+      // Process payment
+      await storage.deductTokens(userId, sharedPath.tokenCost);
+      await storage.awardTokens(sharedPath.sharerId, Math.floor(sharedPath.tokenCost * 0.8));
+
+      // Record access
+      await storage.recordPathAccess({
+        pathId: parseInt(pathId),
+        accessorId: userId,
+        tokensPaid: sharedPath.tokenCost
+      });
+
+      res.json({
+        success: true,
+        pathData: sharedPath.pathData,
+        patternInsights: sharedPath.patternInsights,
+        tokensSpent: sharedPath.tokenCost
+      });
+    } catch (error) {
+      console.error('Error accessing path:', error);
+      res.status(500).json({ error: 'Failed to access path' });
+    }
+  });
+
+  app.get('/api/communication/token-balance/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const balance = await storage.getUserTokenBalance(userId);
+      res.json({ balance });
+    } catch (error) {
+      console.error('Error fetching token balance:', error);
+      res.status(500).json({ error: 'Failed to fetch token balance' });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // TODO: Initialize WebSocket communication server when ready
+  // const communicationServer = new CommunicationServer(httpServer);
+  console.log('Bitcoin-powered Location Sharing Protocol API routes initialized');
+  
   return httpServer;
 }
 
@@ -1020,6 +1151,15 @@ function calculatePatternConfidence(pattern: any, location: any): number {
   confidence += Math.random() * 0.1;
   
   return Math.max(0.1, Math.min(0.95, confidence));
+}
+
+// Helper function for path quality calculation in communication
+function calculatePathQualityForCommunication(pathData: any): number {
+  const baseScore = 0.5;
+  const patternBonus = (pathData.patterns?.length || 0) * 0.1;
+  const insightBonus = (pathData.insights?.length || 0) * 0.05;
+  const distanceBonus = Math.min((pathData.totalDistance || 0) / 10, 0.2); // Cap at 0.2
+  return Math.min(1.0, baseScore + patternBonus + insightBonus + distanceBonus);
 }
 
 // Helper function to get timezone from coordinates (approximate)

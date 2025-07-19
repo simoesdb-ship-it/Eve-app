@@ -71,6 +71,94 @@ export const spatialPoints = pgTable("spatial_points", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Communication infrastructure tables
+export const peerConnections = pgTable("peer_connections", {
+  id: serial("id").primaryKey(),
+  localUserId: text("local_user_id").notNull(),
+  peerUserId: text("peer_user_id").notNull(),
+  peerUsername: text("peer_username").notNull(),
+  connectionType: text("connection_type").default("websocket").notNull(),
+  publicKey: text("public_key"),
+  sharedSecretHash: text("shared_secret_hash"),
+  trustLevel: integer("trust_level").default(0).notNull(), // 0=untrusted, 1=verified, 2=trusted
+  lastActive: timestamp("last_active").defaultNow(),
+  totalMessagesExchanged: integer("total_messages_exchanged").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: text("sender_id").notNull(),
+  recipientId: text("recipient_id").notNull(),
+  messageType: text("message_type").default("text").notNull(), // text, location, path_share
+  encryptedContent: text("encrypted_content").notNull(),
+  messageHash: text("message_hash").unique().notNull(),
+  transmissionMethod: text("transmission_method").default("websocket").notNull(),
+  tokenCost: integer("token_cost").default(1).notNull(),
+  locationData: jsonb("location_data"),
+  threadId: text("thread_id"),
+  replyToId: integer("reply_to_id").references(() => messages.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deliveredAt: timestamp("delivered_at"),
+  readAt: timestamp("read_at"),
+});
+
+export const sharedPaths = pgTable("shared_paths", {
+  id: serial("id").primaryKey(),
+  sharerId: text("sharer_id").notNull(),
+  pathName: text("path_name").notNull(),
+  pathData: jsonb("path_data").notNull(),
+  accessType: text("access_type").default("token_gated").notNull(), // free, token_gated, private
+  tokenCost: integer("token_cost").default(10).notNull(),
+  patternInsights: jsonb("pattern_insights"),
+  totalAccesses: integer("total_accesses").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const pathAccesses = pgTable("path_accesses", {
+  id: serial("id").primaryKey(),
+  pathId: integer("path_id").references(() => sharedPaths.id).notNull(),
+  accessorId: text("accessor_id").notNull(),
+  tokensPaid: integer("tokens_paid").notNull(),
+  accessedAt: timestamp("accessed_at").defaultNow().notNull(),
+});
+
+// Communication insert schemas
+export const insertPeerConnectionSchema = createInsertSchema(peerConnections).omit({
+  id: true,
+  createdAt: true,
+  lastActive: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+  deliveredAt: true,
+  readAt: true,
+});
+
+export const insertSharedPathSchema = createInsertSchema(sharedPaths).omit({
+  id: true,
+  createdAt: true,
+  totalAccesses: true,
+});
+
+export const insertPathAccessSchema = createInsertSchema(pathAccesses).omit({
+  id: true,
+  accessedAt: true,
+});
+
+// Communication types
+export type PeerConnection = typeof peerConnections.$inferSelect;
+export type InsertPeerConnection = typeof peerConnections.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+export type SharedPath = typeof sharedPaths.$inferSelect;
+export type InsertSharedPath = typeof sharedPaths.$inferInsert;
+export type PathAccess = typeof pathAccesses.$inferSelect;
+export type InsertPathAccess = typeof pathAccesses.$inferInsert;
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
