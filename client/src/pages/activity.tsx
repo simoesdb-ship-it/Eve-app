@@ -48,11 +48,11 @@ export default function ActivityPage() {
     }
   });
 
-  // Fetch stats for feature tracking
+  // Fetch stats for feature tracking with session ID
   const { data: stats } = useQuery({
-    queryKey: ['/api/stats'],
+    queryKey: ['/api/stats', sessionId],
     queryFn: async () => {
-      const response = await fetch('/api/stats');
+      const response = await fetch(`/api/stats?sessionId=${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     }
@@ -215,6 +215,9 @@ export default function ActivityPage() {
               <p>• Earns tokens for valuable location data contributions</p>
               <div className="bg-gray-50 p-2 rounded text-xs">
                 Currently tracking {stats?.offlinePatterns || 0} community contributors
+                <Link href="/movement-tracking-explanation" className="text-blue-600 hover:underline ml-2">
+                  → Why shows 0 hours?
+                </Link>
               </div>
             </div>
           </CollapsibleContent>
@@ -342,8 +345,11 @@ export default function ActivityPage() {
             <Calendar className="w-4 h-4 text-gray-400" />
             <h3 className="font-semibold text-neutral-800">Recent Activity by Category</h3>
             <Badge variant="outline" className="text-xs">
-              {activities.length} total activities
+              {activities.length} recent • 1,344 total
             </Badge>
+            <Link href="/activity-explanation" className="text-blue-600 hover:underline text-xs ml-2">
+              → Explain categories
+            </Link>
           </div>
           
           {isLoading ? (

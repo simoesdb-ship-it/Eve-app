@@ -21,6 +21,8 @@ import InsightsPage from "@/pages/insights";
 import OnboardingPage from "@/pages/onboarding";
 import OfflinePatternsPage from "@/pages/offline-patterns";
 import PatternsSuggestedInfo from "@/pages/patterns-suggested-info";
+import ActivityExplanation from "@/pages/activity-explanation";
+import MovementTrackingExplanation from "@/pages/movement-tracking-explanation";
 import VotesCastInfo from "@/pages/votes-cast-info";
 import LocationsTrackedInfo from "@/pages/locations-tracked-info";
 import HoursContributedInfo from "@/pages/hours-contributed-info";
@@ -51,6 +53,8 @@ function Router() {
       <Route path="/votes-cast-info" component={VotesCastInfo} />
       <Route path="/locations-tracked-info" component={LocationsTrackedInfo} />
       <Route path="/hours-contributed-info" component={HoursContributedInfo} />
+      <Route path="/activity-explanation" component={ActivityExplanation} />
+      <Route path="/movement-tracking-explanation" component={MovementTrackingExplanation} />
       <Route component={NotFound} />
     </Switch>
   );

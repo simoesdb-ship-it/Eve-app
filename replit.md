@@ -10,7 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### January 19, 2025 - Location Time Breakdown Feature Implementation
+### January 19, 2025 - Activity Categories & Movement Tracking Explanations
+- ✓ Created comprehensive activity explanation page with clickable links for 1,344 total activities
+- ✓ Added detailed breakdown of activity categories: 1,197 visits + 147 votes across all users
+- ✓ Built movement tracking explanation page addressing "0 hours" display issue
+- ✓ Fixed stats API endpoint to properly accept session ID parameters for movement tracking
+- ✓ Added clickable explanatory links throughout activity section for user education
+- ✓ Documented technical root causes of movement tracking display issues
+- ✓ Created routes for /activity-explanation and /movement-tracking-explanation pages
+- ✓ Enhanced activity page to show "1,344 total" instead of incorrect "50 total" count
+- ✓ Provided comprehensive technical documentation for GPS tracking system functionality
+
+### January 19, 2025 - Location Time Breakdown Feature Implementation  
 - ✓ Added detailed location time breakdown feature under "Hours Contributed" section
 - ✓ Created new API endpoint `/api/location-time-breakdown/:userId` for fetching detailed time data
 - ✓ Implemented smart location clustering algorithm using 50-meter radius grouping
