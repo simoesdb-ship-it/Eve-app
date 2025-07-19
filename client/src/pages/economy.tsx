@@ -282,6 +282,25 @@ export default function EconomyPage() {
                   <div className="text-sm text-muted-foreground">Available Tokens</div>
                 </div>
                 
+                {/* Token Economy Explanation */}
+                <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+                  <div className="font-medium">How You Earn Tokens:</div>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div>• +5 tokens for visiting new locations</div>
+                    <div>• +3 tokens for pattern voting at locations</div>
+                    <div>• +10 tokens for saving detailed location analysis</div>
+                    <div>• +15 tokens for sharing valuable route insights</div>
+                    <div>• Bonus tokens for selling data to other users</div>
+                  </div>
+                  <div className="font-medium mt-3">What You Can Do:</div>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div>• Buy location insights from other users</div>
+                    <div>• Send tokens as gifts to community members</div>
+                    <div>• Access premium pattern analysis features</div>
+                    <div>• Unlock detailed architectural data reports</div>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <Button variant="outline" className="flex items-center space-x-2">
                     <Send className="w-4 h-4" />
@@ -301,15 +320,34 @@ export default function EconomyPage() {
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold">{tokenSupply?.tokensInCirculation || 0}</div>
                   <div className="text-sm text-muted-foreground">In Circulation</div>
+                  <div className="text-xs text-muted-foreground mt-1">Community-earned tokens</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold">{tokenSupply?.totalSupply || 0}</div>
-                  <div className="text-sm text-muted-foreground">Total Supply</div>
+                  <div className="text-2xl font-bold">21M</div>
+                  <div className="text-sm text-muted-foreground">Max Supply</div>
+                  <div className="text-xs text-muted-foreground mt-1">Bitcoin-like scarcity model</div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Economy Explanation */}
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-2">
+                  <Coins className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div className="text-sm">
+                    <div className="font-medium text-green-800 mb-1">Bitcoin-Inspired Token Economy</div>
+                    <div className="text-green-700">
+                      Our token system mimics Bitcoin's scarcity model with a 21 million token cap. 
+                      As more users join, tokens become more valuable. Early contributors earn more tokens 
+                      through a "halving" system that reduces rewards over time, encouraging quality data collection.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Recent Transactions */}
             <Card>
@@ -389,6 +427,58 @@ export default function EconomyPage() {
                 <Badge variant="secondary">{packages.length} packages</Badge>
               </div>
 
+              {/* Data Type Explanations */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center space-x-2">
+                    <Database className="w-4 h-4" />
+                    <span>What Data Does This App Collect?</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Spatial Analysis</div>
+                        <div className="text-muted-foreground">GPS location data, building layouts, neighborhood patterns, and urban design analysis based on Christopher Alexander's architectural principles.</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-2">
+                      <BarChart3 className="w-4 h-4 text-green-600 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Pattern Insights</div>
+                        <div className="text-muted-foreground">Community voting data on how well real locations match the 253 architectural patterns, including walkability and livability scores.</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-2">
+                      <Clock className="w-4 h-4 text-purple-600 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Time Tracking</div>
+                        <div className="text-muted-foreground">How long people spend at different locations, movement patterns, and activity clustering data that reveals community usage patterns.</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-2">
+                      <Camera className="w-4 h-4 text-orange-600 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Media Bundle</div>
+                        <div className="text-muted-foreground">Photos, videos, and visual documentation of architectural features that help train pattern recognition algorithms.</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded-lg border border-blue-200">
+                    <div className="text-sm">
+                      <div className="font-medium mb-1">How It Works:</div>
+                      <div className="text-muted-foreground">As you explore locations, the app automatically tracks your GPS coordinates, analyzes architectural patterns, and lets you vote on how well each place follows good design principles. This creates valuable insights that other users can purchase with tokens.</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {packagesLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4].map((i) => (
@@ -401,6 +491,36 @@ export default function EconomyPage() {
                     </Card>
                   ))}
                 </div>
+              ) : packages.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Data Packages Yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Start exploring locations to collect valuable data, then package it for sale to other users.
+                    </p>
+                    <Dialog open={createPackageOpen} onOpenChange={setCreatePackageOpen}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Package className="w-4 h-4 mr-2" />
+                          Create First Package
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Create Data Package</DialogTitle>
+                          <DialogDescription>
+                            Package your collected location data for sale
+                          </DialogDescription>
+                        </DialogHeader>
+                        <CreatePackageForm 
+                          onSubmit={(data) => createPackageMutation.mutate(data)}
+                          isLoading={createPackageMutation.isPending}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {packages.map((pkg: DataPackage) => (
