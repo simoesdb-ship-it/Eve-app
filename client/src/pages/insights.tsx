@@ -293,19 +293,23 @@ export default function InsightsPage() {
 
                         {/* Recent Activity Highlights */}
                         <Collapsible open={!isHighlightsCollapsed} onOpenChange={(open) => setIsHighlightsCollapsed(!open)}>
-                          <CollapsibleTrigger asChild>
-                            <div className="flex items-center justify-between cursor-pointer py-2">
-                              <h4 className="text-sm font-medium text-muted-foreground">Recent Highlights</h4>
-                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
+                          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-white rounded-lg border hover:bg-gray-50 mb-2">
+                            <div className="flex items-center space-x-3">
+                              <Activity className="w-5 h-5 text-blue-600" />
+                              <div className="text-left">
+                                <h4 className="font-medium text-neutral-800">Recent Highlights</h4>
+                                <p className="text-xs text-neutral-500">Latest contributions and interactions</p>
+                              </div>
                             </div>
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isHighlightsCollapsed ? 'rotate-0' : 'rotate-180'}`} />
                           </CollapsibleTrigger>
-                          <div className="text-xs text-muted-foreground mb-2 px-1">
+                          <div className="text-xs text-muted-foreground mb-2 px-3">
                             Shows your latest contributions: location visits, pattern suggestions, votes, and community insights. 
                             <Link href="/activity" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
                               View full activity →
                             </Link>
                           </div>
-                          <CollapsibleContent>
+                          <CollapsibleContent className="px-3 py-2">
                             <div className="space-y-2">
                               {activity.slice(0, 3).map((item: any, index: number) => (
                                 <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
