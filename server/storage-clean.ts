@@ -565,8 +565,7 @@ export class DatabaseStorage implements IStorage {
       // Get all tracking points for this user and group by location proximity
       const trackingPoints = await db.select()
         .from(spatialPoints)
-        .where(eq(spatialPoints.sessionId, userId))
-        .orderBy(spatialPoints.timestamp);
+        .where(eq(spatialPoints.sessionId, userId));
 
       // Group points by location (using 50m radius clustering)
       const locationGroups = new Map<string, {
@@ -617,15 +616,15 @@ export class DatabaseStorage implements IStorage {
         if (group.points.length === 0) continue;
         
         // Sort points by timestamp
-        group.points.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        group.points.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         
         // Calculate total time by summing intervals between consecutive points
         let totalMinutes = 0;
         const maxGapMinutes = 30; // Consider gaps > 30 minutes as separate visits
         
         for (let i = 1; i < group.points.length; i++) {
-          const prevTime = new Date(group.points[i - 1].timestamp).getTime();
-          const currTime = new Date(group.points[i].timestamp).getTime();
+          const prevTime = new Date(group.points[i - 1].createdAt).getTime();
+          const currTime = new Date(group.points[i].createdAt).getTime();
           const gapMinutes = (currTime - prevTime) / (1000 * 60);
           
           if (gapMinutes <= maxGapMinutes) {
@@ -636,8 +635,8 @@ export class DatabaseStorage implements IStorage {
         // Count visits (consecutive periods with gaps < 30 minutes)
         let visitCount = 1;
         for (let i = 1; i < group.points.length; i++) {
-          const prevTime = new Date(group.points[i - 1].timestamp).getTime();
-          const currTime = new Date(group.points[i].timestamp).getTime();
+          const prevTime = new Date(group.points[i - 1].createdAt).getTime();
+          const currTime = new Date(group.points[i].createdAt).getTime();
           const gapMinutes = (currTime - prevTime) / (1000 * 60);
           
           if (gapMinutes > maxGapMinutes) {
@@ -667,15 +666,16 @@ export class DatabaseStorage implements IStorage {
           }
         }
         
-        if (totalMinutes >= 5) { // Only include locations with at least 5 minutes
+        // Include all locations regardless of time (for demo purposes, adjust threshold)
+        if (totalMinutes >= 0) { 
           breakdown.push({
             locationId,
             locationName,
             totalMinutes: Math.round(totalMinutes),
             totalHours: Math.round(totalMinutes / 60 * 100) / 100,
             visitCount,
-            firstVisit: group.points[0].timestamp,
-            lastVisit: group.points[group.points.length - 1].timestamp,
+            firstVisit: group.points[0].createdAt,
+            lastVisit: group.points[group.points.length - 1].createdAt,
             coordinates: group.coordinates
           });
         }
