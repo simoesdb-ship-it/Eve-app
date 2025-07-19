@@ -385,23 +385,39 @@ export default function InsightsPage() {
                                 <p className="text-sm text-muted-foreground text-center py-4">No saved locations yet</p>
                               ) : (
                                 savedLocations.map((location: any) => (
-                                  <div key={location.id} className="flex items-center space-x-3 p-2 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
-                                    <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                      <MapPin className="w-3 h-3 text-primary" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
-                                        <span className="text-xs text-muted-foreground">
-                                          {new Date(location.createdAt).toLocaleDateString()}
-                                        </span>
+                                  <div key={location.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
+                                    <div className="flex items-start space-x-3">
+                                      <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                        <MapPin className="w-3 h-3 text-primary" />
                                       </div>
-                                      <p className="text-xs text-muted-foreground font-mono">
-                                        {location.latitude && location.longitude ? 
-                                          `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
-                                          'Coordinates unavailable'
-                                        }
-                                      </p>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
+                                          <span className="text-xs text-muted-foreground">
+                                            {new Date(location.createdAt).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground font-mono mb-2">
+                                          {location.latitude && location.longitude ? 
+                                            `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                                            'Coordinates unavailable'
+                                          }
+                                        </p>
+                                        {/* Comments/Description Section */}
+                                        {location.description ? (
+                                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-blue-200">
+                                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                              {location.description}
+                                            </p>
+                                          </div>
+                                        ) : (
+                                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
+                                            <p className="text-xs text-gray-400 italic">
+                                              No comments added for this location
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 ))

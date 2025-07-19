@@ -361,15 +361,30 @@ export default function ActivityPage() {
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-neutral-800">{location.name}</p>
-                              {location.description && (
-                                <p className="text-xs text-neutral-600 mt-1">{location.description}</p>
-                              )}
                               <p className="text-xs text-neutral-400 mt-1">
                                 {Number(location.latitude).toFixed(6)}, {Number(location.longitude).toFixed(6)}
                               </p>
                               <span className="text-xs text-neutral-400">
                                 Saved {formatTimeAgo(location.createdAt.toString())}
                               </span>
+                              
+                              {/* Comments Section - Always Show */}
+                              <div className="mt-3">
+                                {location.description ? (
+                                  <div className="p-2 bg-blue-50 rounded border-l-4 border-blue-200">
+                                    <p className="text-xs font-medium text-blue-800 mb-1">Comment:</p>
+                                    <p className="text-xs text-blue-700 leading-relaxed">
+                                      {location.description}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="p-2 bg-gray-50 rounded border-l-4 border-gray-200">
+                                    <p className="text-xs text-gray-500 italic">
+                                      No comment added for this location
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             <div className="ml-2">
                               <PatternSelector
