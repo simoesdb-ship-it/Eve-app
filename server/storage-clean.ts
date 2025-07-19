@@ -78,6 +78,13 @@ export interface IStorage {
     coordinates: { latitude: number; longitude: number };
   }>>;
 
+  // Get all sessions with tracking data
+  getAllSessionsWithTrackingData(): Promise<Array<{
+    sessionId: string;
+    pointCount: number;
+    lastActivity: string;
+  }>>;
+
   // Tracking methods
   createTrackingPoint(point: InsertSpatialPoint): Promise<SpatialPoint>;
   getTrackingPointsBySession(sessionId: string): Promise<SpatialPoint[]>;
@@ -687,6 +694,28 @@ export class DatabaseStorage implements IStorage {
       return breakdown;
     } catch (error) {
       console.error('Error calculating location time breakdown:', error);
+      return [];
+    }
+  }
+
+  async getAllSessionsWithTrackingData(): Promise<Array<{
+    sessionId: string;
+    pointCount: number;
+    lastActivity: string;
+  }>> {
+    try {
+      const sessions = await db.select({
+        sessionId: spatialPoints.sessionId,
+        pointCount: sql<number>`count(*)`.as('pointCount'),
+        lastActivity: sql<string>`max(${spatialPoints.createdAt})`.as('lastActivity')
+      })
+      .from(spatialPoints)
+      .groupBy(spatialPoints.sessionId)
+      .orderBy(desc(sql`max(${spatialPoints.createdAt})`));
+      
+      return sessions;
+    } catch (error) {
+      console.error('Error fetching sessions with tracking data:', error);
       return [];
     }
   }

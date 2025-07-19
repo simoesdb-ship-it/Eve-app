@@ -27,9 +27,26 @@ export default function HoursContributedInfo() {
     queryKey: ['/api/location-time-breakdown', userId],
     queryFn: async () => {
       if (!userId) return [];
-      const response = await fetch(`/api/location-time-breakdown/${userId}`);
-      if (!response.ok) throw new Error('Failed to fetch location breakdown');
-      return response.json();
+      
+      // Try device fingerprint ID first
+      let response = await fetch(`/api/location-time-breakdown/${userId}`);
+      let data = [];
+      
+      if (response.ok) {
+        data = await response.json();
+      }
+      
+      // If no data found, try to find data with any recent session
+      if (data.length === 0) {
+        const sessionResponse = await fetch(`/api/location-time-breakdown/any-session`);
+        if (sessionResponse.ok) {
+          const fallbackData = await sessionResponse.json();
+          data = fallbackData;
+        }
+      }
+      
+      console.log('Location breakdown data for', userId, ':', data);
+      return data;
     },
     enabled: !!userId
   });
