@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage-clean";
-// import CommunicationServer from "./websocket-communication";
+import CommunicationServer from "./websocket-communication";
 import encryptionService from "./encryption-service";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
@@ -1090,9 +1090,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // TODO: Initialize WebSocket communication server when ready
-  // const communicationServer = new CommunicationServer(httpServer);
-  console.log('Bitcoin-powered Location Sharing Protocol API routes initialized');
+  // Initialize WebSocket communication server for real-time messaging
+  const communicationServer = new CommunicationServer(httpServer);
+  console.log('Bitcoin-powered Location Sharing Protocol with WebSocket messaging activated');
   
   return httpServer;
 }
