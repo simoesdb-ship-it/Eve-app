@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pattern Discovery App - 1,248 Analyzed Locations</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        .header {
+            background: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .stats {
+            background: #f4f4f4;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+            margin: 5px;
+        }
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        #map { 
+            height: 500px; 
+            width: 100%;
+        }
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .legend-item {
+            margin: 3px 0;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Spatial Analysis: 1,248 Analyzed Locations</h1>
+        <p>Pattern Discovery App - Geographic Distribution</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-number">1,248</div>
+            <div>Total Locations</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">1,200</div>
+            <div>Minnesota (96.2%)</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">31</div>
+            <div>International (2.5%)</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">13</div>
+            <div>Florida (1.0%)</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">4</div>
+            <div>California (0.3%)</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        var map = L.map('map').setView([35.0, -95.0], 3);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Define colors for each region
+        var colors = {
+            'Minnesota': '#22c55e',
+            'International': '#ef4444', 
+            'Florida': '#3b82f6',
+            'California': '#f59e0b'
+        };
+
+        // Location data with major clusters
+        var locations = [
+            // Minnesota - Core area around Minneapolis
+            {lat: 44.9806, lng: -93.2905, name: 'Minneapolis Core', count: 400, region: 'Minnesota'},
+            {lat: 44.9800, lng: -93.2893, name: 'Default Location Hub', count: 350, region: 'Minnesota'},
+            {lat: 44.9438, lng: -92.8895, name: 'Eastern Suburbs', count: 150, region: 'Minnesota'},
+            {lat: 44.9484, lng: -93.2196, name: 'South Minneapolis', count: 100, region: 'Minnesota'},
+            {lat: 44.8825, lng: -93.2114, name: 'Southern Metro', count: 75, region: 'Minnesota'},
+            {lat: 45.0872, lng: -93.1122, name: 'Northern Suburbs', count: 125, region: 'Minnesota'},
+            
+            // International - Brazil
+            {lat: -23.5453, lng: -46.6517, name: 'São Paulo, Brazil', count: 31, region: 'International'},
+            
+            // Florida - Orlando area
+            {lat: 28.4264, lng: -81.2990, name: 'Orlando Area', count: 13, region: 'Florida'},
+            
+            // California - San Francisco
+            {lat: 37.7749, lng: -122.4194, name: 'San Francisco', count: 4, region: 'California'}
+        ];
+
+        // Add markers for each location
+        locations.forEach(function(location) {
+            var radius = Math.max(5, Math.min(25, location.count / 20));
+            
+            var marker = L.circleMarker([location.lat, location.lng], {
+                radius: radius,
+                fillColor: colors[location.region],
+                color: colors[location.region],
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.6
+            });
+            
+            marker.bindPopup(
+                '<strong>' + location.name + '</strong><br>' +
+                'Region: ' + location.region + '<br>' +
+                'Locations: ' + location.count + '<br>' +
+                'Coordinates: ' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4)
+            );
+            
+            marker.addTo(map);
+        });
+
+        // Add legend
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4>Regions</h4>';
+            
+            var regions = [
+                {name: 'Minnesota (1,200)', color: '#22c55e'},
+                {name: 'International (31)', color: '#ef4444'},
+                {name: 'Florida (13)', color: '#3b82f6'},
+                {name: 'California (4)', color: '#f59e0b'}
+            ];
+            
+            regions.forEach(function(region) {
+                div.innerHTML += 
+                    '<div class="legend-item">' +
+                    '<span class="legend-color" style="background-color: ' + region.color + '"></span>' +
+                    region.name +
+                    '</div>';
+            });
+            
+            return div;
+        };
+        legend.addTo(map);
+
+        // Add region boundary rectangles for better visualization
+        var minnesotaBounds = [[44.8555, -93.6163], [45.0872, -92.8238]];
+        L.rectangle(minnesotaBounds, {
+            color: colors.Minnesota,
+            weight: 2,
+            fillOpacity: 0.1
+        }).addTo(map);
+
+        var floridaBounds = [[28.4160, -81.5821], [28.4985, -81.2990]];
+        L.rectangle(floridaBounds, {
+            color: colors.Florida,
+            weight: 2,
+            fillOpacity: 0.1
+        }).addTo(map);
+
+        console.log('Map loaded successfully with ' + locations.length + ' location clusters');
+    </script>
+</body>
+</html>
