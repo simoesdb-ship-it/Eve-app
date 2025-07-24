@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Discovery App - Spatial Analysis Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .map-container {
+            height: 600px;
+            margin: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .region-analysis {
+            padding: 20px;
+        }
+        .region-card {
+            background: white;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        .region-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .region-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .region-stat {
+            text-align: center;
+        }
+        .region-stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .region-stat-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Spatial Analysis: 1,248 Analyzed Locations</h1>
+            <p>Pattern Discovery App - Geographic Distribution & Analysis</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">1,248</div>
+                <div class="stat-label">Total Analyzed Locations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Geographic Regions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">51</div>
+                <div class="stat-label">Days of Data Collection</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">96.2%</div>
+                <div class="stat-label">Minnesota Coverage</div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2E8B57;"></div>
+                    <span>Minnesota (1,200)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF6347;"></div>
+                    <span>Other (31)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4169E1;"></div>
+                    <span>Florida (13)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FFD700;"></div>
+                    <span>California (4)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="region-analysis">
+            <h2>Regional Breakdown</h2>
+            
+            <div class="region-card">
+                <div class="region-name">🌲 Minnesota - Primary Usage Zone</div>
+                <p>The vast majority of pattern discovery occurred in Minnesota, particularly around Minneapolis-St. Paul metropolitan area. This represents the core user base and primary testing environment.</p>
+                <div class="region-stats">
+                    <div class="region-stat">
+                        <div class="region-stat-number">1,200</div>
+                        <div class="region-stat-label">Locations</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">96.2%</div>
+                        <div class="region-stat-label">Total Share</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">1.26°</div>
+                        <div class="region-stat-label">Lat Range</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.79°</div>
+                        <div class="region-stat-label">Lng Range</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="region-card">
+                <div class="region-name">🌎 Other Regions - International Usage</div>
+                <p>Includes locations primarily in Brazil and other international locations, showing global app adoption and testing from diverse geographic contexts.</p>
+                <div class="region-stats">
+                    <div class="region-stat">
+                        <div class="region-stat-number">31</div>
+                        <div class="region-stat-label">Locations</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">2.5%</div>
+                        <div class="region-stat-label">Total Share</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.40°</div>
+                        <div class="region-stat-label">Lat Range</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.53°</div>
+                        <div class="region-stat-label">Lng Range</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="region-card">
+                <div class="region-name">🏖️ Florida - Travel Tracking</div>
+                <p>Orlando area usage, likely representing vacation or travel tracking, particularly around Disney World and Universal Studios areas.</p>
+                <div class="region-stats">
+                    <div class="region-stat">
+                        <div class="region-stat-number">13</div>
+                        <div class="region-stat-label">Locations</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">1.0%</div>
+                        <div class="region-stat-label">Total Share</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.08°</div>
+                        <div class="region-stat-label">Lat Range</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.28°</div>
+                        <div class="region-stat-label">Lng Range</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="region-card">
+                <div class="region-name">🌉 California - Demo Testing</div>
+                <p>Limited to San Francisco area, representing demo location testing and initial app development validation.</p>
+                <div class="region-stats">
+                    <div class="region-stat">
+                        <div class="region-stat-number">4</div>
+                        <div class="region-stat-label">Locations</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.3%</div>
+                        <div class="region-stat-label">Total Share</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.00°</div>
+                        <div class="region-stat-label">Lat Range</div>
+                    </div>
+                    <div class="region-stat">
+                        <div class="region-stat-number">0.00°</div>
+                        <div class="region-stat-label">Lng Range</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([44.9537, -93.0900], 6);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Location data with colors by region
+        const locations = [
+            // Minnesota locations (sample of major clusters)
+            { lat: 44.9806336, lng: -93.290496, region: 'Minnesota', count: 87, name: 'Minneapolis Core' },
+            { lat: 44.9799652, lng: -93.289345, region: 'Minnesota', count: 45, name: 'Default Location Hub' },
+            { lat: 44.9438192, lng: -92.8895388, region: 'Minnesota', count: 23, name: 'Eastern Suburbs' },
+            { lat: 44.9484376, lng: -93.2195711, region: 'Minnesota', count: 15, name: 'South Minneapolis' },
+            { lat: 44.8824892, lng: -93.2113739, region: 'Minnesota', count: 8, name: 'Southern Metro' },
+            { lat: 45.0872299, lng: -93.1122176, region: 'Minnesota', count: 12, name: 'Northern Suburbs' },
+            
+            // Other regions
+            { lat: -23.5453281, lng: -46.6516697, region: 'Other', count: 31, name: 'São Paulo, Brazil' },
+            { lat: 28.4264394, lng: -81.2989562, region: 'Florida', count: 13, name: 'Orlando Area' },
+            { lat: 37.7749, lng: -122.4194, region: 'California', count: 4, name: 'San Francisco' }
+        ];
+
+        // Color mapping for regions
+        const regionColors = {
+            'Minnesota': '#2E8B57',
+            'Other': '#FF6347',
+            'Florida': '#4169E1',
+            'California': '#FFD700'
+        };
+
+        // Add markers for each location cluster
+        locations.forEach(location => {
+            const radius = Math.max(5, Math.min(50, location.count * 2));
+            
+            L.circleMarker([location.lat, location.lng], {
+                color: regionColors[location.region],
+                fillColor: regionColors[location.region],
+                fillOpacity: 0.6,
+                radius: radius,
+                weight: 2
+            }).addTo(map)
+            .bindPopup(`
+                <strong>${location.name}</strong><br>
+                Region: ${location.region}<br>
+                Analyzed Locations: ${location.count}<br>
+                Coordinates: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}
+            `);
+        });
+
+        // Add region boundary boxes
+        const regionBounds = {
+            'Minnesota': [[44.8555268, -93.6163492], [45.0872299, -92.8237948]],
+            'Florida': [[28.4160114, -81.5821367], [28.4985451, -81.2989562]],
+            'California': [[37.7749, -122.4194], [37.7749, -122.4194]],
+            'Other': [[-23.5464442, -47.1787021], [-23.1472015, -46.6514358]]
+        };
+
+        Object.entries(regionBounds).forEach(([region, bounds]) => {
+            if (region !== 'California') { // Skip California as it's just one point
+                L.rectangle(bounds, {
+                    color: regionColors[region],
+                    weight: 2,
+                    fillOpacity: 0.1
+                }).addTo(map);
+            }
+        });
+
+        // Set view to show all regions
+        const allBounds = L.latLngBounds([
+            [-23.5464442, -47.1787021], // Southwest corner
+            [45.0872299, -81.2989562]   // Northeast corner
+        ]);
+        map.fitBounds(allBounds, { padding: [20, 20] });
+    </script>
+</body>
+</html>
