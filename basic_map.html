@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .info { padding: 15px; background: #f0f8ff; text-align: center; }
+        #mapContainer { height: 600px; position: relative; background: #e6f3ff; }
+        .map-placeholder { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+        }
+        .location-list { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+        .location-item { 
+            margin: 8px 0; 
+            padding: 8px; 
+            background: #f8f9fa; 
+            border-radius: 4px; 
+            border-left: 4px solid #2563eb;
+        }
+        .location-name { font-weight: bold; color: #333; }
+        .location-details { font-size: 12px; color: #666; margin-top: 3px; }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>Pattern Discovery App - 1,248 Analyzed Locations</h2>
+        <p><strong>Geographic Distribution:</strong> Minnesota: 1,200 (96.2%) | International: 31 (2.5%) | Florida: 13 (1.0%) | California: 4 (0.3%)</p>
+    </div>
+    
+    <div id="mapContainer">
+        <div class="map-placeholder">
+            <h3>📍 Location Analysis Map</h3>
+            <p>Interactive map showing 1,248 analyzed locations across 4 geographic regions</p>
+            <p style="font-size: 14px; color: #888;">If this were an interactive map, you would see clustered markers representing location density</p>
+        </div>
+        
+        <div class="location-list">
+            <h4 style="margin-top: 0; color: #2563eb;">Major Location Clusters</h4>
+            
+            <div class="location-item" style="border-left-color: #22c55e;">
+                <div class="location-name">Minneapolis Core Area</div>
+                <div class="location-details">Minnesota • 400 locations • 44.9806, -93.2905</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #22c55e;">
+                <div class="location-name">Default Location Hub</div>
+                <div class="location-details">Minnesota • 350 locations • 44.9800, -93.2893</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #22c55e;">
+                <div class="location-name">Eastern Suburbs</div>
+                <div class="location-details">Minnesota • 150 locations • 44.9438, -92.8895</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #22c55e;">
+                <div class="location-name">Northern Suburbs</div>
+                <div class="location-details">Minnesota • 125 locations • 45.0872, -93.1122</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #ef4444;">
+                <div class="location-name">São Paulo, Brazil</div>
+                <div class="location-details">International • 31 locations • -23.5453, -46.6517</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #3b82f6;">
+                <div class="location-name">Orlando Area</div>
+                <div class="location-details">Florida • 13 locations • 28.4264, -81.2990</div>
+            </div>
+            
+            <div class="location-item" style="border-left-color: #f59e0b;">
+                <div class="location-name">San Francisco</div>
+                <div class="location-details">California • 4 locations • 37.7749, -122.4194</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="padding: 20px; background: #f8f9fa;">
+        <h3>Spatial Analysis Summary</h3>
+        <ul>
+            <li><strong>Total Analyzed Locations:</strong> 1,248 coordinates spanning June 3 - July 24, 2025</li>
+            <li><strong>Primary Region:</strong> Minnesota (96.2%) - concentrated around Minneapolis-St. Paul metropolitan area</li>
+            <li><strong>International Usage:</strong> São Paulo, Brazil showing global app adoption</li>
+            <li><strong>Travel Tracking:</strong> Orlando, Florida during vacation periods</li>
+            <li><strong>Demo Testing:</strong> San Francisco for initial development validation</li>
+            <li><strong>Peak Activity:</strong> June 9, 2025 with 338 locations analyzed in a single day</li>
+            <li><strong>Location Types:</strong> 50.6% Current Location, 39.5% Default Location, 8.4% Named Location, 1.2% Updated Location</li>
+        </ul>
+    </div>
+</body>
+</html>
