@@ -58,17 +58,33 @@ export default function ActivityPage() {
     }
   });
 
-  // Get session ID
-  const [sessionId] = useState(() => `anon_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`);
+  // Get consistent session ID using device fingerprint
+  const [sessionId, setSessionId] = useState<string>('');
+
+  // Initialize session ID
+  useEffect(() => {
+    async function initSessionId() {
+      try {
+        const userId = await getConsistentUserId();
+        setSessionId(userId);
+      } catch (error) {
+        console.error('Failed to get user ID:', error);
+        setSessionId(`anon_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`);
+      }
+    }
+    initSessionId();
+  }, []);
 
   // Fetch saved locations
   const { data: savedLocations = [] } = useQuery({
     queryKey: ['/api/saved-locations', sessionId],
     queryFn: async () => {
+      if (!sessionId) return [];
       const response = await fetch(`/api/saved-locations/${sessionId}`);
       if (!response.ok) throw new Error('Failed to fetch saved locations');
       return response.json();
-    }
+    },
+    enabled: !!sessionId
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -443,17 +459,17 @@ export default function ActivityPage() {
               </div>
 
               {/* Pattern Suggestions */}
-              {activities.filter(a => a.type === 'suggestion').length > 0 && (
+              {activities.filter((a: any) => a.type === 'suggestion').length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <BookOpen className="w-4 h-4 text-purple-600" />
                     <h4 className="font-medium text-neutral-800">Pattern Suggestions</h4>
                     <Badge variant="secondary" className="text-xs">
-                      {activities.filter(a => a.type === 'suggestion').length}
+                      {activities.filter((a: any) => a.type === 'suggestion').length}
                     </Badge>
                   </div>
                   <div className="space-y-2">
-                    {activities.filter(a => a.type === 'suggestion').slice(0, 5).map((activity: ActivityType) => (
+                    {activities.filter((a: any) => a.type === 'suggestion').slice(0, 5).map((activity: ActivityType) => (
                       <Card key={activity.id} className="transition-shadow hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start space-x-3">
@@ -475,17 +491,17 @@ export default function ActivityPage() {
               )}
 
               {/* Voting Activities */}
-              {activities.filter(a => a.type === 'vote').length > 0 && (
+              {activities.filter((a: any) => a.type === 'vote').length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Vote className="w-4 h-4 text-orange-600" />
                     <h4 className="font-medium text-neutral-800">Community Voting</h4>
                     <Badge variant="secondary" className="text-xs">
-                      {activities.filter(a => a.type === 'vote').length}
+                      {activities.filter((a: any) => a.type === 'vote').length}
                     </Badge>
                   </div>
                   <div className="space-y-2">
-                    {activities.filter(a => a.type === 'vote').slice(0, 5).map((activity: ActivityType) => (
+                    {activities.filter((a: any) => a.type === 'vote').slice(0, 5).map((activity: ActivityType) => (
                       <Card key={activity.id} className="transition-shadow hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start space-x-3">
@@ -509,17 +525,17 @@ export default function ActivityPage() {
 
 
               {/* Other Activities */}
-              {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
+              {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Activity className="w-4 h-4 text-gray-600" />
                     <h4 className="font-medium text-neutral-800">Other Activities</h4>
                     <Badge variant="secondary" className="text-xs">
-                      {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length}
+                      {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length}
                     </Badge>
                   </div>
                   <div className="space-y-2">
-                    {activities.filter(a => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).slice(0, 5).map((activity: ActivityType) => (
+                    {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).slice(0, 5).map((activity: ActivityType) => (
                       <Card key={activity.id} className="transition-shadow hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start space-x-3">
