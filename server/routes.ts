@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote on a pattern suggestion
+  // Vote on a pattern suggestion (allows switching votes)
   app.post("/api/votes", async (req, res) => {
     try {
       const voteData = insertVoteSchema.parse(req.body);
@@ -114,16 +114,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         voteData.sessionId
       );
 
-      if (existingVote) {
-        return res.status(400).json({ message: "Already voted on this suggestion" });
-      }
+      let vote;
+      let actionDescription;
 
-      const vote = await storage.createVote(voteData);
+      if (existingVote) {
+        // User has already voted - check if they're switching their vote
+        if (existingVote.voteType === voteData.voteType) {
+          return res.status(400).json({ message: "You have already cast this vote" });
+        }
+        
+        // User is switching their vote - update existing vote
+        vote = await storage.updateVote(existingVote.id, {
+          voteType: voteData.voteType,
+          weight: voteData.weight,
+          timeSpentMinutes: voteData.timeSpentMinutes
+        });
+        
+        actionDescription = `Vote switched from ${existingVote.voteType} to ${voteData.voteType} on pattern suggestion`;
+      } else {
+        // New vote - create it
+        vote = await storage.createVote(voteData);
+        actionDescription = `Vote cast: ${voteData.voteType} on pattern suggestion`;
+      }
 
       // Log activity
       await storage.createActivity({
         type: "vote",
-        description: `Vote cast: ${voteData.voteType} on pattern suggestion`,
+        description: actionDescription,
         sessionId: voteData.sessionId
       });
 
@@ -132,7 +149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create vote" });
+      console.error("Error processing vote:", error);
+      res.status(500).json({ message: "Failed to process vote" });
     }
   });
 

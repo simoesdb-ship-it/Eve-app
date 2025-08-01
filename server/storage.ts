@@ -51,6 +51,7 @@ export interface IStorage {
 
   // Voting methods
   createVote(vote: InsertVote): Promise<Vote>;
+  updateVote(voteId: number, updates: Partial<Vote>): Promise<Vote>;
   getVotesForSuggestion(suggestionId: number): Promise<Vote[]>;
   getUserVoteForSuggestion(suggestionId: number, sessionId: string): Promise<Vote | undefined>;
 
@@ -216,6 +217,14 @@ export class DatabaseStorage implements IStorage {
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
     const [vote] = await db.insert(votes).values(insertVote).returning();
+    return vote;
+  }
+
+  async updateVote(voteId: number, updates: Partial<Vote>): Promise<Vote> {
+    const [vote] = await db.update(votes)
+      .set(updates)
+      .where(eq(votes.id, voteId))
+      .returning();
     return vote;
   }
 
