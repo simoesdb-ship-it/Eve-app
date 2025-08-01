@@ -386,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const result = await tokenEconomy.uploadMedia(sessionId, locationId, {
+      const result = await dataTokenService.uploadMedia(sessionId, locationId, {
         mediaType,
         fileName,
         fileSize,
@@ -411,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const result = await tokenEconomy.addComment(sessionId, locationId, {
+      const result = await dataTokenService.addComment(sessionId, locationId, {
         content,
         commentType,
         isPremium
@@ -1099,58 +1099,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Enhanced pattern matching algorithm
 function calculatePatternConfidence(pattern: any, location: any): number {
-  let confidence = 0.3; // Lower base confidence
+  let confidence = 0.25; // Base confidence
+  const analysis = analyzeLocationArchitecturalFactors(location);
 
-  // Location name analysis
+  // EXISTING FACTORS: Location name and urban context analysis
   const locationName = (location.name || '').toLowerCase();
   const patternKeywords = pattern.keywords.map((k: string) => k.toLowerCase());
   const patternName = pattern.name.toLowerCase();
   
   // Direct keyword matches in location name
-  const nameKeywordMatch = patternKeywords.some(keyword => 
+  const nameKeywordMatch = patternKeywords.some((keyword: string) => 
     locationName.includes(keyword) || keyword.includes(locationName.split(' ')[0])
   );
-  
-  if (nameKeywordMatch) {
-    confidence += 0.4;
-  }
+  if (nameKeywordMatch) confidence += 0.4;
 
   // Urban context patterns
   const urbanIndicators = ['plaza', 'square', 'park', 'street', 'avenue', 'center', 'market', 'station'];
   const hasUrbanContext = urbanIndicators.some(indicator => locationName.includes(indicator));
   
   if (hasUrbanContext) {
-    // Boost patterns related to urban design
     const urbanPatterns = ['pedestrian', 'public', 'community', 'activity', 'circulation', 'open'];
     const isUrbanPattern = urbanPatterns.some(urban => 
-      patternKeywords.some(keyword => keyword.includes(urban)) || patternName.includes(urban)
+      patternKeywords.some((keyword: string) => keyword.includes(urban)) || patternName.includes(urban)
     );
-    
-    if (isUrbanPattern) {
-      confidence += 0.3;
-    }
+    if (isUrbanPattern) confidence += 0.25;
   }
 
-  // Community and social patterns get higher confidence
-  const socialKeywords = ['community', 'gathering', 'meeting', 'social', 'public', 'common'];
-  const isSocialPattern = socialKeywords.some(social => 
-    patternKeywords.some(keyword => keyword.includes(social)) || patternName.includes(social)
-  );
+  // EXPANDED ARCHITECTURAL FACTORS
+
+  // 1. MORPHOLOGICAL & SPATIAL ANALYSIS
+  if (analysis.spatialCharacteristics.enclosure && ['courtyard', 'enclosed', 'boundary', 'cluster'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.3;
+  }
   
-  if (isSocialPattern) {
+  if (analysis.spatialCharacteristics.connectivity && ['network', 'path', 'connection', 'circulation'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.25;
+  }
+
+  if (analysis.spatialCharacteristics.hierarchy && ['main', 'primary', 'center', 'nucleus'].some(k => patternKeywords.includes(k))) {
     confidence += 0.2;
   }
 
-  // Popular Alexander patterns that apply to most locations
-  const commonPatterns = [61, 106, 125, 171, 183]; // Common patterns that often apply
-  if (commonPatterns.includes(pattern.number)) {
+  // 2. TEMPORAL PATTERNS & ACTIVITY RHYTHMS
+  if (analysis.temporalPatterns.peakActivity && ['activity', 'life', 'energy', 'nodes'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.3;
+  }
+
+  if (analysis.temporalPatterns.multiUse && ['mixed', 'diverse', 'varied', 'multifunctional'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.25;
+  }
+
+  // 3. ENVIRONMENTAL & CLIMATIC FACTORS
+  if (analysis.environmental.naturalLight && ['light', 'window', 'sun', 'brightness'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  if (analysis.environmental.weatherProtection && ['shelter', 'covered', 'protected', 'canopy'].some(k => patternKeywords.includes(k))) {
     confidence += 0.15;
   }
 
-  // Add slight randomization for variety
-  confidence += Math.random() * 0.1;
+  if (analysis.environmental.airQuality && ['ventilation', 'air', 'breeze', 'openness'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.15;
+  }
+
+  // 4. HUMAN SCALE & ERGONOMICS
+  if (analysis.humanScale.walkability && ['pedestrian', 'walking', 'path', 'promenade'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.25;
+  }
+
+  if (analysis.humanScale.intimacy && ['intimate', 'human', 'scale', 'comfortable'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  if (analysis.humanScale.accessibility && ['access', 'entrance', 'threshold', 'barrier'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.15;
+  }
+
+  // 5. SOCIO-CULTURAL DYNAMICS
+  if (analysis.socialDynamics.communityGathering && ['community', 'gathering', 'meeting', 'social'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.3;
+  }
+
+  if (analysis.socialDynamics.privacy && ['privacy', 'retreat', 'quiet', 'solitude'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.15;
+  }
+
+  if (analysis.socialDynamics.territoriality && ['territory', 'boundary', 'ownership', 'control'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.15;
+  }
+
+  // 6. ECONOMIC & FUNCTIONAL PATTERNS
+  if (analysis.economic.workIntegration && ['work', 'office', 'workshop', 'craft'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  if (analysis.economic.marketActivity && ['market', 'commerce', 'trade', 'shop'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  // 7. INFRASTRUCTURE & TECHNICAL SYSTEMS
+  if (analysis.infrastructure.transportation && ['transport', 'transit', 'bus', 'station'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  if (analysis.infrastructure.utilities && ['service', 'utility', 'infrastructure', 'system'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.1;
+  }
+
+  // 8. BIOPHILIC & ECOLOGICAL INTEGRATION
+  if (analysis.ecological.greenIntegration && ['green', 'garden', 'tree', 'nature'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.25;
+  }
+
+  if (analysis.ecological.waterFeatures && ['water', 'fountain', 'stream', 'pond'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.2;
+  }
+
+  if (analysis.ecological.biodiversity && ['wildlife', 'habitat', 'ecosystem', 'natural'].some(k => patternKeywords.includes(k))) {
+    confidence += 0.15;
+  }
+
+  // Popular Alexander patterns that apply to most locations
+  const commonPatterns = [61, 106, 125, 171, 183];
+  if (commonPatterns.includes(pattern.number)) {
+    confidence += 0.1;
+  }
+
+  // Add slight variation for natural pattern distribution
+  confidence += (Math.random() - 0.5) * 0.05;
   
-  return Math.max(0.1, Math.min(0.95, confidence));
+  return Math.max(0.15, Math.min(0.95, confidence));
+}
+
+// Comprehensive architectural analysis function
+function analyzeLocationArchitecturalFactors(location: any) {
+  const lat = parseFloat(location.latitude);
+  const lng = parseFloat(location.longitude);
+  const locationName = (location.name || '').toLowerCase();
+
+  return {
+    // Spatial and morphological characteristics
+    spatialCharacteristics: {
+      enclosure: locationName.includes('court') || locationName.includes('plaza') || locationName.includes('square'),
+      connectivity: locationName.includes('intersection') || locationName.includes('junction') || locationName.includes('hub'),
+      hierarchy: locationName.includes('center') || locationName.includes('main') || locationName.includes('central'),
+      permeability: locationName.includes('path') || locationName.includes('walk') || locationName.includes('passage')
+    },
+
+    // Temporal patterns and activity rhythms
+    temporalPatterns: {
+      peakActivity: locationName.includes('market') || locationName.includes('station') || locationName.includes('school'),
+      multiUse: locationName.includes('mixed') || locationName.includes('complex') || locationName.includes('center'),
+      seasonality: Math.abs(lat) > 40, // Higher latitudes have more seasonal variation
+      nightActivity: locationName.includes('restaurant') || locationName.includes('bar') || locationName.includes('theater')
+    },
+
+    // Environmental and climatic considerations
+    environmental: {
+      naturalLight: true, // Assume natural light is important everywhere
+      weatherProtection: Math.abs(lat) > 30 || locationName.includes('covered') || locationName.includes('shelter'),
+      airQuality: !locationName.includes('highway') && !locationName.includes('industrial'),
+      microclimate: locationName.includes('garden') || locationName.includes('park') || locationName.includes('courtyard')
+    },
+
+    // Human scale and ergonomic factors
+    humanScale: {
+      walkability: !locationName.includes('highway') && !locationName.includes('freeway'),
+      intimacy: locationName.includes('garden') || locationName.includes('cafe') || locationName.includes('home'),
+      accessibility: !locationName.includes('hill') && !locationName.includes('stairs'),
+      wayfinding: locationName.includes('landmark') || locationName.includes('tower') || locationName.includes('monument')
+    },
+
+    // Social and cultural dynamics
+    socialDynamics: {
+      communityGathering: locationName.includes('community') || locationName.includes('public') || locationName.includes('common'),
+      privacy: locationName.includes('residential') || locationName.includes('private') || locationName.includes('quiet'),
+      territoriality: locationName.includes('neighborhood') || locationName.includes('district') || locationName.includes('zone'),
+      culturalSignificance: locationName.includes('historic') || locationName.includes('cultural') || locationName.includes('heritage')
+    },
+
+    // Economic and functional patterns
+    economic: {
+      workIntegration: locationName.includes('office') || locationName.includes('business') || locationName.includes('industrial'),
+      marketActivity: locationName.includes('market') || locationName.includes('shop') || locationName.includes('retail'),
+      serviceAccess: locationName.includes('hospital') || locationName.includes('school') || locationName.includes('library'),
+      resourceEfficiency: locationName.includes('sustainable') || locationName.includes('green') || locationName.includes('eco')
+    },
+
+    // Infrastructure and technical systems
+    infrastructure: {
+      transportation: locationName.includes('station') || locationName.includes('terminal') || locationName.includes('stop'),
+      utilities: locationName.includes('service') || locationName.includes('utility') || locationName.includes('technical'),
+      communication: locationName.includes('tower') || locationName.includes('antenna') || locationName.includes('digital'),
+      waste: locationName.includes('recycling') || locationName.includes('waste') || locationName.includes('disposal')
+    },
+
+    // Biophilic and ecological integration
+    ecological: {
+      greenIntegration: locationName.includes('park') || locationName.includes('garden') || locationName.includes('green'),
+      waterFeatures: locationName.includes('water') || locationName.includes('fountain') || locationName.includes('lake'),
+      biodiversity: locationName.includes('wildlife') || locationName.includes('nature') || locationName.includes('preserve'),
+      climateResilience: locationName.includes('flood') || locationName.includes('drought') || locationName.includes('storm')
+    }
+  };
 }
 
 // Helper function for path quality calculation in communication
