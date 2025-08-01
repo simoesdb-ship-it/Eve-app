@@ -302,13 +302,16 @@ export default function DiscoverPage() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [`/api/locations/${locationId}/patterns`] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/activity'] });
+      
+      // Show vote-specific feedback
+      const voteAction = variables.voteType === 'up' ? 'thumbs up' : 'thumbs down';
       toast({
-        title: "Vote Recorded",
-        description: "Thank you for your feedback!",
+        title: `${voteAction === 'thumbs up' ? '👍' : '👎'} Vote ${data.id ? 'Updated' : 'Recorded'}`,
+        description: data.id ? `Changed vote to ${voteAction}` : `Cast ${voteAction} vote`,
       });
     },
     onError: (error: any) => {
@@ -419,7 +422,7 @@ export default function DiscoverPage() {
       <MapView 
         currentLocation={currentLocation}
         patterns={patterns}
-        onPatternSelect={setSelectedPattern}
+        onPatternSelect={() => {}} // Disable pattern selection from map to prevent modal conflicts
         sessionId={sessionId}
         onLocationUpdate={handleLocationUpdate}
       />
