@@ -39,20 +39,20 @@ export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!pattern.userVote && !isVoting) {
+    if (!isVoting) {
       onVote(pattern.suggestionId, 'up');
     }
   };
 
   const handleDownvote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!pattern.userVote && !isVoting) {
+    if (!isVoting) {
       onVote(pattern.suggestionId, 'down');
     }
   };
 
   return (
-    <Card className={`animate-slide-up pattern-card cursor-pointer ${moodColors.background} ${moodColors.border} border`} onClick={onViewDetails}>
+    <Card className={`animate-slide-up pattern-card ${moodColors.background} ${moodColors.border} border`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -86,11 +86,11 @@ export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }
               size="sm"
               className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm ${
                 pattern.userVote === 'up' 
-                  ? 'bg-secondary/20 text-secondary' 
+                  ? 'bg-secondary/20 text-secondary border-2 border-secondary/30' 
                   : 'bg-gray-100 text-neutral-600 hover:bg-secondary/10 hover:text-secondary'
               }`}
               onClick={handleUpvote}
-              disabled={!!pattern.userVote || isVoting}
+              disabled={isVoting}
             >
               <ThumbsUp className="w-3 h-3" />
               <span>{pattern.upvotes}</span>
@@ -100,17 +100,25 @@ export default function PatternCard({ pattern, onVote, onViewDetails, isVoting }
               size="sm"
               className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm ${
                 pattern.userVote === 'down'
-                  ? 'bg-red-100 text-red-600'
+                  ? 'bg-red-100 text-red-600 border-2 border-red-200'
                   : 'bg-gray-100 text-neutral-600 hover:bg-red-50 hover:text-red-600'
               }`}
               onClick={handleDownvote}
-              disabled={!!pattern.userVote || isVoting}
+              disabled={isVoting}
             >
               <ThumbsDown className="w-3 h-3" />
               <span>{pattern.downvotes}</span>
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-primary text-sm font-medium">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary text-sm font-medium hover:bg-primary/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails();
+            }}
+          >
             Learn More
           </Button>
         </div>
