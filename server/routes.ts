@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage-clean";
+import { storage } from "./storage";
+import { db } from "./db";
+import { votes } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import CommunicationServer from "./websocket-communication";
 import encryptionService from "./encryption-service";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
@@ -116,6 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let vote;
       let actionDescription;
+      let isUpdate = false;
 
       if (existingVote) {
         // User has already voted - check if they're switching their vote
@@ -123,12 +127,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "You have already cast this vote" });
         }
         
-        // User is switching their vote - update existing vote
-        vote = await storage.updateVote(existingVote.id, {
-          voteType: voteData.voteType,
-          weight: voteData.weight,
-          timeSpentMinutes: voteData.timeSpentMinutes
-        });
+        // User is switching their vote - delete old vote and create new one
+        await db.delete(votes).where(eq(votes.id, existingVote.id));
+        vote = await storage.createVote(voteData);
+        isUpdate = true;
         
         actionDescription = `Vote switched from ${existingVote.voteType} to ${voteData.voteType} on pattern suggestion`;
       } else {
@@ -144,7 +146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId: voteData.sessionId
       });
 
-      res.json(vote);
+      // Return vote with update flag for client feedback
+      res.json({ ...vote, isUpdate });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid vote data", errors: error.errors });

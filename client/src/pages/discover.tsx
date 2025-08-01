@@ -307,12 +307,21 @@ export default function DiscoverPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/activity'] });
       
-      // Show vote-specific feedback
+      // Show vote-specific feedback based on whether it's an update
       const voteAction = variables.voteType === 'up' ? 'thumbs up' : 'thumbs down';
-      toast({
-        title: `${voteAction === 'thumbs up' ? '👍' : '👎'} Vote ${data.id ? 'Updated' : 'Recorded'}`,
-        description: data.id ? `Changed vote to ${voteAction}` : `Cast ${voteAction} vote`,
-      });
+      const emoji = variables.voteType === 'up' ? '👍' : '👎';
+      
+      if (data.isUpdate) {
+        toast({
+          title: `${emoji} Vote Updated`,
+          description: `Changed vote to ${voteAction}`,
+        });
+      } else {
+        toast({
+          title: `${emoji} Vote Recorded`,
+          description: `Cast ${voteAction} vote`,
+        });
+      }
     },
     onError: (error: any) => {
       toast({
