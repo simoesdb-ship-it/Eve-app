@@ -282,9 +282,10 @@ export default function DiscoverPage() {
 
   // Fetch user statistics
   const { data: stats } = useQuery({
-    queryKey: [`/api/stats`, { sessionId }],
+    queryKey: [`/api/stats`, { persistentUserId }],
+    enabled: !!persistentUserId,
     queryFn: async () => {
-      const response = await fetch(`/api/stats?sessionId=${sessionId}`);
+      const response = await fetch(`/api/stats?userId=${persistentUserId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     }
