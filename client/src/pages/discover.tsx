@@ -139,7 +139,7 @@ export default function DiscoverPage() {
     setLastLocationAttempt(now);
     setLocationAttempts(prev => prev + 1);
     
-    // Strategy 1: Try to get the latest tracked location from database first
+    // Strategy 1: Only use cached location if it's very recent (within 5 minutes)
     try {
       const response = await fetch(`/api/tracking/${sessionId}`);
       if (response.ok) {
@@ -147,23 +147,30 @@ export default function DiscoverPage() {
         
         if (trackingPoints.length > 0) {
           const lastPoint = trackingPoints[trackingPoints.length - 1];
-          const lastLocation = {
-            lat: Number(lastPoint.latitude),
-            lng: Number(lastPoint.longitude)
-          };
+          const pointAge = Date.now() - new Date(lastPoint.createdAt).getTime();
           
-          setCurrentLocation(lastLocation);
-          setIsLocationLoading(false);
-          
-          createLocationMutation.mutate({
-            latitude: lastLocation.lat.toString(),
-            longitude: lastLocation.lng.toString(),
-            name: "Last Known Location",
-            sessionId: persistentUserId || sessionId // Use persistent user ID if available
-          });
-          
-          console.log(`Using last tracked location: ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
-          return;
+          // Only use cached location if it's less than 5 minutes old
+          if (pointAge < 5 * 60 * 1000) {
+            const lastLocation = {
+              lat: Number(lastPoint.latitude),
+              lng: Number(lastPoint.longitude)
+            };
+            
+            setCurrentLocation(lastLocation);
+            setIsLocationLoading(false);
+            
+            createLocationMutation.mutate({
+              latitude: lastLocation.lat.toString(),
+              longitude: lastLocation.lng.toString(),
+              name: "Recent Location",
+              sessionId: persistentUserId || sessionId
+            });
+            
+            console.log(`Using recent location (${Math.round(pointAge / 1000)}s old): ${lastLocation.lat.toFixed(6)}, ${lastLocation.lng.toFixed(6)}`);
+            return;
+          } else {
+            console.log(`Cached location too old (${Math.round(pointAge / 60000)} minutes), getting fresh GPS`);
+          }
         }
       }
     } catch (trackingError) {
@@ -175,18 +182,18 @@ export default function DiscoverPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: false, // Use lower accuracy for faster response
-            timeout: 10000, // Reduced timeout for quicker fallback
-            maximumAge: 60000 // Allow older cached location data (1 minute)
+            enableHighAccuracy: true, // Use high accuracy for precise location
+            timeout: 15000, // Longer timeout for better accuracy
+            maximumAge: 0 // Don't use cached GPS data, get fresh location
           });
         });
         
         const { latitude, longitude, accuracy } = position.coords;
         
-        // Be more permissive with GPS accuracy - allow up to 1000 meters for initial location
-        if (accuracy && accuracy > 1000) {
-          console.warn(`GPS accuracy too low (${accuracy}m), trying again with lower precision`);
-          throw new Error('GPS accuracy insufficient');
+        // Require reasonable GPS accuracy - reject if over 100 meters
+        if (accuracy && accuracy > 100) {
+          console.warn(`GPS accuracy insufficient (${accuracy}m), need better precision`);
+          throw new Error(`GPS accuracy too low: ${accuracy}m`);
         }
         
         // Additional validation: prevent extreme coordinate jumps
