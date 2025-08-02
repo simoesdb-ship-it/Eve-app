@@ -450,7 +450,7 @@ export default function DiscoverPage() {
           <div className="flex space-x-4">
             <div className="flex-1 text-center">
               <div className="text-lg font-semibold text-neutral-800">{stats.suggestedPatterns}</div>
-              <div className="text-xs text-neutral-400">Suggested Patterns</div>
+              <div className="text-xs text-neutral-400">Patterns Found</div>
             </div>
             <div className="flex-1 text-center border-l border-gray-200">
               <div className="text-lg font-semibold text-neutral-800">{stats.votesContributed}</div>
@@ -471,7 +471,7 @@ export default function DiscoverPage() {
         <Collapsible open={!isPatternsCollapsed} onOpenChange={(open) => setIsPatternsCollapsed(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between mb-4 cursor-pointer">
-              <h2 className="text-lg font-semibold text-neutral-800">Pattern Validation</h2>
+              <h2 className="text-lg font-semibold text-neutral-800">Pattern Suggestions</h2>
               <div className="flex items-center gap-2">
                 {isPatternsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               </div>

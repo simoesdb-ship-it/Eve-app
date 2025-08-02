@@ -68,6 +68,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Generated ${suggestions.length} pattern suggestions for location ${location.id}`);
+      
+      // Log pattern suggestions activity
+      if (suggestions.length > 0) {
+        await storage.createActivity({
+          type: "pattern_suggestion",
+          description: `Found ${suggestions.length} pattern suggestions for location`,
+          sessionId: locationData.sessionId,
+          locationId: location.id,
+          locationName: location.name
+        });
+      }
 
       // Log activity
       await storage.createActivity({
