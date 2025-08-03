@@ -6,6 +6,14 @@ This mobile-first web application facilitates the discovery of Christopher Alexa
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### February 2, 2025 - Terminology Clarification Complete
+- ✓ **Final terminology fix**: Changed confusing "Patterns Suggested" to "Patterns Found" throughout activity descriptions
+- ✓ **Clear distinction**: "Patterns Found" (stats counter) vs "Pattern Suggestions" (individual suggestions for locations)
+- ✓ **Activity improvements**: Pattern suggestions now appear in activity feed when locations are analyzed
+- ✓ **User experience**: Eliminated confusion between similar-sounding terms
+
 ## System Architecture
 
 ### Frontend Architecture

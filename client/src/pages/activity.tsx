@@ -227,7 +227,7 @@ export default function ActivityPage() {
           <CollapsibleContent className="px-3 py-2">
             <div className="text-sm text-neutral-600 space-y-1">
               <p>• Analyzes specific locations when users tap to investigate</p>
-              <p>• Generates contextual Alexander pattern suggestions</p>
+              <p>• Generates contextual Alexander pattern matches</p>
               <p>• Creates persistent location records with associated patterns</p>
               <p>• Links real places to relevant design patterns</p>
             </div>
@@ -250,7 +250,7 @@ export default function ActivityPage() {
             <div className="text-sm text-neutral-600 space-y-1">
               <p>• Stores analyzed locations across sessions using PostgreSQL</p>
               <p>• Maintains heart-icon favorites system</p>
-              <p>• Preserves pattern suggestions tied to specific coordinates</p>
+              <p>• Preserves pattern matches tied to specific coordinates</p>
               <p>• Enables returning to previously analyzed places</p>
             </div>
           </CollapsibleContent>
@@ -293,7 +293,7 @@ export default function ActivityPage() {
           <CollapsibleContent className="px-3 py-2">
             <div className="text-sm text-neutral-600 space-y-1">
               <p>• Real-time feed of location analyses community-wide</p>
-              <p>• Aggregate statistics ({stats?.suggestedPatterns || 0} pattern suggestions recorded)</p>
+              <p>• Aggregate statistics ({stats?.suggestedPatterns || 0} patterns found across all locations)</p>
               <p>• Anonymous contribution tracking while preserving privacy</p>
               <p>• Building collective knowledge about pattern relevance</p>
             </div>
@@ -314,7 +314,7 @@ export default function ActivityPage() {
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 py-2">
             <div className="text-sm text-neutral-600 space-y-1">
-              <p>• Individual pattern suggestions contributed</p>
+              <p>• Individual patterns found at locations</p>
               <p>• Votes cast on pattern relevance ({stats?.votesContributed || 0} total)</p>
               <p>• Offline pattern discoveries</p>
               <p>• Community-wide pattern application trends</p>
