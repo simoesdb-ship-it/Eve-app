@@ -351,17 +351,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const identifier = userId || sessionId;
+      console.log('Getting pattern breakdown for identifier:', identifier);
       
       // Get all pattern suggestions for the user
       const userPatterns = await storage.getUserPatterns(identifier);
+      console.log('Found', userPatterns.length, 'patterns for user');
       
       // Group patterns by category and analyze relationships
       const breakdown = analyzePatternBreakdown(userPatterns);
+      console.log('Generated breakdown with', breakdown.categories.length, 'categories');
       
       res.json(breakdown);
     } catch (error) {
       console.error('Error getting user pattern breakdown:', error);
-      res.status(500).json({ message: "Failed to fetch user pattern breakdown" });
+      res.status(500).json({ message: "Failed to fetch user pattern breakdown", error: error.message });
     }
   });
 
