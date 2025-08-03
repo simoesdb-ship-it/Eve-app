@@ -12,6 +12,105 @@ import { locationAnalyzer } from "./location-pattern-analyzer";
 import { dataTokenService } from "./data-token-service";
 import { dataMarketplace } from "./data-marketplace";
 import { z } from "zod";
+import type { PatternWithVotes } from "./storage";
+
+// Pattern relationship analysis function
+function analyzePatternBreakdown(userPatterns: PatternWithVotes[]) {
+  if (!userPatterns || userPatterns.length === 0) {
+    return {
+      summary: { totalPatterns: 0, categoriesFound: 0, mostConfidentPattern: null, mostVotedPattern: null },
+      categories: [],
+      relationships: []
+    };
+  }
+
+  // Group patterns by category
+  const categories = new Map<string, PatternWithVotes[]>();
+  
+  for (const pattern of userPatterns) {
+    if (!categories.has(pattern.category)) {
+      categories.set(pattern.category, []);
+    }
+    categories.get(pattern.category)!.push(pattern);
+  }
+  
+  // Calculate category statistics
+  const categoryStats = Array.from(categories.entries()).map(([category, patterns]) => {
+    const totalConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0);
+    const avgConfidence = totalConfidence / patterns.length;
+    const totalVotes = patterns.reduce((sum, p) => sum + p.upvotes + p.downvotes, 0);
+    
+    return {
+      category,
+      patternCount: patterns.length,
+      avgConfidence: Math.round(avgConfidence * 100) / 100,
+      totalVotes,
+      patterns: patterns.sort((a, b) => b.confidence - a.confidence)
+    };
+  }).sort((a, b) => b.patternCount - a.patternCount);
+  
+  // Find pattern relationships
+  const relationships = findPatternRelationships(userPatterns);
+  
+  // Calculate overall statistics
+  const totalPatterns = userPatterns.length;
+  const mostConfidentPattern = userPatterns.reduce((max, p) => 
+    p.confidence > max.confidence ? p : max, userPatterns[0]);
+  const mostVotedPattern = userPatterns.reduce((max, p) => 
+    (p.upvotes + p.downvotes) > (max.upvotes + max.downvotes) ? p : max, userPatterns[0]);
+  
+  return {
+    summary: {
+      totalPatterns,
+      categoriesFound: categoryStats.length,
+      mostConfidentPattern: mostConfidentPattern ? {
+        name: mostConfidentPattern.name,
+        confidence: mostConfidentPattern.confidence
+      } : null,
+      mostVotedPattern: mostVotedPattern ? {
+        name: mostVotedPattern.name,
+        votes: mostVotedPattern.upvotes + mostVotedPattern.downvotes
+      } : null
+    },
+    categories: categoryStats,
+    relationships
+  };
+}
+
+// Find patterns that commonly appear together
+function findPatternRelationships(patterns: PatternWithVotes[]) {
+  const relationships = [];
+  const patternsByCategory = new Map<string, PatternWithVotes[]>();
+  
+  // Group patterns by category
+  for (const pattern of patterns) {
+    if (!patternsByCategory.has(pattern.category)) {
+      patternsByCategory.set(pattern.category, []);
+    }
+    patternsByCategory.get(pattern.category)!.push(pattern);
+  }
+  
+  // Find interesting relationships between categories
+  const categoryNames = Array.from(patternsByCategory.keys());
+  for (let i = 0; i < categoryNames.length; i++) {
+    for (let j = i + 1; j < categoryNames.length; j++) {
+      const cat1 = categoryNames[i];
+      const cat2 = categoryNames[j];
+      const patterns1 = patternsByCategory.get(cat1)!;
+      const patterns2 = patternsByCategory.get(cat2)!;
+      
+      if (patterns1.length > 0 && patterns2.length > 0) {
+        relationships.push({
+          categories: [cat1, cat2],
+          strength: Math.min(patterns1.length, patterns2.length),
+          description: `${cat1} and ${cat2} patterns often complement each other in your discovered locations`
+        });
+      }
+    }
+  }
+  
+  return relationships.sort((a, b) => b.strength - a.strength).slice(0, 5);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -238,6 +337,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(patterns);
     } catch (error) {
       res.status(500).json({ message: "Failed to search patterns" });
+    }
+  });
+
+  // Get user's patterns breakdown with relationships
+  app.get("/api/patterns/user-breakdown", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      const userId = req.query.userId as string;
+      
+      if (!sessionId && !userId) {
+        return res.status(400).json({ message: "Session ID or User ID is required" });
+      }
+
+      const identifier = userId || sessionId;
+      
+      // Get all pattern suggestions for the user
+      const userPatterns = await storage.getUserPatterns(identifier);
+      
+      // Group patterns by category and analyze relationships
+      const breakdown = analyzePatternBreakdown(userPatterns);
+      
+      res.json(breakdown);
+    } catch (error) {
+      console.error('Error getting user pattern breakdown:', error);
+      res.status(500).json({ message: "Failed to fetch user pattern breakdown" });
     }
   });
 

@@ -48,6 +48,7 @@ export interface IStorage {
   createPatternSuggestion(suggestion: InsertPatternSuggestion): Promise<PatternSuggestion>;
   getSuggestionsForLocation(locationId: number): Promise<PatternSuggestion[]>;
   getPatternsForLocation(locationId: number, sessionId: string): Promise<PatternWithVotes[]>;
+  getUserPatterns(sessionId: string): Promise<PatternWithVotes[]>;
 
   // Voting methods
   createVote(vote: InsertVote): Promise<Vote>;
@@ -213,6 +214,33 @@ export class DatabaseStorage implements IStorage {
     }
 
     return patternsWithVotes;
+  }
+
+  async getUserPatterns(sessionId: string): Promise<PatternWithVotes[]> {
+    // Get all pattern suggestions for user's locations
+    const userLocations = await this.getLocationsBySession(sessionId);
+    const allPatterns: PatternWithVotes[] = [];
+    
+    for (const location of userLocations) {
+      const locationPatterns = await this.getPatternsForLocation(location.id, sessionId);
+      allPatterns.push(...locationPatterns);
+    }
+    
+    // Group patterns by id and merge data
+    const patternMap = new Map<number, PatternWithVotes>();
+    
+    for (const pattern of allPatterns) {
+      if (patternMap.has(pattern.id)) {
+        const existing = patternMap.get(pattern.id)!;
+        existing.upvotes += pattern.upvotes;
+        existing.downvotes += pattern.downvotes;
+        existing.confidence = (existing.confidence + pattern.confidence) / 2;
+      } else {
+        patternMap.set(pattern.id, { ...pattern });
+      }
+    }
+    
+    return Array.from(patternMap.values()).sort((a, b) => a.category.localeCompare(b.category));
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
