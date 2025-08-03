@@ -9,108 +9,9 @@ import encryptionService from "./encryption-service";
 import { insertLocationSchema, insertVoteSchema, insertActivitySchema, insertSpatialPointSchema, insertUserCommentSchema, insertUserMediaSchema } from "@shared/schema";
 import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
-import { tokenEconomy } from "./token-economy";
+import { dataTokenService } from "./data-token-service";
 import { dataMarketplace } from "./data-marketplace";
 import { z } from "zod";
-import type { PatternWithVotes } from "./storage";
-
-// Pattern relationship analysis function
-function analyzePatternBreakdown(userPatterns: PatternWithVotes[]) {
-  if (!userPatterns || userPatterns.length === 0) {
-    return {
-      summary: { totalPatterns: 0, categoriesFound: 0, mostConfidentPattern: null, mostVotedPattern: null },
-      categories: [],
-      relationships: []
-    };
-  }
-
-  // Group patterns by category
-  const categories = new Map<string, PatternWithVotes[]>();
-  
-  for (const pattern of userPatterns) {
-    if (!categories.has(pattern.category)) {
-      categories.set(pattern.category, []);
-    }
-    categories.get(pattern.category)!.push(pattern);
-  }
-  
-  // Calculate category statistics
-  const categoryStats = Array.from(categories.entries()).map(([category, patterns]) => {
-    const totalConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0);
-    const avgConfidence = totalConfidence / patterns.length;
-    const totalVotes = patterns.reduce((sum, p) => sum + p.upvotes + p.downvotes, 0);
-    
-    return {
-      category,
-      patternCount: patterns.length,
-      avgConfidence: Math.round(avgConfidence * 100) / 100,
-      totalVotes,
-      patterns: patterns.sort((a, b) => b.confidence - a.confidence)
-    };
-  }).sort((a, b) => b.patternCount - a.patternCount);
-  
-  // Find pattern relationships - simplified for now
-  const relationships = [];
-  
-  // Calculate overall statistics
-  const totalPatterns = userPatterns.length;
-  const mostConfidentPattern = userPatterns.reduce((max, p) => 
-    p.confidence > max.confidence ? p : max, userPatterns[0]);
-  const mostVotedPattern = userPatterns.reduce((max, p) => 
-    (p.upvotes + p.downvotes) > (max.upvotes + max.downvotes) ? p : max, userPatterns[0]);
-  
-  return {
-    summary: {
-      totalPatterns,
-      categoriesFound: categoryStats.length,
-      mostConfidentPattern: mostConfidentPattern ? {
-        name: mostConfidentPattern.name,
-        confidence: mostConfidentPattern.confidence
-      } : null,
-      mostVotedPattern: mostVotedPattern ? {
-        name: mostVotedPattern.name,
-        votes: mostVotedPattern.upvotes + mostVotedPattern.downvotes
-      } : null
-    },
-    categories: categoryStats,
-    relationships
-  };
-}
-
-// Find patterns that commonly appear together
-function findPatternRelationships(patterns: PatternWithVotes[]) {
-  const relationships = [];
-  const patternsByCategory = new Map<string, PatternWithVotes[]>();
-  
-  // Group patterns by category
-  for (const pattern of patterns) {
-    if (!patternsByCategory.has(pattern.category)) {
-      patternsByCategory.set(pattern.category, []);
-    }
-    patternsByCategory.get(pattern.category)!.push(pattern);
-  }
-  
-  // Find interesting relationships between categories
-  const categoryNames = Array.from(patternsByCategory.keys());
-  for (let i = 0; i < categoryNames.length; i++) {
-    for (let j = i + 1; j < categoryNames.length; j++) {
-      const cat1 = categoryNames[i];
-      const cat2 = categoryNames[j];
-      const patterns1 = patternsByCategory.get(cat1)!;
-      const patterns2 = patternsByCategory.get(cat2)!;
-      
-      if (patterns1.length > 0 && patterns2.length > 0) {
-        relationships.push({
-          categories: [cat1, cat2],
-          strength: Math.min(patterns1.length, patterns2.length),
-          description: `${cat1} and ${cat2} patterns often complement each other in your discovered locations`
-        });
-      }
-    }
-  }
-  
-  return relationships.sort((a, b) => b.strength - a.strength).slice(0, 5);
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -124,73 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search patterns (must come before :id route)
-  app.get("/api/patterns/search", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query) {
-        return res.status(400).json({ message: "Search query is required" });
-      }
-
-      const keywords = query.toLowerCase().split(' ');
-      const patterns = await storage.searchPatterns(keywords);
-      res.json(patterns);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to search patterns" });
-    }
-  });
-
-  // Get user's patterns breakdown with relationships (must come before :id route)
-  app.get("/api/patterns/user-breakdown", async (req, res) => {
-    try {
-      const sessionId = req.query.sessionId as string;
-      const userId = req.query.userId as string;
-      
-      if (!sessionId && !userId) {
-        return res.status(400).json({ message: "Session ID or User ID is required" });
-      }
-
-      const identifier = userId || sessionId;
-      console.log('Getting pattern breakdown for identifier:', identifier);
-      
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000);
-      });
-      
-      // Get all pattern suggestions for the user with timeout
-      const userPatterns = await Promise.race([
-        storage.getUserPatterns(identifier),
-        timeoutPromise
-      ]) as PatternWithVotes[];
-      
-      console.log('Found', userPatterns.length, 'patterns for user');
-      
-      if (userPatterns.length === 0) {
-        return res.json({
-          summary: { totalPatterns: 0, categoriesFound: 0, mostConfidentPattern: null, mostVotedPattern: null },
-          categories: [],
-          relationships: []
-        });
-      }
-      
-      // Group patterns by category and analyze relationships
-      const breakdown = analyzePatternBreakdown(userPatterns);
-      console.log('Generated breakdown with', breakdown.categories.length, 'categories');
-      
-      res.json(breakdown);
-    } catch (error) {
-      console.error('Error getting user pattern breakdown:', error);
-      console.error('Detailed error:', error);
-      res.status(500).json({ 
-        message: "Failed to fetch user pattern breakdown", 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-    }
-  });
-
-  // Get pattern by ID (must come after specific routes)
+  // Get pattern by ID
   app.get("/api/patterns/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -200,8 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(pattern);
     } catch (error) {
-      console.error('Error in pattern detail endpoint:', error);
-      res.status(500).json({ message: "Failed to fetch pattern detail", error: error instanceof Error ? error.message : String(error) });
+      res.status(500).json({ message: "Failed to fetch pattern" });
     }
   });
 
@@ -343,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use userId if provided (persistent tracking), fallback to sessionId, then global
       const identifier = userId || sessionId;
-      const activities = await storage.getRecentActivity(limit);
+      const activities = await storage.getRecentActivity(limit, identifier);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch activities" });
@@ -391,7 +225,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search patterns
+  app.get("/api/patterns/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
 
+      const keywords = query.toLowerCase().split(' ');
+      const patterns = await storage.searchPatterns(keywords);
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to search patterns" });
+    }
+  });
 
   // Tracking endpoints
   app.post('/api/tracking', async (req, res) => {
@@ -453,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If includeAll is true, show all saved locations for potential migration
       if (includeAll === 'true') {
-        const allLocations = await storage.getSavedLocations(1000); // Get all with high limit
+        const allLocations = await storage.getAllSavedLocations();
         res.json(allLocations);
       } else {
         const savedLocations = await storage.getSavedLocationsBySession(userId as string);
@@ -474,17 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Current user ID and location IDs array are required' });
       }
       
-      // Simple migration - update sessionId for specified locations
-      let migratedCount = 0;
-      for (const locationId of locationIds) {
-        try {
-          // This would require a proper migration method in storage
-          migratedCount++;
-        } catch (err) {
-          console.error(`Failed to migrate location ${locationId}:`, err);
-        }
-      }
-      const result = migratedCount;
+      const result = await storage.migrateSavedLocations(currentUserId, locationIds);
       res.json({ success: true, migratedCount: result });
     } catch (error) {
       console.error('Error migrating saved locations:', error);
@@ -502,8 +340,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Pattern ID and session ID are required" });
       }
 
-      // For now, return success without actual assignment
-      const assignment = { id: Date.now(), savedLocationId: locationId, patternId, sessionId };
+      const assignment = await storage.assignPatternToSavedLocation({
+        savedLocationId: locationId,
+        patternId,
+        sessionId
+      });
       res.json(assignment);
     } catch (error) {
       console.error("Error assigning pattern to saved location:", error);
@@ -515,8 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/saved-locations/:locationId/patterns", async (req, res) => {
     try {
       const locationId = parseInt(req.params.locationId);
-      // For now, return empty patterns array
-      const patterns: any[] = [];
+      const patterns = await storage.getPatternsByLocationId(locationId);
       res.json(patterns);
     } catch (error) {
       console.error("Error fetching patterns for saved location:", error);
@@ -535,8 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Session ID is required" });
       }
 
-      // For now, just return success
-      console.log(`Removing pattern ${patternId} from location ${locationId} for session ${sessionId}`);
+      await storage.removePatternFromSavedLocation(locationId, patternId, sessionId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error removing pattern from saved location:", error);
@@ -562,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/tokens/balance/:sessionId', async (req, res) => {
     try {
       const { sessionId } = req.params;
-      const balance = await tokenEconomy.getTokenBalance(sessionId);
+      const balance = await dataTokenService.getTokenBalance(sessionId);
       res.json(balance);
     } catch (error) {
       console.error('Error fetching token balance:', error);
@@ -579,15 +418,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      // For now, return success without actual upload
-      const result = {
-        id: Date.now(),
-        sessionId,
-        locationId,
+      const result = await dataTokenService.uploadMedia(sessionId, locationId, {
         mediaType,
         fileName,
-        tokensEarned: 10
-      };
+        fileSize,
+        mimeType,
+        caption,
+        isPremium
+      });
 
       res.json(result);
     } catch (error) {
@@ -605,15 +443,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      // For now, return success without actual comment storage
-      const result = {
-        id: Date.now(),
-        sessionId,
-        locationId,
+      const result = await dataTokenService.addComment(sessionId, locationId, {
         content,
         commentType,
-        tokensEarned: 5
-      };
+        isPremium
+      });
 
       res.json(result);
     } catch (error) {
@@ -628,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionId } = req.params;
       const limit = parseInt(req.query.limit as string) || 20;
       
-      const transactions = await tokenEconomy.getTransactionHistory(sessionId, limit);
+      const transactions = await dataTokenService.getTransactionHistory(sessionId, limit);
       res.json(transactions);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -645,8 +479,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing session ID' });
       }
 
-      // For now, return mock tokens awarded
-      const tokensAwarded = Math.floor(Math.random() * 10) + 1;
+      const tokensAwarded = await dataTokenService.awardLocationData(
+        sessionId,
+        coordinatesCount,
+        accuracyMeters,
+        trackingMinutes
+      );
 
       res.json({ tokensAwarded });
     } catch (error) {
@@ -658,8 +496,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get global token supply information
   app.get('/api/tokens/supply', async (req, res) => {
     try {
-      const supply = await tokenEconomy.getTokenSupplyInfo();
-      const rewardMultiplier = await tokenEconomy.getCurrentRewardMultiplier();
+      const supply = await dataTokenService.getTokenSupplyInfo();
+      const rewardMultiplier = await dataTokenService.getCurrentRewardMultiplier();
       
       res.json({
         ...supply,
@@ -1006,8 +844,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: registration.username,
         message: 'Device registered successfully' 
       });
-    } catch (error) {
-      res.status(500).json({ message: String(error) });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -1023,8 +861,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: registration?.username,
         isActive: registration?.isActive
       });
-    } catch (error) {
-      res.status(500).json({ message: String(error) });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

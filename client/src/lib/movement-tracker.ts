@@ -2,8 +2,8 @@
 // Continuously tracks user location every 3 minutes and stores tracking points
 
 import { apiRequest } from "@/lib/queryClient";
-import { generateSessionId, calculateDistance } from "@/lib/geolocation";
-import type { InsertSpatialPoint, SpatialPoint, TrackingPoint, InsertTrackingPoint } from "@shared/schema";
+import { generateSessionId } from "@/lib/geolocation";
+import type { InsertSpatialPoint, SpatialPoint } from "@shared/schema";
 
 export class MovementTracker {
   private watchId: number | null = null;
@@ -47,8 +47,8 @@ export class MovementTracker {
         },
         {
           enableHighAccuracy: true, // Use high accuracy for consistent tracking
-          timeout: 25000,
-          maximumAge: 30000 // Accept 30-second-old locations for fresher data
+          timeout: 20000,
+          maximumAge: 60000 // Accept 1-minute-old locations for fresher data
         }
       );
 
@@ -188,7 +188,7 @@ export class MovementTracker {
     const currentPos = { lat: latitude, lng: longitude };
 
     // Validate GPS accuracy - reject very inaccurate readings
-    if (accuracy && accuracy > 2000) {
+    if (accuracy && accuracy > 100) {
       console.warn(`Tracking point accuracy too low (${accuracy}m), skipping`);
       return;
     }

@@ -1,22 +1,22 @@
 import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
-  peerConnections, messages, sharedPaths, pathAccesses,
+  users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, savedLocationPatterns,
+  peerConnections, messages, sharedPaths, pathAccesses, deviceRegistrations,
   type User, type InsertUser,
   type Pattern, type InsertPattern,
   type Location, type InsertLocation,
   type PatternSuggestion, type InsertPatternSuggestion,
   type Vote, type InsertVote,
   type Activity, type InsertActivity,
-  type ActivityWithLocation,
   type SpatialPoint, type InsertSpatialPoint,
   type SavedLocation, type InsertSavedLocation,
-  type DeviceRegistration, type InsertDeviceRegistration,
+  type SavedLocationPattern, type InsertSavedLocationPattern,
   type PeerConnection, type InsertPeerConnection,
   type Message, type InsertMessage,
   type SharedPath, type InsertSharedPath,
-  type PathAccess, type InsertPathAccess
+  type PathAccess, type InsertPathAccess,
+  type DeviceRegistration, type InsertDeviceRegistration
 } from "@shared/schema";
 
 export interface PatternWithVotes extends Pattern {
@@ -51,19 +51,19 @@ export interface IStorage {
 
   // Voting methods
   createVote(vote: InsertVote): Promise<Vote>;
-  updateVote(voteId: number, updates: Partial<Vote>): Promise<Vote>;
   getVotesForSuggestion(suggestionId: number): Promise<Vote[]>;
   getUserVoteForSuggestion(suggestionId: number, sessionId: string): Promise<Vote | undefined>;
 
   // Activity methods
   createActivity(activity: InsertActivity): Promise<Activity>;
-  getRecentActivity(limit: number): Promise<Activity[]>;
+  getRecentActivity(limit: number, sessionId?: string): Promise<Activity[]>;
 
   // Statistics
   getStats(sessionId: string): Promise<{
     suggestedPatterns: number;
     votesContributed: number;
-    offlinePatterns: number;
+    locationsTracked: number;
+    hoursContributed: number;
   }>;
 
   // Tracking methods
@@ -75,12 +75,14 @@ export interface IStorage {
   getSavedLocations(limit: number): Promise<SavedLocation[]>;
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
+  getAllSavedLocations(): Promise<SavedLocation[]>;
+  migrateSavedLocations(newUserId: string, locationIds: number[]): Promise<number>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
-
-  // Device registration methods
-  getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined>;
-  createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration>;
-  updateDeviceLastSeen(deviceId: string): Promise<void>;
+  
+  // Saved location patterns
+  assignPatternToSavedLocation(assignment: InsertSavedLocationPattern): Promise<SavedLocationPattern>;
+  getPatternsByLocationId(savedLocationId: number): Promise<(SavedLocationPattern & { pattern: Pattern })[]>;
+  removePatternFromSavedLocation(savedLocationId: number, patternId: number, sessionId: string): Promise<void>;
   
   // Communication methods for Bitcoin-powered location sharing
   createPeerConnection(connection: InsertPeerConnection): Promise<PeerConnection>;
@@ -101,6 +103,11 @@ export interface IStorage {
   getUserTokenBalance(userId: string): Promise<number>;
   deductTokens(userId: string, amount: number): Promise<void>;
   awardTokens(userId: string, amount: number): Promise<void>;
+  
+  // Device registration methods
+  getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined>;
+  createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration>;
+  updateDeviceLastSeen(deviceId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -220,14 +227,6 @@ export class DatabaseStorage implements IStorage {
     return vote;
   }
 
-  async updateVote(voteId: number, updates: Partial<Vote>): Promise<Vote> {
-    const [vote] = await db.update(votes)
-      .set(updates)
-      .where(eq(votes.id, voteId))
-      .returning();
-    return vote;
-  }
-
   async getVotesForSuggestion(suggestionId: number): Promise<Vote[]> {
     return await db.select().from(votes).where(eq(votes.suggestionId, suggestionId));
   }
@@ -243,9 +242,8 @@ export class DatabaseStorage implements IStorage {
     return activityRecord;
   }
 
-  async getRecentActivity(limit: number): Promise<ActivityWithLocation[]> {
-    console.log('Enhanced getRecentActivity called with limit:', limit);
-    const activities = await db.select({
+  async getRecentActivity(limit: number, sessionId?: string): Promise<Activity[]> {
+    let query = db.select({
       id: activity.id,
       type: activity.type,
       description: activity.description,
@@ -257,18 +255,31 @@ export class DatabaseStorage implements IStorage {
       locationName: locations.name
     })
     .from(activity)
-    .leftJoin(locations, eq(activity.locationId, locations.id))
-    .orderBy(sql`${activity.createdAt} DESC`)
-    .limit(limit);
+    .leftJoin(locations, eq(activity.locationId, locations.id));
+
+    // Add sessionId filter if provided
+    if (sessionId) {
+      query = query.where(eq(activity.sessionId, sessionId));
+    }
+
+    const activities = await query
+      .orderBy(sql`${activity.createdAt} DESC`)
+      .limit(limit);
     
-    console.log('Activity query result sample:', activities[0]);
-    return activities;
+    // Clean up descriptions by removing the "New location visited:" prefix
+    const cleanedActivities = activities.map(act => ({
+      ...act,
+      description: act.description?.replace(/^New location visited:\s*/, '') || act.description
+    }));
+    
+    return cleanedActivities as any;
   }
 
   async getStats(sessionId: string): Promise<{
     suggestedPatterns: number;
     votesContributed: number;
-    offlinePatterns: number;
+    locationsTracked: number;
+    hoursContributed: number;
   }> {
     const userVotes = await db.select().from(votes).where(eq(votes.sessionId, sessionId));
     const userLocations = await this.getLocationsBySession(sessionId);
@@ -279,21 +290,16 @@ export class DatabaseStorage implements IStorage {
       suggestedPatterns += suggestions.length;
     }
 
-    const allPatterns = await db.select().from(patterns);
-
     return {
       suggestedPatterns,
       votesContributed: userVotes.length,
-      offlinePatterns: allPatterns.length
+      locationsTracked: userLocations.length,
+      hoursContributed: Math.max(0.1, userLocations.length * 0.5)
     };
   }
 
   async createTrackingPoint(insertPoint: InsertSpatialPoint): Promise<SpatialPoint> {
-    const trackingData = {
-      ...insertPoint,
-      type: insertPoint.type || 'tracking' // Ensure type is always set
-    };
-    const [spatialPoint] = await db.insert(spatialPoints).values(trackingData).returning();
+    const [spatialPoint] = await db.insert(spatialPoints).values(insertPoint).returning();
     return spatialPoint;
   }
 
@@ -326,29 +332,52 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(savedLocations.createdAt));
   }
 
+  async getAllSavedLocations(): Promise<SavedLocation[]> {
+    return await db.select().from(savedLocations)
+      .orderBy(desc(savedLocations.createdAt));
+  }
+
+  async migrateSavedLocations(newUserId: string, locationIds: number[]): Promise<number> {
+    const updates = await db.update(savedLocations)
+      .set({ sessionId: newUserId })
+      .where(sql`${savedLocations.id} = ANY(ARRAY[${locationIds.join(', ')}])`)
+      .returning();
+    return updates.length;
+  }
+
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
     await db.delete(savedLocations)
       .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
   }
 
-  // Device registration methods
-  async getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined> {
-    const [registration] = await db.select().from(deviceRegistrations)
-      .where(eq(deviceRegistrations.deviceId, deviceId));
-    return registration;
+  async assignPatternToSavedLocation(assignment: InsertSavedLocationPattern): Promise<SavedLocationPattern> {
+    const [savedLocationPattern] = await db.insert(savedLocationPatterns).values(assignment).returning();
+    return savedLocationPattern;
   }
 
-  async createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration> {
-    const [newRegistration] = await db.insert(deviceRegistrations)
-      .values(registration)
-      .returning();
-    return newRegistration;
+  async getPatternsByLocationId(savedLocationId: number): Promise<(SavedLocationPattern & { pattern: Pattern })[]> {
+    const results = await db.select({
+      id: savedLocationPatterns.id,
+      savedLocationId: savedLocationPatterns.savedLocationId,
+      patternId: savedLocationPatterns.patternId,
+      sessionId: savedLocationPatterns.sessionId,
+      assignedAt: savedLocationPatterns.assignedAt,
+      pattern: patterns
+    })
+    .from(savedLocationPatterns)
+    .innerJoin(patterns, eq(savedLocationPatterns.patternId, patterns.id))
+    .where(eq(savedLocationPatterns.savedLocationId, savedLocationId));
+    
+    return results;
   }
 
-  async updateDeviceLastSeen(deviceId: string): Promise<void> {
-    await db.update(deviceRegistrations)
-      .set({ lastSeenAt: new Date() })
-      .where(eq(deviceRegistrations.deviceId, deviceId));
+  async removePatternFromSavedLocation(savedLocationId: number, patternId: number, sessionId: string): Promise<void> {
+    await db.delete(savedLocationPatterns)
+      .where(and(
+        eq(savedLocationPatterns.savedLocationId, savedLocationId),
+        eq(savedLocationPatterns.patternId, patternId),
+        eq(savedLocationPatterns.sessionId, sessionId)
+      ));
   }
 
   // Communication methods for Bitcoin-powered location sharing
@@ -443,27 +472,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserTokenBalance(userId: string): Promise<number> {
-    // For now, get from device registration or return default
     const registration = await this.getDeviceRegistration(userId);
     return registration?.tokenBalance || 100; // Default starting balance
   }
 
   async deductTokens(userId: string, amount: number): Promise<void> {
+    // First check if device registration exists, create if not
+    let registration = await this.getDeviceRegistration(userId);
+    if (!registration) {
+      registration = await this.createDeviceRegistration({
+        deviceId: userId,
+        userId: userId, // Add user_id field
+        tokenBalance: 100,
+        totalTokensEarned: 100,
+        totalTokensSpent: 0,
+        lastSeenAt: new Date()
+      });
+    }
+
     await db.update(deviceRegistrations)
       .set({ 
-        tokenBalance: sql`GREATEST(0, ${deviceRegistrations.tokenBalance} - ${amount})`,
-        totalTokensSpent: sql`${deviceRegistrations.totalTokensSpent} + ${amount}`
+        tokenBalance: Math.max(0, registration.tokenBalance - amount),
+        totalTokensSpent: (registration.totalTokensSpent || 0) + amount
       })
       .where(eq(deviceRegistrations.deviceId, userId));
   }
 
   async awardTokens(userId: string, amount: number): Promise<void> {
+    // First check if device registration exists, create if not
+    let registration = await this.getDeviceRegistration(userId);
+    if (!registration) {
+      registration = await this.createDeviceRegistration({
+        deviceId: userId,
+        userId: userId, // Add user_id field
+        tokenBalance: 100,
+        totalTokensEarned: 100,
+        totalTokensSpent: 0,
+        lastSeenAt: new Date()
+      });
+    }
+
     await db.update(deviceRegistrations)
       .set({ 
-        tokenBalance: sql`${deviceRegistrations.tokenBalance} + ${amount}`,
-        totalTokensEarned: sql`${deviceRegistrations.totalTokensEarned} + ${amount}`
+        tokenBalance: registration.tokenBalance + amount,
+        totalTokensEarned: (registration.totalTokensEarned || 0) + amount
       })
       .where(eq(deviceRegistrations.deviceId, userId));
+  }
+
+  async getDeviceRegistration(deviceId: string): Promise<DeviceRegistration | undefined> {
+    const [registration] = await db.select().from(deviceRegistrations)
+      .where(eq(deviceRegistrations.deviceId, deviceId));
+    return registration;
+  }
+
+  async createDeviceRegistration(registration: InsertDeviceRegistration): Promise<DeviceRegistration> {
+    const [newRegistration] = await db.insert(deviceRegistrations)
+      .values(registration)
+      .returning();
+    return newRegistration;
+  }
+
+  async updateDeviceLastSeen(deviceId: string): Promise<void> {
+    await db.update(deviceRegistrations)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(deviceRegistrations.deviceId, deviceId));
   }
 }
 

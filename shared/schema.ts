@@ -57,7 +57,6 @@ export const activity = pgTable("activity", {
   type: text("type").notNull(), // 'vote', 'suggestion', 'visit'
   description: text("description").notNull(),
   locationId: integer("location_id").references(() => locations.id),
-  locationName: text("location_name"),
   sessionId: text("session_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -194,13 +193,6 @@ export const insertSpatialPointSchema = createInsertSchema(spatialPoints).omit({
   createdAt: true,
 });
 
-export type SpatialPoint = typeof spatialPoints.$inferSelect;
-export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
-
-// Legacy type aliases for backward compatibility
-export type TrackingPoint = SpatialPoint;
-export type InsertTrackingPoint = InsertSpatialPoint;
-
 export const savedLocations = pgTable("saved_locations", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
@@ -310,9 +302,6 @@ export const deviceRegistrations = pgTable("device_registrations", {
   userId: text("user_id").unique().notNull(),
   username: text("username").notNull(), // Two-word fictitious name
   deviceFingerprint: text("device_fingerprint").notNull(),
-  tokenBalance: integer("token_balance").default(100).notNull(),
-  totalTokensEarned: integer("total_tokens_earned").default(0).notNull(),
-  totalTokensSpent: integer("total_tokens_spent").default(0).notNull(),
   registeredAt: timestamp("registered_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),
   isActive: boolean("is_active").default(true),

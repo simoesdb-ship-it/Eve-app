@@ -47,29 +47,50 @@ export default function OnboardingPage() {
     setIsLocationLoading(true);
     setLocationError(null);
 
-    try {
-      // Use enhanced mobile location service with progressive fallbacks
-      const { mobileLocation } = await import('@/lib/mobile-location');
-      const locationResult = await mobileLocation.getLocationWithRetry(3);
-      
-      console.log(`Location acquired via ${locationResult.source}: ${locationResult.accuracy}m accuracy`);
-      setCurrentLocation({ lat: locationResult.lat, lng: locationResult.lng });
-      
-      // Show accuracy info to user
-      if (locationResult.accuracy && locationResult.accuracy > 1000) {
-        toast({
-          title: "Location Found",
-          description: `Using ${locationResult.source} location (${Math.round(locationResult.accuracy)}m accuracy)`,
+    // Try GPS location
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 60000
+          });
         });
+
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // Be permissive with GPS accuracy for onboarding
+        if (accuracy && accuracy > 5000) {
+          throw new Error('GPS accuracy insufficient');
+        }
+
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        setIsLocationLoading(false);
+        return;
+      } catch (gpsError) {
+        console.warn('GPS location failed:', gpsError);
       }
-      
-      setIsLocationLoading(false);
-    } catch (error) {
-      console.error('All location methods failed:', error);
-      setLocationError('Unable to determine location. Please check location permissions and try again.');
-      setIsLocationLoading(false);
     }
-  }, [toast]);
+
+    // Try IP-based geolocation as fallback
+    try {
+      const ipResponse = await fetch('https://ipapi.co/json/');
+      const ipData = await ipResponse.json();
+      if (ipData.latitude && ipData.longitude) {
+        const ipLocation = { lat: ipData.latitude, lng: ipData.longitude };
+        setCurrentLocation(ipLocation);
+        setIsLocationLoading(false);
+        return;
+      }
+    } catch (ipError) {
+      console.warn('IP geolocation failed:', ipError);
+    }
+
+    // Set error state
+    setLocationError('Unable to determine location');
+    setIsLocationLoading(false);
+  }, []);
 
   const completeOnboarding = async () => {
     if (!userId) return;

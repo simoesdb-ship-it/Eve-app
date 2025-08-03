@@ -21,8 +21,8 @@ export function getCurrentPosition(forceRefresh: boolean = false): Promise<Geolo
       (error) => reject(error),
       {
         enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: forceRefresh ? 0 : 60000 // More frequent refresh for mobile
+        timeout: 10000,
+        maximumAge: forceRefresh ? 0 : 300000 // Force fresh location if requested
       }
     );
   });
