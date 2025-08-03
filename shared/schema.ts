@@ -194,6 +194,13 @@ export const insertSpatialPointSchema = createInsertSchema(spatialPoints).omit({
   createdAt: true,
 });
 
+export type SpatialPoint = typeof spatialPoints.$inferSelect;
+export type InsertSpatialPoint = z.infer<typeof insertSpatialPointSchema>;
+
+// Legacy type aliases for backward compatibility
+export type TrackingPoint = SpatialPoint;
+export type InsertTrackingPoint = InsertSpatialPoint;
+
 export const savedLocations = pgTable("saved_locations", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
