@@ -13,12 +13,15 @@ export default function PatternsSuggestedInfo() {
   const [, setLocation] = useLocation();
   
   // Get user patterns breakdown
-  const { data: breakdown, isLoading } = useQuery({
+  const { data: breakdown, isLoading, error } = useQuery({
     queryKey: ["/api/patterns/user-breakdown"],
     queryFn: async () => {
       const persistentUserId = await getConsistentUserId();
+      console.log('Fetching pattern breakdown for user:', persistentUserId);
       const response = await apiRequest("GET", `/api/patterns/user-breakdown?userId=${persistentUserId}`);
-      return response.json();
+      const result = await response.json();
+      console.log('Pattern breakdown result:', result);
+      return result;
     },
   });
 

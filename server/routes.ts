@@ -49,8 +49,8 @@ function analyzePatternBreakdown(userPatterns: PatternWithVotes[]) {
     };
   }).sort((a, b) => b.patternCount - a.patternCount);
   
-  // Find pattern relationships
-  const relationships = findPatternRelationships(userPatterns);
+  // Find pattern relationships - simplified for now
+  const relationships = [];
   
   // Calculate overall statistics
   const totalPatterns = userPatterns.length;
@@ -124,7 +124,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get pattern by ID
+  // Search patterns (must come before :id route)
+  app.get("/api/patterns/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const keywords = query.toLowerCase().split(' ');
+      const patterns = await storage.searchPatterns(keywords);
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to search patterns" });
+    }
+  });
+
+  // Get user's patterns breakdown with relationships (must come before :id route)
+  app.get("/api/patterns/user-breakdown", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      const userId = req.query.userId as string;
+      
+      if (!sessionId && !userId) {
+        return res.status(400).json({ message: "Session ID or User ID is required" });
+      }
+
+      const identifier = userId || sessionId;
+      console.log('Getting pattern breakdown for identifier:', identifier);
+      
+      // Get all pattern suggestions for the user
+      const userPatterns = await storage.getUserPatterns(identifier);
+      console.log('Found', userPatterns.length, 'patterns for user');
+      
+      if (userPatterns.length === 0) {
+        return res.json({
+          summary: { totalPatterns: 0, categoriesFound: 0, mostConfidentPattern: null, mostVotedPattern: null },
+          categories: [],
+          relationships: []
+        });
+      }
+      
+      // Group patterns by category and analyze relationships
+      const breakdown = analyzePatternBreakdown(userPatterns);
+      console.log('Generated breakdown with', breakdown.categories.length, 'categories');
+      
+      res.json(breakdown);
+    } catch (error) {
+      console.error('Error getting user pattern breakdown:', error);
+      console.error('Detailed error:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch user pattern breakdown", 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
+  // Get pattern by ID (must come after specific routes)
   app.get("/api/patterns/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -134,7 +191,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(pattern);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch pattern" });
+      console.error('Error in pattern detail endpoint:', error);
+      res.status(500).json({ message: "Failed to fetch pattern detail", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -324,57 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search patterns
-  app.get("/api/patterns/search", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query) {
-        return res.status(400).json({ message: "Search query is required" });
-      }
 
-      const keywords = query.toLowerCase().split(' ');
-      const patterns = await storage.searchPatterns(keywords);
-      res.json(patterns);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to search patterns" });
-    }
-  });
-
-  // Get user's patterns breakdown with relationships
-  app.get("/api/patterns/user-breakdown", async (req, res) => {
-    try {
-      const sessionId = req.query.sessionId as string;
-      const userId = req.query.userId as string;
-      
-      if (!sessionId && !userId) {
-        return res.status(400).json({ message: "Session ID or User ID is required" });
-      }
-
-      const identifier = userId || sessionId;
-      console.log('Getting pattern breakdown for identifier:', identifier);
-      
-      // Get all pattern suggestions for the user
-      const userPatterns = await storage.getUserPatterns(identifier);
-      console.log('Found', userPatterns.length, 'patterns for user');
-      
-      if (userPatterns.length === 0) {
-        return res.json({
-          summary: { totalPatterns: 0, categoriesFound: 0, mostConfidentPattern: null, mostVotedPattern: null },
-          categories: [],
-          relationships: []
-        });
-      }
-      
-      // Group patterns by category and analyze relationships
-      const breakdown = analyzePatternBreakdown(userPatterns);
-      console.log('Generated breakdown with', breakdown.categories.length, 'categories');
-      
-      res.json(breakdown);
-    } catch (error) {
-      console.error('Error getting user pattern breakdown:', error);
-      res.status(500).json({ message: "Failed to fetch user pattern breakdown", error: String(error) });
-    }
-  });
 
   // Tracking endpoints
   app.post('/api/tracking', async (req, res) => {
