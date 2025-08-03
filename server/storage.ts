@@ -183,64 +183,129 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPatternsForLocation(locationId: number, sessionId: string): Promise<PatternWithVotes[]> {
-    const suggestions = await db
-      .select({
-        suggestion: patternSuggestions,
-        pattern: patterns
-      })
-      .from(patternSuggestions)
-      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
-      .where(eq(patternSuggestions.locationId, locationId));
+    try {
+      console.log(`Getting patterns for location ${locationId}`);
+      
+      const suggestions = await db
+        .select({
+          suggestion: patternSuggestions,
+          pattern: patterns
+        })
+        .from(patternSuggestions)
+        .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+        .where(eq(patternSuggestions.locationId, locationId));
 
-    const patternsWithVotes: PatternWithVotes[] = [];
+      console.log(`Found ${suggestions.length} pattern suggestions for location ${locationId}`);
+      
+      const patternsWithVotes: PatternWithVotes[] = [];
 
-    for (const { suggestion, pattern } of suggestions) {
-      const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
-      const userVote = await db.select().from(votes)
-        .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
-        .limit(1);
+      for (const { suggestion, pattern } of suggestions) {
+        try {
+          const allVotes = await db.select().from(votes).where(eq(votes.suggestionId, suggestion.id));
+          const userVote = await db.select().from(votes)
+            .where(and(eq(votes.suggestionId, suggestion.id), eq(votes.sessionId, sessionId)))
+            .limit(1);
 
-      const upvotes = allVotes.filter(v => v.voteType === 'up').length;
-      const downvotes = allVotes.filter(v => v.voteType === 'down').length;
+          const upvotes = allVotes.filter(v => v.voteType === 'up').length;
+          const downvotes = allVotes.filter(v => v.voteType === 'down').length;
 
-      patternsWithVotes.push({
-        ...pattern,
-        upvotes,
-        downvotes,
-        confidence: parseFloat(suggestion.confidence),
-        suggestionId: suggestion.id,
-        userVote: userVote[0]?.voteType as 'up' | 'down' || null
-      });
+          patternsWithVotes.push({
+            ...pattern,
+            upvotes,
+            downvotes,
+            confidence: parseFloat(suggestion.confidence),
+            suggestionId: suggestion.id,
+            userVote: userVote[0]?.voteType as 'up' | 'down' || null
+          });
+        } catch (voteError) {
+          console.error(`Error processing votes for suggestion ${suggestion.id}:`, voteError);
+          // Add pattern without vote data if vote processing fails
+          patternsWithVotes.push({
+            ...pattern,
+            upvotes: 0,
+            downvotes: 0,
+            confidence: parseFloat(suggestion.confidence),
+            suggestionId: suggestion.id,
+            userVote: null
+          });
+        }
+      }
+
+      console.log(`Returning ${patternsWithVotes.length} patterns with votes for location ${locationId}`);
+      return patternsWithVotes;
+    } catch (error) {
+      console.error(`Error in getPatternsForLocation for location ${locationId}:`, error);
+      throw error;
     }
-
-    return patternsWithVotes;
   }
 
   async getUserPatterns(sessionId: string): Promise<PatternWithVotes[]> {
-    // Get all pattern suggestions for user's locations
-    const userLocations = await this.getLocationsBySession(sessionId);
-    const allPatterns: PatternWithVotes[] = [];
-    
-    for (const location of userLocations) {
-      const locationPatterns = await this.getPatternsForLocation(location.id, sessionId);
-      allPatterns.push(...locationPatterns);
-    }
-    
-    // Group patterns by id and merge data
-    const patternMap = new Map<number, PatternWithVotes>();
-    
-    for (const pattern of allPatterns) {
-      if (patternMap.has(pattern.id)) {
-        const existing = patternMap.get(pattern.id)!;
-        existing.upvotes += pattern.upvotes;
-        existing.downvotes += pattern.downvotes;
-        existing.confidence = (existing.confidence + pattern.confidence) / 2;
-      } else {
-        patternMap.set(pattern.id, { ...pattern });
+    try {
+      console.log('Getting user patterns for session:', sessionId);
+      
+      // Get all pattern suggestions for user's locations (limit to recent locations to prevent hanging)
+      const userLocations = await db.select().from(locations)
+        .where(eq(locations.sessionId, sessionId))
+        .orderBy(desc(locations.createdAt))
+        .limit(50); // Limit to 50 most recent locations
+      
+      console.log('Found', userLocations.length, 'locations for user');
+      
+      if (userLocations.length === 0) {
+        return [];
       }
+      
+      const allPatterns: PatternWithVotes[] = [];
+      
+      // Process locations in smaller batches to prevent hanging
+      const batchSize = 10;
+      for (let i = 0; i < userLocations.length; i += batchSize) {
+        const batch = userLocations.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(userLocations.length/batchSize)}`);
+        
+        for (const location of batch) {
+          try {
+            const locationPatterns = await this.getPatternsForLocation(location.id, sessionId);
+            console.log(`Found ${locationPatterns.length} patterns for location ${location.id}`);
+            allPatterns.push(...locationPatterns);
+            
+            // Limit total patterns to prevent memory issues
+            if (allPatterns.length > 500) {
+              console.log('Reached 500 pattern limit, stopping processing');
+              break;
+            }
+          } catch (error) {
+            console.error(`Error getting patterns for location ${location.id}:`, error);
+            continue; // Skip this location and continue with others
+          }
+        }
+        
+        if (allPatterns.length > 500) break;
+      }
+      
+      console.log('Total patterns found:', allPatterns.length);
+      
+      // Group patterns by id and merge data
+      const patternMap = new Map<number, PatternWithVotes>();
+      
+      for (const pattern of allPatterns) {
+        if (patternMap.has(pattern.id)) {
+          const existing = patternMap.get(pattern.id)!;
+          existing.upvotes += pattern.upvotes;
+          existing.downvotes += pattern.downvotes;
+          existing.confidence = (existing.confidence + pattern.confidence) / 2;
+        } else {
+          patternMap.set(pattern.id, { ...pattern });
+        }
+      }
+      
+      const result = Array.from(patternMap.values()).sort((a, b) => a.category.localeCompare(b.category));
+      console.log('Returning', result.length, 'unique patterns');
+      return result;
+    } catch (error) {
+      console.error('Error in getUserPatterns:', error);
+      throw error;
     }
-    
-    return Array.from(patternMap.values()).sort((a, b) => a.category.localeCompare(b.category));
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {

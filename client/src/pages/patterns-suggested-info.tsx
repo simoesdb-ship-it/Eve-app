@@ -8,9 +8,11 @@ import { ArrowLeft, Target, MapPin, Brain, Users, TrendingUp, Network, Award, Ba
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getConsistentUserId } from "@/lib/device-fingerprint";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PatternsSuggestedInfo() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   
   // Get user patterns breakdown
   const { data: breakdown, isLoading, error } = useQuery({
@@ -22,6 +24,15 @@ export default function PatternsSuggestedInfo() {
       const result = await response.json();
       console.log('Pattern breakdown result:', result);
       return result;
+    },
+    retry: 1,
+    onError: (error) => {
+      console.error('Error fetching pattern breakdown:', error);
+      toast({
+        title: "Error Loading Patterns",
+        description: "Failed to load your pattern breakdown. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -63,7 +74,7 @@ export default function PatternsSuggestedInfo() {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
           </div>
-        ) : (
+        ) : breakdown && breakdown.summary ? (
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -241,6 +252,24 @@ export default function PatternsSuggestedInfo() {
               )}
             </TabsContent>
           </Tabs>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center">
+              <Target className="w-8 h-8 text-neutral-400" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-medium text-neutral-600">No Patterns Found Yet</h3>
+              <p className="text-sm text-neutral-500 max-w-sm">
+                Visit some locations first to discover architectural patterns in your area.
+              </p>
+            </div>
+            <Button 
+              onClick={() => setLocation("/discover")}
+              className="mt-4"
+            >
+              Discover Locations
+            </Button>
+          </div>
         )}
       </div>
     </div>

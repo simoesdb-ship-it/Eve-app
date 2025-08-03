@@ -153,8 +153,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const identifier = userId || sessionId;
       console.log('Getting pattern breakdown for identifier:', identifier);
       
-      // Get all pattern suggestions for the user
-      const userPatterns = await storage.getUserPatterns(identifier);
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000);
+      });
+      
+      // Get all pattern suggestions for the user with timeout
+      const userPatterns = await Promise.race([
+        storage.getUserPatterns(identifier),
+        timeoutPromise
+      ]) as PatternWithVotes[];
+      
       console.log('Found', userPatterns.length, 'patterns for user');
       
       if (userPatterns.length === 0) {
