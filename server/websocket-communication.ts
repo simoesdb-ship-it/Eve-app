@@ -1,6 +1,6 @@
 // WebSocket-based communication server for Bitcoin-powered location sharing
 import { WebSocketServer, WebSocket } from 'ws';
-import { storage } from './storage-clean';
+import { storage } from './storage';
 
 interface ConnectedUser {
   userId: string;

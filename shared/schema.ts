@@ -57,6 +57,7 @@ export const activity = pgTable("activity", {
   type: text("type").notNull(), // 'vote', 'suggestion', 'visit'
   description: text("description").notNull(),
   locationId: integer("location_id").references(() => locations.id),
+  locationName: text("location_name"),
   sessionId: text("session_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -302,6 +303,9 @@ export const deviceRegistrations = pgTable("device_registrations", {
   userId: text("user_id").unique().notNull(),
   username: text("username").notNull(), // Two-word fictitious name
   deviceFingerprint: text("device_fingerprint").notNull(),
+  tokenBalance: integer("token_balance").default(100).notNull(),
+  totalTokensEarned: integer("total_tokens_earned").default(0).notNull(),
+  totalTokensSpent: integer("total_tokens_spent").default(0).notNull(),
   registeredAt: timestamp("registered_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),
   isActive: boolean("is_active").default(true),
