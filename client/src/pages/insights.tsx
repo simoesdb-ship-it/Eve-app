@@ -183,12 +183,12 @@ export default function InsightsPage() {
           <TabsContent value="personal" className="space-y-4">
             {/* Personal Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Link href="/patterns-suggested-info">
+              <Link href="/patterns-found-info">
                 <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <CardContent className="p-3 text-center">
                     <Target className="w-6 h-6 mx-auto mb-1 text-primary" />
                     <div className="text-xl font-bold">{stats?.suggestedPatterns || 0}</div>
-                    <div className="text-xs text-muted-foreground leading-tight">Patterns Suggested</div>
+                    <div className="text-xs text-muted-foreground leading-tight">Patterns Found</div>
                   </CardContent>
                 </Card>
               </Link>

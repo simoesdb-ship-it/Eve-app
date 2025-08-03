@@ -12,7 +12,7 @@ export default function PatternsSuggestedInfo() {
       <div className="safe-area-top bg-primary text-white px-4 py-1 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-          <span>Patterns Suggested Explained</span>
+          <span>Patterns Found Explained</span>
         </div>
       </div>
 
@@ -32,8 +32,8 @@ export default function PatternsSuggestedInfo() {
               <Target className="text-white w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-neutral-800">Patterns Suggested</h1>
-              <p className="text-xs text-neutral-400">How pattern suggestions work</p>
+              <h1 className="text-lg font-semibold text-neutral-800">Patterns Found</h1>
+              <p className="text-xs text-neutral-400">How pattern discovery works</p>
             </div>
           </div>
         </div>
