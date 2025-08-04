@@ -28,6 +28,7 @@ import LocationsTrackedInfo from "@/pages/locations-tracked-info";
 import HoursContributedInfo from "@/pages/hours-contributed-info";
 import NotFound from "@/pages/not-found";
 import Communication from "@/pages/communication";
+import CuratedPatternsPage from "@/pages/curated-patterns";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/" component={DiscoverPage} />
       <Route path="/patterns" component={PatternsPage} />
       <Route path="/patterns/:id" component={PatternDetailPage} />
+      <Route path="/curated-patterns/:locationId" component={CuratedPatternsPage} />
       <Route path="/activity" component={ActivityPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/location-analysis" component={LocationAnalysisPage} />

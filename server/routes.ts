@@ -16,6 +16,7 @@ import { cacheMiddleware, cacheConfigs } from "./middleware/caching";
 import { rateLimiters } from "./middleware/rate-limiting";
 import { dbOptimizations } from "./database-optimizations";
 import { performanceMonitor } from "./performance-monitor";
+import { contextualPatternCurator } from "./contextual-pattern-curator";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -371,6 +372,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error assigning pattern to saved location:", error);
       res.status(500).json({ message: "Failed to assign pattern" });
+    }
+  });
+
+  // Get curated patterns for a specific location based on context
+  app.get("/api/locations/:locationId/curated-patterns", cacheMiddleware(cacheConfigs.locationPatterns), async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.locationId);
+      const curatedPatterns = await contextualPatternCurator.getCuratedPatterns(locationId);
+      res.json(curatedPatterns);
+    } catch (error) {
+      console.error("Error fetching curated patterns:", error);
+      res.status(500).json({ message: "Failed to fetch curated patterns", error: String(error) });
     }
   });
 

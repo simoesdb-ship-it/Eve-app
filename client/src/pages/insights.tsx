@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ function getSessionId(): string {
 }
 
 export default function InsightsPage() {
+  const [, navigate] = useLocation();
   const [sessionId] = useState(getSessionId());
   const [username, setUsername] = useState<string>('');
   const [persistentUserId, setPersistentUserId] = useState<string>('');
@@ -417,6 +418,18 @@ export default function InsightsPage() {
                                             </p>
                                           </div>
                                         )}
+                                        
+                                        {/* Patterns Button */}
+                                        <div className="mt-3 flex justify-end">
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => navigate(`/curated-patterns/${location.id}`)}
+                                            className="text-xs"
+                                          >
+                                            Patterns
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
