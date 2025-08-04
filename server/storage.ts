@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
@@ -361,7 +361,16 @@ export class DatabaseStorage implements IStorage {
     
     return await db.select()
       .from(patterns)
-      .where(sql`${patterns.id} IN (${patternIds.join(',')})`);
+      .where(inArray(patterns.id, patternIds));
+  }
+
+  async removePatternFromSavedLocation(savedLocationId: number, patternId: number, sessionId: string): Promise<void> {
+    // Remove the pattern suggestion for this location and pattern
+    await db.delete(patternSuggestions)
+      .where(and(
+        eq(patternSuggestions.locationId, savedLocationId),
+        eq(patternSuggestions.patternId, patternId)
+      ));
   }
 
   // Device registration methods
