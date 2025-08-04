@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { OfflineIndicator } from "@/components/offline-indicator";
 import MobileContainer from "@/components/mobile-container";
 import DiscoverPage from "@/pages/discover";
 import PatternsPage from "@/pages/patterns";
@@ -58,14 +60,19 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <MobileContainer>
-          <Router />
-        </MobileContainer>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <MobileContainer>
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
+            <OfflineIndicator />
+          </MobileContainer>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

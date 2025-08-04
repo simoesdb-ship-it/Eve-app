@@ -459,17 +459,17 @@ export default function ActivityPage() {
               </div>
 
               {/* Pattern Suggestions */}
-              {activities.filter((a: any) => a.type === 'suggestion').length > 0 && (
+              {activities.filter((a: any) => a.type === 'pattern_suggestion').length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <BookOpen className="w-4 h-4 text-purple-600" />
                     <h4 className="font-medium text-neutral-800">Pattern Suggestions</h4>
                     <Badge variant="secondary" className="text-xs">
-                      {activities.filter((a: any) => a.type === 'suggestion').length}
+                      {activities.filter((a: any) => a.type === 'pattern_suggestion').length}
                     </Badge>
                   </div>
                   <div className="space-y-2">
-                    {activities.filter((a: any) => a.type === 'suggestion').slice(0, 5).map((activity: ActivityType) => (
+                    {activities.filter((a: any) => a.type === 'pattern_suggestion').slice(0, 5).map((activity: ActivityType) => (
                       <Card key={activity.id} className="transition-shadow hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start space-x-3">
@@ -525,17 +525,17 @@ export default function ActivityPage() {
 
 
               {/* Other Activities */}
-              {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
+              {activities.filter((a: any) => !['visit', 'pattern_suggestion', 'vote', 'tracking'].includes(a.type)).length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Activity className="w-4 h-4 text-gray-600" />
                     <h4 className="font-medium text-neutral-800">Other Activities</h4>
                     <Badge variant="secondary" className="text-xs">
-                      {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).length}
+                      {activities.filter((a: any) => !['visit', 'pattern_suggestion', 'vote', 'tracking'].includes(a.type)).length}
                     </Badge>
                   </div>
                   <div className="space-y-2">
-                    {activities.filter((a: any) => !['visit', 'suggestion', 'vote', 'tracking'].includes(a.type)).slice(0, 5).map((activity: ActivityType) => (
+                    {activities.filter((a: any) => !['visit', 'pattern_suggestion', 'vote', 'tracking'].includes(a.type)).slice(0, 5).map((activity: ActivityType) => (
                       <Card key={activity.id} className="transition-shadow hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start space-x-3">
