@@ -90,13 +90,15 @@ export function PatternSelector({ savedLocationId, sessionId, trigger }: Pattern
 
   // Filter patterns based on search term
   const filteredPatterns = allPatterns.filter((pattern: any) =>
-    pattern.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pattern.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pattern.keywords.some((keyword: string) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
+    pattern && pattern.name && (
+      pattern.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pattern.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (pattern.keywords && pattern.keywords.some((keyword: string) => keyword.toLowerCase().includes(searchTerm.toLowerCase())))
+    )
   );
 
   // Get assigned pattern IDs for easy checking
-  const assignedPatternIds = new Set(assignedPatterns.map((ap: any) => ap.patternId));
+  const assignedPatternIds = new Set(assignedPatterns.map((ap: any) => ap.id));
 
   const handleAssignPattern = (patternId: number) => {
     assignPatternMutation.mutate(patternId);
@@ -135,12 +137,12 @@ export function PatternSelector({ savedLocationId, sessionId, trigger }: Pattern
               <div className="flex flex-wrap gap-2">
                 {assignedPatterns.map((ap: any) => (
                   <Badge key={ap.id} variant="default" className="flex items-center gap-1">
-                    #{ap.pattern.number} {ap.pattern.name}
+                    #{ap.number} {ap.name}
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => handleRemovePattern(ap.patternId)}
+                      onClick={() => handleRemovePattern(ap.id)}
                       disabled={removePatternMutation.isPending}
                     >
                       <X className="h-3 w-3" />
@@ -162,6 +164,7 @@ export function PatternSelector({ savedLocationId, sessionId, trigger }: Pattern
                   <div className="text-center py-4 text-muted-foreground">No patterns found</div>
                 ) : (
                   filteredPatterns.map((pattern: any) => {
+                    if (!pattern) return null;
                     const isAssigned = assignedPatternIds.has(pattern.id);
                     return (
                       <Card key={pattern.id} className={`transition-colors ${isAssigned ? 'bg-muted' : 'hover:bg-muted/50'}`}>
@@ -178,7 +181,7 @@ export function PatternSelector({ savedLocationId, sessionId, trigger }: Pattern
                                 {pattern.description}
                               </p>
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {pattern.keywords.slice(0, 3).map((keyword: string) => (
+                                {pattern.keywords && pattern.keywords.slice(0, 3).map((keyword: string) => (
                                   <Badge key={keyword} variant="secondary" className="text-xs">
                                     {keyword}
                                   </Badge>
