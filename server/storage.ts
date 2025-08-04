@@ -73,6 +73,8 @@ export interface IStorage {
 
   // Saved locations methods
   getSavedLocations(limit: number): Promise<SavedLocation[]>;
+  assignPatternToSavedLocation(assignment: { savedLocationId: number; patternId: number; sessionId: string }): Promise<any>;
+  getPatternsByLocationId(locationId: number): Promise<Pattern[]>;
   createSavedLocation(location: InsertSavedLocation): Promise<SavedLocation>;
   getSavedLocationsBySession(sessionId: string): Promise<SavedLocation[]>;
   deleteSavedLocation(id: number, sessionId: string): Promise<void>;
@@ -173,7 +175,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPatternSuggestion(insertSuggestion: InsertPatternSuggestion): Promise<PatternSuggestion> {
-    const [suggestion] = await db.insert(patternSuggestions).values(insertSuggestion).returning();
+    const suggestionData = {
+      ...insertSuggestion,
+      mlAlgorithm: insertSuggestion.mlAlgorithm || 'default' // Ensure mlAlgorithm is always set
+    };
+    const [suggestion] = await db.insert(patternSuggestions).values(suggestionData).returning();
     return suggestion;
   }
 
@@ -329,6 +335,33 @@ export class DatabaseStorage implements IStorage {
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
     await db.delete(savedLocations)
       .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));
+  }
+
+  async assignPatternToSavedLocation(assignment: { savedLocationId: number; patternId: number; sessionId: string }): Promise<any> {
+    // Create a pattern suggestion linked to the saved location
+    const suggestion = await this.createPatternSuggestion({
+      locationId: assignment.savedLocationId,
+      patternId: assignment.patternId,
+      sessionId: assignment.sessionId,
+      confidence: 1.0, // High confidence for manual assignments
+      reasoning: 'Manually assigned pattern',
+      mlAlgorithm: 'manual' // Required field for manually assigned patterns
+    });
+    return suggestion;
+  }
+
+  async getPatternsByLocationId(locationId: number): Promise<Pattern[]> {
+    // Get patterns assigned to this saved location via pattern suggestions
+    const suggestions = await this.getSuggestionsForLocation(locationId);
+    const patternIds = suggestions.map(s => s.patternId);
+    
+    if (patternIds.length === 0) {
+      return [];
+    }
+    
+    return await db.select()
+      .from(patterns)
+      .where(sql`${patterns.id} IN (${patternIds.join(',')})`);
   }
 
   // Device registration methods
