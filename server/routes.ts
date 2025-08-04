@@ -11,12 +11,40 @@ import { communityAgent } from "./community-agent";
 import { locationAnalyzer } from "./location-pattern-analyzer";
 import { dataTokenService } from "./data-token-service";
 import { dataMarketplace } from "./data-marketplace";
+import { optimizedPatternAnalyzer } from "./optimized-pattern-analyzer";
+import { cacheMiddleware, cacheConfigs } from "./middleware/caching";
+import { rateLimiters } from "./middleware/rate-limiting";
+import { dbOptimizations } from "./database-optimizations";
+import { performanceMonitor } from "./performance-monitor";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Get all patterns
-  app.get("/api/patterns", async (req, res) => {
+  // Initialize optimizations
+  console.log('Initializing performance optimizations...');
+  await dbOptimizations.createOptimizedIndexes();
+  await dbOptimizations.optimizeDatabase();
+  await optimizedPatternAnalyzer.warmCache();
+  console.log('Performance optimizations completed');
+
+  // Apply rate limiting to all routes
+  app.use('/api/', rateLimiters.general.middleware());
+
+  // Performance monitoring middleware
+  app.use('/api/', (req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      performanceMonitor.trackRequest(duration);
+      if (res.statusCode >= 400) {
+        performanceMonitor.trackError();
+      }
+    });
+    next();
+  });
+  
+  // Get all patterns (cached)
+  app.get("/api/patterns", cacheMiddleware(cacheConfigs.patterns), async (req, res) => {
     try {
       const patterns = await storage.getAllPatterns();
       res.json(patterns);
@@ -25,8 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get pattern by ID
-  app.get("/api/patterns/:id", async (req, res) => {
+  // Get pattern by ID (cached)
+  app.get("/api/patterns/:id", cacheMiddleware(cacheConfigs.patternById), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const pattern = await storage.getPattern(id);
@@ -39,31 +67,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create location and get pattern suggestions
-  app.post("/api/locations", async (req, res) => {
+  // Create location and get pattern suggestions (optimized)
+  app.post("/api/locations", rateLimiters.locationCreation.middleware(), async (req, res) => {
     try {
       const locationData = insertLocationSchema.parse(req.body);
       const location = await storage.createLocation(locationData);
 
-      // Generate pattern suggestions using enhanced algorithm
-      const patterns = await storage.getAllPatterns();
-      const suggestions = [];
+      // Use optimized pattern analyzer
+      console.log(`Analyzing location using optimized analyzer: ${location.name}`);
+      const suggestions = await optimizedPatternAnalyzer.generateOptimizedSuggestions(location);
 
-      console.log(`Analyzing ${patterns.length} patterns for location: ${location.name}`);
-
-      for (const pattern of patterns) {
-        const confidence = calculatePatternConfidence(pattern, location);
-        console.log(`Pattern ${pattern.number} "${pattern.name}": confidence ${confidence.toFixed(3)}`);
-        
-        if (confidence > 0.5) {
-          const suggestion = await storage.createPatternSuggestion({
-            locationId: location.id,
-            patternId: pattern.id,
-            confidence: confidence.toString(),
-            mlAlgorithm: "enhanced_keyword_spatial_matching"
+      // Batch store the suggestions for better performance
+      if (suggestions.length > 0) {
+        for (const suggestion of suggestions) {
+          await storage.createPatternSuggestion({
+            locationId: suggestion.locationId,
+            patternId: suggestion.patternId,
+            confidence: suggestion.confidence.toString(),
+            mlAlgorithm: suggestion.mlAlgorithm
           });
-          suggestions.push(suggestion);
-          console.log(`Created suggestion for pattern ${pattern.number} with confidence ${confidence.toFixed(3)}`);
         }
       }
 
@@ -97,8 +119,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get patterns for a location
-  app.get("/api/locations/:id/patterns", async (req, res) => {
+  // Get patterns for a location (cached)
+  app.get("/api/locations/:id/patterns", cacheMiddleware(cacheConfigs.locationPatterns), async (req, res) => {
     try {
       const locationId = parseInt(req.params.id);
       const sessionId = req.query.sessionId as string;
@@ -117,8 +139,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote on a pattern suggestion (allows switching votes)
-  app.post("/api/votes", async (req, res) => {
+  // Vote on a pattern suggestion (allows switching votes) - rate limited
+  app.post("/api/votes", rateLimiters.voting.middleware(), async (req, res) => {
     try {
       const voteData = insertVoteSchema.parse(req.body);
       
@@ -168,8 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get recent activity
-  app.get("/api/activity", async (req, res) => {
+  // Get recent activity (cached)
+  app.get("/api/activity", cacheMiddleware(cacheConfigs.activity), async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const sessionId = req.query.sessionId as string;
@@ -206,8 +228,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user statistics
-  app.get("/api/stats", async (req, res) => {
+  // Get user statistics (cached)
+  app.get("/api/stats", cacheMiddleware(cacheConfigs.stats), async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string;
       const userId = req.query.userId as string;
@@ -1117,6 +1139,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching token balance:', error);
       res.status(500).json({ error: 'Failed to fetch token balance' });
+    }
+  });
+
+  // Performance monitoring endpoints
+  app.get('/api/performance', rateLimiters.expensive.middleware(), async (req, res) => {
+    try {
+      const metrics = performanceMonitor.getMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching performance metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch performance metrics' });
+    }
+  });
+
+  app.get('/api/cache/stats', async (req, res) => {
+    try {
+      const stats = cache.getStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching cache stats:', error);
+      res.status(500).json({ error: 'Failed to fetch cache stats' });
     }
   });
 
