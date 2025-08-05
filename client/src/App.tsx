@@ -29,6 +29,7 @@ import HoursContributedInfo from "@/pages/hours-contributed-info";
 import NotFound from "@/pages/not-found";
 import Communication from "@/pages/communication";
 import CuratedPatternsPage from "@/pages/curated-patterns";
+import AdminDashboard from "@/pages/admin-dashboard";
 
 function Router() {
   return (
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/votes-cast-info" component={VotesCastInfo} />
       <Route path="/locations-tracked-info" component={LocationsTrackedInfo} />
       <Route path="/hours-contributed-info" component={HoursContributedInfo} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

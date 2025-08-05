@@ -222,6 +222,87 @@ export const insertSavedLocationSchema = createInsertSchema(savedLocations).omit
   createdAt: true,
 });
 
+// Admin and monitoring tables
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  adminId: text("admin_id").notNull().unique(),
+  username: text("username").notNull(),
+  role: text("role").default("admin").notNull(), // admin, super_admin, moderator
+  permissions: jsonb("permissions").default("{}").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const systemMetrics = pgTable("system_metrics", {
+  id: serial("id").primaryKey(),
+  metricType: text("metric_type").notNull(), // api_requests, errors, cache_hits, active_users
+  metricValue: decimal("metric_value", { precision: 12, scale: 2 }).notNull(),
+  metricData: jsonb("metric_data").default("{}").notNull(),
+  timeframe: text("timeframe").default("1hour").notNull(), // 1hour, 1day, 1week
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+});
+
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  deviceId: text("device_id"),
+  username: text("username"),
+  isActive: boolean("is_active").default(true).notNull(),
+  activityCount: integer("activity_count").default(0).notNull(),
+  locationsCreated: integer("locations_created").default(0).notNull(),
+  votesContributed: integer("votes_contributed").default(0).notNull(),
+  tokensEarned: integer("tokens_earned").default(0).notNull(),
+  tokensSpent: integer("tokens_spent").default(0).notNull(),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  adminId: text("admin_id"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(), // user, location, pattern, system
+  entityId: text("entity_id"),
+  changes: jsonb("changes").default("{}").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+// Admin insert schemas
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  lastLogin: true,
+});
+
+export const insertSystemMetricSchema = createInsertSchema(systemMetrics).omit({
+  id: true,
+  recordedAt: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  createdAt: true,
+  lastActivity: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Admin types
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = typeof adminUsers.$inferInsert;
+export type SystemMetric = typeof systemMetrics.$inferSelect;
+export type InsertSystemMetric = typeof systemMetrics.$inferInsert;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = typeof userSessions.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
 export const insertSavedLocationPatternSchema = createInsertSchema(savedLocationPatterns).omit({
   id: true,
   assignedAt: true,

@@ -1176,6 +1176,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== ADMIN DASHBOARD API ROUTES ====================
+  
+  // Admin authentication middleware
+  const adminAuth = async (req: any, res: any, next: any) => {
+    const adminId = req.headers['x-admin-id'] as string;
+    
+    if (!adminId) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+
+    const { adminService } = await import("./admin-service");
+    const isAuthenticated = await adminService.authenticateAdmin(adminId);
+    
+    if (!isAuthenticated) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
+    }
+
+    req.adminId = adminId;
+    next();
+  };
+
+  // Create admin user (for initial setup)
+  app.post('/api/admin/setup', async (req, res) => {
+    try {
+      const { adminId, username, setupKey } = req.body;
+      
+      // Simple setup key check (in production, use proper authentication)
+      if (setupKey !== process.env.ADMIN_SETUP_KEY && setupKey !== "admin_setup_2025") {
+        return res.status(403).json({ message: "Invalid setup key" });
+      }
+
+      const { adminService } = await import("./admin-service");
+      const admin = await adminService.createAdminUser({
+        adminId,
+        username,
+        role: "super_admin",
+        permissions: { all: true }
+      });
+
+      res.json({ success: true, admin: { id: admin.id, username: admin.username } });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // System overview
+  app.get('/api/admin/overview', adminAuth, async (req, res) => {
+    try {
+      const { adminService } = await import("./admin-service");
+      const overview = await adminService.getSystemOverview();
+      
+      // Log admin action
+      await adminService.logAction(req.adminId, 'view_overview', 'system');
+      
+      res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // User analytics
+  app.get('/api/admin/users', adminAuth, async (req, res) => {
+    try {
+      const timeframe = req.query.timeframe as string || "7d";
+      const { adminService } = await import("./admin-service");
+      const analytics = await adminService.getUserAnalytics(timeframe);
+      
+      await adminService.logAction(req.adminId, 'view_user_analytics', 'users');
+      
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pattern analytics
+  app.get('/api/admin/patterns', adminAuth, async (req, res) => {
+    try {
+      const { adminService } = await import("./admin-service");
+      const analytics = await adminService.getPatternAnalytics();
+      
+      await adminService.logAction(req.adminId, 'view_pattern_analytics', 'patterns');
+      
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Location analytics
+  app.get('/api/admin/locations', adminAuth, async (req, res) => {
+    try {
+      const { adminService } = await import("./admin-service");
+      const analytics = await adminService.getLocationAnalytics();
+      
+      await adminService.logAction(req.adminId, 'view_location_analytics', 'locations');
+      
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Communication analytics
+  app.get('/api/admin/communication', adminAuth, async (req, res) => {
+    try {
+      const { adminService } = await import("./admin-service");
+      const analytics = await adminService.getCommunicationAnalytics();
+      
+      await adminService.logAction(req.adminId, 'view_communication_analytics', 'communication');
+      
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // System health
+  app.get('/api/admin/health', adminAuth, async (req, res) => {
+    try {
+      const { adminService } = await import("./admin-service");
+      const health = await adminService.getSystemHealth();
+      
+      res.json(health);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Audit logs
+  app.get('/api/admin/audit', adminAuth, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const { adminService } = await import("./admin-service");
+      const logs = await adminService.getAuditLogs(limit);
+      
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Content moderation
+  app.post('/api/admin/moderate', adminAuth, async (req, res) => {
+    try {
+      const { contentType, contentId, reason } = req.body;
+      const { adminService } = await import("./admin-service");
+      
+      const result = await adminService.flagContent(contentType, contentId, reason, req.adminId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // System configuration
+  app.post('/api/admin/config', adminAuth, async (req, res) => {
+    try {
+      const config = req.body;
+      const { adminService } = await import("./admin-service");
+      
+      const result = await adminService.updateSystemConfig(config, req.adminId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize WebSocket communication server for real-time messaging
