@@ -25,7 +25,7 @@
     "react-native-encrypted-storage": "^4.0.3",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-community/netinfo": "^11.3.2",
-    "react-native-background-job": "^0.2.3",
+
     "react-native-websocket": "^1.0.2",
     "react-native-svg": "^15.7.1"
   },
