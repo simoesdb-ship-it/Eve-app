@@ -1,0 +1,16 @@
+REACT NATIVE DEPENDENCIES INSTALLATION
+
+Quick Instructions:
+1. Open Replit's Shell tab (bottom of screen)
+2. Type: cd mobile
+3. Type: npm install --legacy-peer-deps
+4. Wait for installation to complete
+5. Type: npm start
+
+That's it! Your React Native mobile app will be ready.
+
+Alternative if above fails:
+- Try: npm install --force
+- Or: npm ci --legacy-peer-deps
+
+The mobile app connects to your existing backend at localhost:5000
