@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerIntelligentPatternRoutes } from "./routes-intelligent-patterns";
 import { db } from "./db";
 import { votes } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -1343,6 +1344,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Register intelligent pattern suggestion routes
+  registerIntelligentPatternRoutes(app);
 
   const httpServer = createServer(app);
   

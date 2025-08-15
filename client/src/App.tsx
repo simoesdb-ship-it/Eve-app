@@ -30,6 +30,7 @@ import NotFound from "@/pages/not-found";
 import Communication from "@/pages/communication";
 import CuratedPatternsPage from "@/pages/curated-patterns";
 import AdminDashboard from "@/pages/admin-dashboard";
+import IntelligentPatterns from "@/pages/intelligent-patterns";
 
 function Router() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/locations-tracked-info" component={LocationsTrackedInfo} />
       <Route path="/hours-contributed-info" component={HoursContributedInfo} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/intelligent-patterns" component={IntelligentPatterns} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -159,6 +159,16 @@ export type InsertSharedPath = typeof sharedPaths.$inferInsert;
 export type PathAccess = typeof pathAccesses.$inferSelect;
 export type InsertPathAccess = typeof pathAccesses.$inferInsert;
 
+// User feedback and intelligent suggestion types
+export type UserComment = typeof userComments.$inferSelect;
+export type InsertUserComment = typeof userComments.$inferInsert;
+export type IntelligentSuggestion = typeof intelligentSuggestions.$inferSelect;
+export type InsertIntelligentSuggestion = typeof intelligentSuggestions.$inferInsert;
+export type ConsensusBuilding = typeof consensusBuilding.$inferSelect;
+export type InsertConsensusBuilding = typeof consensusBuilding.$inferInsert;
+
+// Note: Insert schemas for intelligent feedback system will be defined after table definitions
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -205,6 +215,52 @@ export const savedLocations = pgTable("saved_locations", {
   landUse: text("land_use"),
   urbanDensity: text("urban_density"),
   patternEvaluation: text("pattern_evaluation"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// User feedback and problem analysis for intelligent pattern suggestions
+export const userComments = pgTable("user_comments", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").references(() => locations.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  commentType: text("comment_type").notNull(), // 'problem', 'solution', 'observation', 'suggestion'
+  content: text("content").notNull(),
+  problemCategories: text("problem_categories").array().default([]).notNull(), // ['safety', 'accessibility', 'community', 'environment', etc.]
+  severity: integer("severity").default(3).notNull(), // 1-5 scale
+  upvotes: integer("upvotes").default(0).notNull(),
+  downvotes: integer("downvotes").default(0).notNull(),
+  isValidated: boolean("is_validated").default(false).notNull(), // community validation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// AI-powered pattern recommendations based on user feedback
+export const intelligentSuggestions = pgTable("intelligent_suggestions", {
+  id: serial("id").primaryKey(),
+  locationId: integer("location_id").references(() => locations.id).notNull(),
+  commentId: integer("comment_id").references(() => userComments.id),
+  patternId: integer("pattern_id").references(() => patterns.id).notNull(),
+  reasoning: text("reasoning").notNull(), // AI explanation for why this pattern applies
+  relevanceScore: decimal("relevance_score", { precision: 5, scale: 3 }).notNull(), // 0.000-1.000
+  problemsAddressed: text("problems_addressed").array().notNull(),
+  implementationPriority: text("implementation_priority").notNull(), // 'immediate', 'short_term', 'long_term'
+  communitySupport: integer("community_support").default(0).notNull(), // votes for this suggestion
+  isImplemented: boolean("is_implemented").default(false).notNull(),
+  implementationNotes: text("implementation_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Community consensus tracking for better urban planning
+export const consensusBuilding = pgTable("consensus_building", {
+  id: serial("id").primaryKey(),
+  suggestionId: integer("suggestion_id").references(() => intelligentSuggestions.id).notNull(),
+  locationId: integer("location_id").references(() => locations.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  supportLevel: text("support_level").notNull(), // 'strongly_support', 'support', 'neutral', 'oppose', 'strongly_oppose'
+  expertise: text("expertise"), // user's relevant background
+  reasoning: text("reasoning"),
+  timeSpentAtLocation: integer("time_spent_minutes").default(0).notNull(),
+  isLocalResident: boolean("is_local_resident").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -335,17 +391,7 @@ export const userMedia = pgTable("user_media", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const userComments = pgTable("user_comments", {
-  id: serial("id").primaryKey(),
-  locationId: integer("location_id").references(() => locations.id).notNull(),
-  sessionId: text("session_id").notNull(),
-  content: text("content").notNull(),
-  commentType: text("comment_type").notNull(), // 'recommendation', 'observation', 'pattern_analysis'
-  tokensEarned: integer("tokens_earned").default(0).notNull(),
-  isPremium: boolean("is_premium").default(false).notNull(),
-  viewCost: integer("view_cost").default(0).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// Removed duplicate userComments table - using the intelligent feedback version defined earlier
 
 export const sessionTokenBalances = pgTable("session_token_balances", {
   id: serial("id").primaryKey(),
@@ -443,10 +489,7 @@ export const insertDeviceRegistrationSchema = createInsertSchema(deviceRegistrat
   lastSeenAt: true,
 });
 
-export const insertUserCommentSchema = createInsertSchema(userComments).omit({
-  id: true,
-  createdAt: true,
-});
+// Removed duplicate insertUserCommentSchema - using the intelligent feedback version defined earlier
 
 export const insertSessionTokenBalanceSchema = createInsertSchema(sessionTokenBalances).omit({
   id: true,
@@ -475,6 +518,28 @@ export const insertDataPackagePurchaseSchema = createInsertSchema(dataPackagePur
 });
 
 export const insertTokenTransferSchema = createInsertSchema(tokenTransfers).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Insert schemas for intelligent feedback system (defined after table definitions)
+export const insertUserCommentSchema = createInsertSchema(userComments).omit({
+  id: true,
+  createdAt: true,
+  upvotes: true,
+  downvotes: true,
+  isValidated: true,
+});
+
+export const insertIntelligentSuggestionSchema = createInsertSchema(intelligentSuggestions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  communitySupport: true,
+  isImplemented: true,
+});
+
+export const insertConsensusBuildingSchema = createInsertSchema(consensusBuilding).omit({
   id: true,
   createdAt: true,
 });
@@ -523,6 +588,12 @@ export type InsertUserMedia = z.infer<typeof insertUserMediaSchema>;
 
 export type UserComment = typeof userComments.$inferSelect;
 export type InsertUserComment = z.infer<typeof insertUserCommentSchema>;
+
+export type IntelligentSuggestion = typeof intelligentSuggestions.$inferSelect;
+export type InsertIntelligentSuggestion = z.infer<typeof insertIntelligentSuggestionSchema>;
+
+export type ConsensusBuilding = typeof consensusBuilding.$inferSelect;
+export type InsertConsensusBuilding = z.infer<typeof insertConsensusBuildingSchema>;
 
 export type SessionTokenBalance = typeof sessionTokenBalances.$inferSelect;
 export type InsertSessionTokenBalance = z.infer<typeof insertSessionTokenBalanceSchema>;

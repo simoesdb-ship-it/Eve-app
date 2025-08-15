@@ -2,7 +2,7 @@ import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, patterns, locations, patternSuggestions, votes, activity, spatialPoints, savedLocations, deviceRegistrations,
-  peerConnections, messages, sharedPaths, pathAccesses,
+  peerConnections, messages, sharedPaths, pathAccesses, userComments, intelligentSuggestions, consensusBuilding,
   type User, type InsertUser,
   type Pattern, type InsertPattern,
   type Location, type InsertLocation,
@@ -16,7 +16,10 @@ import {
   type PeerConnection, type InsertPeerConnection,
   type Message, type InsertMessage,
   type SharedPath, type InsertSharedPath,
-  type PathAccess, type InsertPathAccess
+  type PathAccess, type InsertPathAccess,
+  type UserComment, type InsertUserComment,
+  type IntelligentSuggestion, type InsertIntelligentSuggestion,
+  type ConsensusBuilding, type InsertConsensusBuilding
 } from "@shared/schema";
 
 export interface PatternWithVotes extends Pattern {
@@ -103,6 +106,19 @@ export interface IStorage {
   getUserTokenBalance(userId: string): Promise<number>;
   deductTokens(userId: string, amount: number): Promise<void>;
   awardTokens(userId: string, amount: number): Promise<void>;
+  
+  // Intelligent pattern suggestion methods
+  createUserComment(comment: InsertUserComment): Promise<UserComment>;
+  getUserCommentsForLocation(locationId: number): Promise<UserComment[]>;
+  voteOnComment(commentId: number, sessionId: string, isUpvote: boolean): Promise<void>;
+  
+  createIntelligentSuggestion(suggestion: InsertIntelligentSuggestion): Promise<IntelligentSuggestion>;
+  getIntelligentSuggestionsForLocation(locationId: number): Promise<IntelligentSuggestion[]>;
+  getIntelligentSuggestionsByPriority(priority: string): Promise<IntelligentSuggestion[]>;
+  
+  createConsensusVote(vote: InsertConsensusBuilding): Promise<ConsensusBuilding>;
+  getConsensusForSuggestion(suggestionId: number): Promise<ConsensusBuilding[]>;
+  markSuggestionImplemented(suggestionId: number, notes?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -506,6 +522,67 @@ export class DatabaseStorage implements IStorage {
         totalTokensEarned: sql`${deviceRegistrations.totalTokensEarned} + ${amount}`
       })
       .where(eq(deviceRegistrations.deviceId, userId));
+  }
+
+  // Intelligent pattern suggestion implementations
+  async createUserComment(comment: InsertUserComment): Promise<UserComment> {
+    const [newComment] = await db.insert(userComments).values(comment).returning();
+    return newComment;
+  }
+
+  async getUserCommentsForLocation(locationId: number): Promise<UserComment[]> {
+    return await db.select()
+      .from(userComments)
+      .where(eq(userComments.locationId, locationId))
+      .orderBy(desc(userComments.createdAt));
+  }
+
+  async voteOnComment(commentId: number, sessionId: string, isUpvote: boolean): Promise<void> {
+    const field = isUpvote ? userComments.upvotes : userComments.downvotes;
+    await db.update(userComments)
+      .set({ [isUpvote ? 'upvotes' : 'downvotes']: sql`${field} + 1` })
+      .where(eq(userComments.id, commentId));
+  }
+
+  async createIntelligentSuggestion(suggestion: InsertIntelligentSuggestion): Promise<IntelligentSuggestion> {
+    const [newSuggestion] = await db.insert(intelligentSuggestions).values(suggestion).returning();
+    return newSuggestion;
+  }
+
+  async getIntelligentSuggestionsForLocation(locationId: number): Promise<IntelligentSuggestion[]> {
+    return await db.select()
+      .from(intelligentSuggestions)
+      .where(eq(intelligentSuggestions.locationId, locationId))
+      .orderBy(desc(intelligentSuggestions.relevanceScore));
+  }
+
+  async getIntelligentSuggestionsByPriority(priority: string): Promise<IntelligentSuggestion[]> {
+    return await db.select()
+      .from(intelligentSuggestions)
+      .where(eq(intelligentSuggestions.implementationPriority, priority))
+      .orderBy(desc(intelligentSuggestions.communitySupport));
+  }
+
+  async createConsensusVote(vote: InsertConsensusBuilding): Promise<ConsensusBuilding> {
+    const [newVote] = await db.insert(consensusBuilding).values(vote).returning();
+    return newVote;
+  }
+
+  async getConsensusForSuggestion(suggestionId: number): Promise<ConsensusBuilding[]> {
+    return await db.select()
+      .from(consensusBuilding)
+      .where(eq(consensusBuilding.suggestionId, suggestionId))
+      .orderBy(desc(consensusBuilding.createdAt));
+  }
+
+  async markSuggestionImplemented(suggestionId: number, notes?: string): Promise<void> {
+    await db.update(intelligentSuggestions)
+      .set({
+        isImplemented: true,
+        implementationNotes: notes,
+        updatedAt: new Date()
+      })
+      .where(eq(intelligentSuggestions.id, suggestionId));
   }
 }
 
