@@ -1,5 +1,6 @@
 import { optimizedPatternAnalyzer } from './optimized-pattern-analyzer';
 import { storage } from './storage';
+import { infrastructureAnalyzer, type PatternImplementationRoadmap } from './infrastructure-analyzer';
 import type { UserComment, IntelligentSuggestion, Pattern } from '@shared/schema';
 
 /**
@@ -7,7 +8,7 @@ import type { UserComment, IntelligentSuggestion, Pattern } from '@shared/schema
  * Christopher Alexander patterns that address real urban problems
  */
 export class IntelligentPatternCurator {
-  private patternAnalyzer: PatternAnalysisService;
+  private patternAnalyzer: any;
   
   // Problem-to-pattern mapping based on Christopher Alexander's Pattern Language
   private readonly problemPatternMap: Record<string, number[]> = {
@@ -56,6 +57,32 @@ export class IntelligentPatternCurator {
   }
 
   /**
+   * Generates implementation roadmap for actionable pattern implementation
+   */
+  async generateImplementationRoadmap(patternNumber: number, location: any): Promise<PatternImplementationRoadmap | null> {
+    try {
+      // High-priority actionable patterns that benefit from infrastructure analysis
+      const actionablePatterns = [20, 30, 31, 88, 12, 51, 52, 53, 97]; // Mini-Buses, Activity Node, Promenade, Street Cafe, etc.
+      
+      if (!actionablePatterns.includes(patternNumber)) {
+        return null; // Skip infrastructure analysis for non-actionable patterns
+      }
+      
+      const infrastructure = await infrastructureAnalyzer.analyzeInfrastructure(location);
+      const roadmap = await infrastructureAnalyzer.createPatternImplementationRoadmap(
+        patternNumber, 
+        location, 
+        infrastructure
+      );
+      
+      return roadmap;
+    } catch (error) {
+      console.error(`Failed to generate implementation roadmap for pattern ${patternNumber}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Generates comprehensive contextual analysis for any location based on coordinates and context
    */
   async generateContextualAnalysis(location: any): Promise<IntelligentSuggestion[]> {
@@ -79,6 +106,9 @@ export class IntelligentPatternCurator {
         const relevanceScore = this.calculateContextualRelevance(problemArea, pattern, lat, lng);
         if (relevanceScore < 0.3) continue; // Filter low-relevance suggestions
         
+        // Generate implementation roadmap for actionable patterns
+        const implementationRoadmap = await this.generateImplementationRoadmap(pattern.number, location);
+        
         const suggestion: IntelligentSuggestion = {
           locationId: location.id,
           commentId: null,
@@ -89,8 +119,8 @@ export class IntelligentPatternCurator {
           implementationPriority: this.determineContextualPriority(problemArea.severity, relevanceScore),
           communitySupport: 0,
           isImplemented: false,
-          implementationNotes: null,
-          pattern: pattern
+          implementationNotes: implementationRoadmap ? JSON.stringify(implementationRoadmap) : null,
+          // pattern: pattern  // Remove this as it's not in the schema
         };
         
         suggestions.push(suggestion);
@@ -159,7 +189,7 @@ export class IntelligentPatternCurator {
     }
 
     // Generate suggestions for each relevant pattern
-    for (const patternId of relevantPatternIds) {
+    for (const patternId of Array.from(relevantPatternIds)) {
       const pattern = allPatterns.find(p => p.id === patternId);
       if (!pattern) continue;
 
@@ -170,7 +200,7 @@ export class IntelligentPatternCurator {
         problemKeywords
       );
       
-      if (suggestion.relevanceScore > 0.3) { // Only include high-relevance suggestions
+      if (parseFloat(suggestion.relevanceScore) > 0.3) { // Only include high-relevance suggestions
         suggestions.push(suggestion);
       }
     }

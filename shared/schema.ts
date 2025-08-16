@@ -584,6 +584,51 @@ export type UserMedia = typeof userMedia.$inferSelect;
 export type InsertUserMedia = z.infer<typeof insertUserMediaSchema>;
 
 export type UserComment = typeof userComments.$inferSelect;
+
+// Implementation Roadmap types
+export interface InfrastructureNode {
+  id: string;
+  type: 'transit_hub' | 'bus_stop' | 'rail_station' | 'parking' | 'bike_share' | 'commercial_center' | 'residential_cluster';
+  name: string;
+  coordinates: { lat: number; lng: number };
+  capacity?: number;
+  operatingHours?: string;
+  connectivity: string[];
+  accessibility: 'high' | 'medium' | 'low';
+  currentUtilization: number;
+}
+
+export interface ImplementationAction {
+  id: string;
+  description: string;
+  actionType: 'infrastructure' | 'policy' | 'community' | 'funding' | 'technical';
+  stakeholders: string[];
+  timeframe: 'immediate' | 'short_term' | 'medium_term' | 'long_term';
+  resources: {
+    funding: 'low' | 'medium' | 'high';
+    permits: boolean;
+    community_support: boolean;
+    technical_expertise: boolean;
+  };
+  dependencies: string[];
+  successMetrics: string[];
+}
+
+export interface PatternImplementationRoadmap {
+  patternNumber: number;
+  patternName: string;
+  locationContext: string;
+  infrastructureAnalysis: {
+    existingAssets: InfrastructureNode[];
+    gaps: string[];
+    opportunities: string[];
+    criticalConnections: { from: string; to: string; benefit: string }[];
+  };
+  actionSequence: ImplementationAction[];
+  timelineEstimate: string;
+  communityBenefits: string[];
+  feasibilityScore: number;
+}
 export type InsertUserComment = z.infer<typeof insertUserCommentSchema>;
 
 export type IntelligentSuggestion = typeof intelligentSuggestions.$inferSelect;

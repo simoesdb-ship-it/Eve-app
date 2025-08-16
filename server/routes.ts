@@ -396,7 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contextReason: suggestion.reasoning,
           category: suggestion.pattern?.category || 'General',
           problemsAddressed: suggestion.problemsAddressed || [],
-          implementationPriority: suggestion.implementationPriority || 'medium'
+          implementationPriority: suggestion.implementationPriority || 'medium',
+          implementationRoadmap: suggestion.implementationNotes ? JSON.parse(suggestion.implementationNotes) : null
         }));
         
         res.json(formattedSuggestions);
@@ -410,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const contextualAnalysis = await intelligentPatternCurator.generateContextualAnalysis(location);
           
           if (contextualAnalysis && contextualAnalysis.length > 0) {
-            // Format contextual analysis as curated patterns
+            // Format contextual analysis as curated patterns with implementation roadmaps
             const formattedAnalysis = contextualAnalysis.map((analysis, index) => ({
               id: analysis.patternId || index + 1000,
               number: analysis.pattern?.number || 0,
@@ -420,7 +421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               contextReason: analysis.reasoning,
               category: analysis.pattern?.category || 'General',
               problemsAddressed: analysis.problemsAddressed || [],
-              implementationPriority: analysis.implementationPriority || 'medium'
+              implementationPriority: analysis.implementationPriority || 'medium',
+              implementationRoadmap: analysis.implementationNotes ? JSON.parse(analysis.implementationNotes) : null
             }));
             
             res.json(formattedAnalysis);
@@ -1427,6 +1429,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const communicationServer = new CommunicationServer(httpServer);
   console.log('Bitcoin-powered Location Sharing Protocol with WebSocket messaging activated');
   
+  // Get detailed implementation roadmap for a specific pattern at a location
+  app.get('/api/locations/:locationId/patterns/:patternNumber/roadmap', async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.locationId);
+      const patternNumber = parseInt(req.params.patternNumber);
+      
+      const location = await storage.getLocation(locationId);
+      if (!location) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Generate implementation roadmap
+      const roadmap = await intelligentPatternCurator.generateImplementationRoadmap(patternNumber, location);
+      
+      if (!roadmap) {
+        return res.status(404).json({ message: 'Implementation roadmap not available for this pattern' });
+      }
+      
+      res.json(roadmap);
+    } catch (error) {
+      console.error('Error generating implementation roadmap:', error);
+      res.status(500).json({ message: 'Failed to generate implementation roadmap', error: error.message });
+    }
+  });
+
   return httpServer;
 }
 
