@@ -62,7 +62,7 @@ export class IntelligentPatternCurator {
   async generateImplementationRoadmap(patternNumber: number, location: any): Promise<PatternImplementationRoadmap | null> {
     try {
       // High-priority actionable patterns that benefit from infrastructure analysis
-      const actionablePatterns = [20, 30, 31, 88, 12, 51, 52, 53, 97]; // Mini-Buses, Activity Node, Promenade, Street Cafe, etc.
+      const actionablePatterns = [20, 30, 31, 88, 12, 51, 52, 53, 97, 23, 7, 8, 10]; // Mini-Buses, Activity Node, Promenade, Street Cafe, Parallel Roads, etc.
       
       if (!actionablePatterns.includes(patternNumber)) {
         return null; // Skip infrastructure analysis for non-actionable patterns

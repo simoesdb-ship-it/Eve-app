@@ -378,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get curated patterns for a specific location based on intelligent AI analysis
-  app.get("/api/locations/:locationId/curated-patterns", cacheMiddleware(cacheConfigs.locationPatterns), async (req, res) => {
+  app.get("/api/locations/:locationId/curated-patterns", async (req, res) => {
     try {
       const locationId = parseInt(req.params.locationId);
       
@@ -387,17 +387,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (intelligentSuggestions && intelligentSuggestions.length > 0) {
         // Format stored intelligent suggestions to match curated patterns structure
-        const formattedSuggestions = intelligentSuggestions.map(suggestion => ({
-          id: suggestion.patternId,
-          number: suggestion.pattern?.number || 0,
-          name: suggestion.pattern?.name || 'Unknown Pattern',
-          description: suggestion.pattern?.description || '',
-          relevanceScore: parseFloat(suggestion.relevanceScore) || 0,
-          contextReason: suggestion.reasoning,
-          category: suggestion.pattern?.category || 'General',
-          problemsAddressed: suggestion.problemsAddressed || [],
-          implementationPriority: suggestion.implementationPriority || 'medium',
-          implementationRoadmap: suggestion.implementationNotes ? JSON.parse(suggestion.implementationNotes) : null
+        const formattedSuggestions = await Promise.all(intelligentSuggestions.map(async (suggestion) => {
+          // Get the full pattern details to ensure we have the number
+          const fullPattern = await storage.getPattern(suggestion.patternId);
+          return {
+            id: suggestion.patternId,
+            number: fullPattern?.number || 0,
+            name: fullPattern?.name || 'Unknown Pattern',
+            description: fullPattern?.description || '',
+            relevanceScore: parseFloat(suggestion.relevanceScore) || 0,
+            contextReason: suggestion.reasoning,
+            category: fullPattern?.category || 'General',
+            problemsAddressed: suggestion.problemsAddressed || [],
+            implementationPriority: suggestion.implementationPriority || 'medium',
+            implementationRoadmap: suggestion.implementationNotes ? JSON.parse(suggestion.implementationNotes) : null
+          };
         }));
         
         res.json(formattedSuggestions);
@@ -412,17 +416,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (contextualAnalysis && contextualAnalysis.length > 0) {
             // Format contextual analysis as curated patterns with implementation roadmaps
-            const formattedAnalysis = contextualAnalysis.map((analysis, index) => ({
-              id: analysis.patternId || index + 1000,
-              number: analysis.pattern?.number || 0,
-              name: analysis.pattern?.name || 'Unknown Pattern',
-              description: analysis.pattern?.description || '',
-              relevanceScore: parseFloat(analysis.relevanceScore) || 0,
-              contextReason: analysis.reasoning,
-              category: analysis.pattern?.category || 'General',
-              problemsAddressed: analysis.problemsAddressed || [],
-              implementationPriority: analysis.implementationPriority || 'medium',
-              implementationRoadmap: analysis.implementationNotes ? JSON.parse(analysis.implementationNotes) : null
+            const formattedAnalysis = await Promise.all(contextualAnalysis.map(async (analysis, index) => {
+              // Get the full pattern details to ensure we have the number
+              const fullPattern = await storage.getPattern(analysis.patternId);
+              return {
+                id: analysis.patternId || index + 1000,
+                number: fullPattern?.number || 0,
+                name: fullPattern?.name || 'Unknown Pattern',
+                description: fullPattern?.description || '',
+                relevanceScore: parseFloat(analysis.relevanceScore) || 0,
+                contextReason: analysis.reasoning,
+                category: fullPattern?.category || 'General',
+                problemsAddressed: analysis.problemsAddressed || [],
+                implementationPriority: analysis.implementationPriority || 'medium',
+                implementationRoadmap: analysis.implementationNotes ? JSON.parse(analysis.implementationNotes) : null
+              };
             }));
             
             res.json(formattedAnalysis);

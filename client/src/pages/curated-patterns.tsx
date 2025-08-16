@@ -20,6 +20,7 @@ interface CuratedPattern {
   category: string;
   problemsAddressed?: string[];
   implementationPriority?: string;
+  implementationRoadmap?: any;
 }
 
 interface SavedLocation {
@@ -50,13 +51,18 @@ export default function CuratedPatternsPage() {
     loadUsername();
   }, []);
 
-  // Get location details
+  // Get location details - try saved locations first, then locations table
   const { data: location } = useQuery({
     queryKey: [`/api/saved-locations/${locationId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/saved-locations/${locationId}`);
-      if (!response.ok) throw new Error('Failed to fetch location');
-      return response.json() as SavedLocation;
+      let response = await fetch(`/api/saved-locations/${locationId}`);
+      if (!response.ok || (await response.clone().json()).length === 0) {
+        // Fallback to locations table if not in saved locations
+        response = await fetch(`/api/locations/${locationId}`);
+        if (!response.ok) throw new Error('Failed to fetch location');
+      }
+      const result = await response.json();
+      return Array.isArray(result) ? result[0] : result;
     },
     enabled: !!locationId
   });
@@ -236,6 +242,33 @@ export default function CuratedPatternsPage() {
                             "{pattern.contextReason.substring(0, 150)}{pattern.contextReason.length > 150 ? '...' : ''}"
                           </span>
                         </div>
+
+                        {/* Implementation Roadmap */}
+                        {pattern.implementationRoadmap && (
+                          <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded border-l-2 border-green-400">
+                            <div className="flex items-center gap-1 mb-2">
+                              <Star className="w-3 h-3 text-green-600 dark:text-green-400" />
+                              <span className="font-medium text-green-700 dark:text-green-300 text-xs">Implementation Roadmap</span>
+                            </div>
+                            <div className="text-xs text-green-600 dark:text-green-400 space-y-1">
+                              <div><strong>Timeline:</strong> {pattern.implementationRoadmap.timelineEstimate}</div>
+                              <div><strong>Feasibility:</strong> {Math.round(pattern.implementationRoadmap.feasibilityScore * 100)}%</div>
+                              
+                              {pattern.implementationRoadmap.actionSequence && pattern.implementationRoadmap.actionSequence.length > 0 && (
+                                <div className="mt-2">
+                                  <div className="font-medium mb-1">Key Actions:</div>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {pattern.implementationRoadmap.actionSequence.slice(0, 2).map((action: any, idx: number) => (
+                                      <li key={idx} className="text-xs">
+                                        <strong>{action.timeframe}:</strong> {action.description.substring(0, 80)}...
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         
                         {pattern.problemsAddressed && pattern.problemsAddressed.length > 0 && (
                           <div>
