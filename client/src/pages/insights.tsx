@@ -288,22 +288,46 @@ export default function InsightsPage() {
                           </div>
                           <CollapsibleContent>
                             <div className="space-y-2">
-                              {activity.slice(0, 3).map((item: any, index: number) => (
-                                <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                  <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                    {getActivityIcon(item.activityType)}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-sm font-medium">{formatActivityType(item.type || item.activityType)}</p>
-                                      <span className="text-xs text-muted-foreground">
-                                        {new Date(item.createdAt).toLocaleDateString()}
-                                      </span>
+                              {activity.slice(0, 3).map((item: any, index: number) => {
+                                // Check if this activity item corresponds to a saved location
+                                const isLocationActivity = (item.type || item.activityType) === 'visit' && item.locationId;
+                                const relatedSavedLocation = isLocationActivity ? 
+                                  savedLocations.find((loc: any) => loc.id === item.locationId) : null;
+                                
+                                return (
+                                  <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                      {getActivityIcon(item.activityType)}
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium">{formatActivityType(item.type || item.activityType)}</p>
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(item.createdAt).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                                      
+                                      {/* Show saved location connection if applicable */}
+                                      {relatedSavedLocation && (
+                                        <div className="mt-1 flex items-center justify-between">
+                                          <span className="text-xs text-blue-600 dark:text-blue-400">
+                                            📍 Saved: {relatedSavedLocation.name || 'Unknown Location'}
+                                          </span>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => navigate(`/curated-patterns/${relatedSavedLocation.id}`)}
+                                            className="text-xs h-auto p-1"
+                                          >
+                                            View Patterns
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </CollapsibleContent>
                         </Collapsible>
@@ -368,7 +392,7 @@ export default function InsightsPage() {
                           </div>
                         </div>
 
-                        {/* All Saved Locations - Expandable */}
+                        {/* All Saved Locations - Enhanced with Activity Integration */}
                         <div className="space-y-2">
                           <button 
                             onClick={() => setShowAllLocations(!showAllLocations)}
@@ -385,55 +409,92 @@ export default function InsightsPage() {
                               {savedLocations.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-4">No saved locations yet</p>
                               ) : (
-                                savedLocations.map((location: any) => (
-                                  <div key={location.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
-                                    <div className="flex items-start space-x-3">
-                                      <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                        <MapPin className="w-3 h-3 text-primary" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
-                                          <span className="text-xs text-muted-foreground">
-                                            {new Date(location.createdAt).toLocaleDateString()}
-                                          </span>
+                                savedLocations.map((location: any) => {
+                                  // Find related activities for this location
+                                  const relatedActivities = activity.filter((act: any) => 
+                                    act.locationId === location.id
+                                  );
+                                  const mostRecentActivity = relatedActivities.length > 0 ? 
+                                    relatedActivities.sort((a: any, b: any) => 
+                                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                                    )[0] : null;
+                                  
+                                  return (
+                                    <div key={location.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
+                                      <div className="flex items-start space-x-3">
+                                        <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                          <MapPin className="w-3 h-3 text-primary" />
                                         </div>
-                                        <p className="text-xs text-muted-foreground font-mono mb-2">
-                                          {location.latitude && location.longitude ? 
-                                            `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
-                                            'Coordinates unavailable'
-                                          }
-                                        </p>
-                                        {/* Comments/Description Section */}
-                                        {location.description ? (
-                                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-blue-200">
-                                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                                              {location.description}
-                                            </p>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(location.createdAt).toLocaleDateString()}
+                                            </span>
                                           </div>
-                                        ) : (
-                                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
-                                            <p className="text-xs text-gray-400 italic">
-                                              No comments added for this location
-                                            </p>
+                                          <p className="text-xs text-muted-foreground font-mono mb-2">
+                                            {location.latitude && location.longitude ? 
+                                              `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                                              'Coordinates unavailable'
+                                            }
+                                          </p>
+                                          
+                                          {/* Activity Integration - Show recent activity for this location */}
+                                          {mostRecentActivity && (
+                                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-2 border-blue-200">
+                                              <div className="flex items-center gap-1 mb-1">
+                                                {getActivityIcon(mostRecentActivity.type || mostRecentActivity.activityType)}
+                                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                                  Recent: {formatActivityType(mostRecentActivity.type || mostRecentActivity.activityType)}
+                                                </span>
+                                              </div>
+                                              <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                {relatedActivities.length > 1 ? 
+                                                  `${relatedActivities.length} activities at this location` :
+                                                  mostRecentActivity.description
+                                                }
+                                              </p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Comments/Description Section */}
+                                          {location.description ? (
+                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
+                                              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                {location.description}
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
+                                              <p className="text-xs text-gray-400 italic">
+                                                No comments added for this location
+                                              </p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Action Buttons */}
+                                          <div className="mt-3 flex justify-between items-center">
+                                            <div className="flex gap-1">
+                                              {relatedActivities.length > 0 && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                  {relatedActivities.length} activities
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <Button 
+                                              variant="outline" 
+                                              size="sm"
+                                              onClick={() => navigate(`/curated-patterns/${location.id}`)}
+                                              className="text-xs"
+                                            >
+                                              View Patterns
+                                            </Button>
                                           </div>
-                                        )}
-                                        
-                                        {/* Patterns Button */}
-                                        <div className="mt-3 flex justify-end">
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={() => navigate(`/curated-patterns/${location.id}`)}
-                                            className="text-xs"
-                                          >
-                                            Patterns
-                                          </Button>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ))
+                                  );
+                                })
                               )}
                             </div>
                           )}
