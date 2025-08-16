@@ -70,6 +70,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get location by ID
+  app.get("/api/locations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getLocation(id);
+      if (!location) {
+        return res.status(404).json({ message: "Location not found" });
+      }
+      res.json(location);
+    } catch (error) {
+      console.error(`Error fetching location ${id}:`, error);
+      res.status(500).json({ message: "Failed to fetch location" });
+    }
+  });
+
   // Create location and get pattern suggestions (optimized)
   app.post("/api/locations", rateLimiters.locationCreation.middleware(), async (req, res) => {
     try {

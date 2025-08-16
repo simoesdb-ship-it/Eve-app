@@ -53,16 +53,28 @@ export default function CuratedPatternsPage() {
 
   // Get location details - try saved locations first, then locations table
   const { data: location } = useQuery({
-    queryKey: [`/api/saved-locations/${locationId}`],
+    queryKey: [`/api/location-details/${locationId}`],
     queryFn: async () => {
-      let response = await fetch(`/api/saved-locations/${locationId}`);
-      if (!response.ok || (await response.clone().json()).length === 0) {
-        // Fallback to locations table if not in saved locations
+      try {
+        // Try saved locations first
+        let response = await fetch(`/api/saved-locations/${locationId}`);
+        if (response.ok) {
+          const savedResult = await response.json();
+          if (savedResult && savedResult.length > 0) {
+            return savedResult[0];
+          }
+        }
+        
+        // Fallback to locations table
         response = await fetch(`/api/locations/${locationId}`);
         if (!response.ok) throw new Error('Failed to fetch location');
+        const result = await response.json();
+        console.log("Fetched location from locations table:", result);
+        return result;
+      } catch (error) {
+        console.error('Location fetch error:', error);
+        throw error;
       }
-      const result = await response.json();
-      return Array.isArray(result) ? result[0] : result;
     },
     enabled: !!locationId
   });
@@ -110,6 +122,9 @@ export default function CuratedPatternsPage() {
   const getLocationDesignator = (location: any) => {
     if (!location) return "Unknown Location";
     
+    // Debug log to see what we're working with
+    console.log("Location data for designator:", location);
+    
     // If we have a meaningful name (not just "Current Location")
     if (location.name && location.name !== "Current Location" && location.name.trim()) {
       return location.name;
@@ -118,6 +133,12 @@ export default function CuratedPatternsPage() {
     // Generate location designator based on coordinates
     const lat = parseFloat(location.latitude);
     const lng = parseFloat(location.longitude);
+    
+    // Check if coordinates are valid
+    if (isNaN(lat) || isNaN(lng)) {
+      console.log("Invalid coordinates:", lat, lng);
+      return "Location with Invalid Coordinates";
+    }
     
     // Minneapolis area coordinates (approximation)
     if (lat >= 44.9 && lat <= 45.1 && lng >= -93.4 && lng <= -93.1) {
