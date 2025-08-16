@@ -107,6 +107,45 @@ export default function CuratedPatternsPage() {
     return "Contextual";
   };
 
+  const getLocationDesignator = (location: any) => {
+    if (!location) return "Unknown Location";
+    
+    // If we have a meaningful name (not just "Current Location")
+    if (location.name && location.name !== "Current Location" && location.name.trim()) {
+      return location.name;
+    }
+    
+    // Generate location designator based on coordinates
+    const lat = parseFloat(location.latitude);
+    const lng = parseFloat(location.longitude);
+    
+    // Minneapolis area coordinates (approximation)
+    if (lat >= 44.9 && lat <= 45.1 && lng >= -93.4 && lng <= -93.1) {
+      if (lat >= 45.0) return "North Minneapolis Area";
+      if (lng >= -93.25) return "Downtown Minneapolis Area";
+      if (lng <= -93.3) return "West Minneapolis Area";
+      return "South Minneapolis Area";
+    }
+    
+    // St. Paul area coordinates (approximation)
+    if (lat >= 44.9 && lat <= 45.0 && lng >= -93.2 && lng <= -92.8) {
+      if (lng <= -93.0) return "West St. Paul Area";
+      return "Downtown St. Paul Area";
+    }
+    
+    // Suburban/outer areas
+    if (lat >= 44.8 && lat <= 45.2 && lng >= -93.6 && lng <= -92.7) {
+      if (lat >= 45.1) return "Northern Suburbs";
+      if (lat <= 44.9) return "Southern Suburbs";
+      if (lng <= -93.4) return "Western Suburbs";
+      if (lng >= -93.0) return "Eastern Suburbs";
+      return "Twin Cities Metro Area";
+    }
+    
+    // Fallback to general area
+    return "Twin Cities Region";
+  };
+
   if (isLoading) {
     return (
       <MobileContainer>
@@ -145,11 +184,11 @@ export default function CuratedPatternsPage() {
           <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 mb-2">
               <MapPin className="w-4 h-4" />
-              <span className="font-bold">{location.name}</span>
+              <span className="font-bold">{getLocationDesignator(location)}</span>
             </div>
             <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
               <div>
-                <span className="font-medium">Coordinates:</span> {location.latitude}, {location.longitude}
+                <span className="font-medium">Coordinates:</span> {parseFloat(location.latitude).toFixed(4)}, {parseFloat(location.longitude).toFixed(4)}
               </div>
               <div>
                 <span className="font-medium">Analysis Type:</span>{' '}
@@ -209,7 +248,7 @@ export default function CuratedPatternsPage() {
                         <div>
                           <span className="font-medium text-gray-700 dark:text-gray-300">Location:</span>{' '}
                           <span className="text-gray-600 dark:text-gray-400">
-                            {location?.latitude}, {location?.longitude} ({location?.name})
+                            {getLocationDesignator(location)}
                           </span>
                         </div>
                         
