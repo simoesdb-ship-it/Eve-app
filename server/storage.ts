@@ -348,6 +348,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(savedLocations.createdAt));
   }
 
+  async getLocation(locationId: number): Promise<SavedLocation | undefined> {
+    const [location] = await db.select().from(savedLocations)
+      .where(eq(savedLocations.id, locationId));
+    return location;
+  }
+
   async deleteSavedLocation(id: number, sessionId: string): Promise<void> {
     await db.delete(savedLocations)
       .where(and(eq(savedLocations.id, id), eq(savedLocations.sessionId, sessionId)));

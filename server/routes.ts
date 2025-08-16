@@ -18,6 +18,7 @@ import { rateLimiters } from "./middleware/rate-limiting";
 import { dbOptimizations } from "./database-optimizations";
 import { performanceMonitor } from "./performance-monitor";
 import { contextualPatternCurator } from "./contextual-pattern-curator";
+import { intelligentPatternCurator } from "./intelligent-pattern-curator";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -381,11 +382,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const locationId = parseInt(req.params.locationId);
       
-      // Use intelligent pattern suggestions that analyze actual comments and descriptions
+      // First, try to get stored intelligent suggestions
       const intelligentSuggestions = await storage.getIntelligentSuggestionsForLocation(locationId);
       
       if (intelligentSuggestions && intelligentSuggestions.length > 0) {
-        // Format intelligent suggestions to match curated patterns structure
+        // Format stored intelligent suggestions to match curated patterns structure
         const formattedSuggestions = intelligentSuggestions.map(suggestion => ({
           id: suggestion.patternId,
           number: suggestion.pattern?.number || 0,
@@ -400,7 +401,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.json(formattedSuggestions);
       } else {
-        // Fallback to contextual patterns if no intelligent suggestions
+        // Generate comprehensive AI analysis on-demand using intelligent pattern curator
+        const location = await storage.getLocation(locationId);
+        const comments = await storage.getUserCommentsForLocation(locationId);
+        
+        if (location) {
+          // Generate contextual analysis based on location characteristics
+          const contextualAnalysis = await intelligentPatternCurator.generateContextualAnalysis(location);
+          
+          if (contextualAnalysis && contextualAnalysis.length > 0) {
+            // Format contextual analysis as curated patterns
+            const formattedAnalysis = contextualAnalysis.map((analysis, index) => ({
+              id: analysis.patternId || index + 1000,
+              number: analysis.pattern?.number || 0,
+              name: analysis.pattern?.name || 'Unknown Pattern',
+              description: analysis.pattern?.description || '',
+              relevanceScore: parseFloat(analysis.relevanceScore) || 0,
+              contextReason: analysis.reasoning,
+              category: analysis.pattern?.category || 'General',
+              problemsAddressed: analysis.problemsAddressed || [],
+              implementationPriority: analysis.implementationPriority || 'medium'
+            }));
+            
+            res.json(formattedAnalysis);
+            return;
+          }
+          
+          // If location has user comments, also generate intelligent suggestions
+          if (comments.length > 0) {
+            const aiSuggestions = await intelligentPatternCurator.generateIntelligentSuggestions(locationId, comments);
+            
+            if (aiSuggestions && aiSuggestions.length > 0) {
+              // Format AI-generated suggestions from comments
+              const formattedAISuggestions = aiSuggestions.map(suggestion => ({
+                id: suggestion.patternId,
+                number: suggestion.pattern?.number || 0,
+                name: suggestion.pattern?.name || 'Unknown Pattern',
+                description: suggestion.pattern?.description || '',
+                relevanceScore: parseFloat(suggestion.relevanceScore) || 0,
+                contextReason: suggestion.reasoning,
+                category: suggestion.pattern?.category || 'General',
+                problemsAddressed: suggestion.problemsAddressed || [],
+                implementationPriority: suggestion.implementationPriority || 'medium'
+              }));
+              
+              res.json(formattedAISuggestions);
+              return;
+            }
+          }
+        }
+        
+        // Fallback to contextual patterns if no comments or AI analysis failed
         const curatedPatterns = await contextualPatternCurator.getCuratedPatterns(locationId);
         res.json(curatedPatterns);
       }

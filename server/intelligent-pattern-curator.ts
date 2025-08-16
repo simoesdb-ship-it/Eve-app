@@ -56,6 +56,51 @@ export class IntelligentPatternCurator {
   }
 
   /**
+   * Generates comprehensive contextual analysis for any location based on coordinates and context
+   */
+  async generateContextualAnalysis(location: any): Promise<IntelligentSuggestion[]> {
+    const suggestions: IntelligentSuggestion[] = [];
+    const allPatterns = await storage.getAllPatterns();
+    
+    // Analyze location characteristics
+    const lat = parseFloat(location.latitude);
+    const lng = parseFloat(location.longitude);
+    
+    // Create synthetic contextual analysis based on location characteristics
+    const contextualProblems = this.inferLocationProblems(lat, lng, location.name);
+    
+    for (const problemArea of contextualProblems) {
+      const relevantPatterns = this.problemPatternMap[problemArea.category] || [];
+      
+      for (const patternNumber of relevantPatterns.slice(0, 3)) { // Top 3 patterns per problem
+        const pattern = allPatterns.find(p => p.number === patternNumber);
+        if (!pattern) continue;
+        
+        const relevanceScore = this.calculateContextualRelevance(problemArea, pattern, lat, lng);
+        if (relevanceScore < 0.3) continue; // Filter low-relevance suggestions
+        
+        const suggestion: IntelligentSuggestion = {
+          locationId: location.id,
+          commentId: null,
+          patternId: pattern.id,
+          reasoning: this.generateContextualReasoning(problemArea, pattern, location),
+          relevanceScore: relevanceScore.toString(),
+          problemsAddressed: [problemArea.category, ...problemArea.relatedProblems],
+          implementationPriority: this.determineContextualPriority(problemArea.severity, relevanceScore),
+          communitySupport: 0,
+          isImplemented: false,
+          implementationNotes: null,
+          pattern: pattern
+        };
+        
+        suggestions.push(suggestion);
+      }
+    }
+    
+    return this.deduplicateAndRank(suggestions).slice(0, 8); // Return top 8 suggestions
+  }
+
+  /**
    * Analyzes user comments and generates intelligent pattern suggestions
    */
   async generateIntelligentSuggestions(
@@ -276,6 +321,148 @@ export class IntelligentPatternCurator {
     }
     
     return 'improved urban environment aligned with human needs';
+  }
+
+  /**
+   * Infers likely problems at a location based on coordinates and context
+   */
+  private inferLocationProblems(lat: number, lng: number, name: string): Array<{
+    category: string;
+    severity: string;
+    description: string;
+    relatedProblems: string[];
+  }> {
+    const problems = [];
+    
+    // Analyze based on coordinates (Minneapolis area analysis)
+    const isUrban = lat > 44.9 && lat < 45.1 && lng > -93.4 && lng < -93.1;
+    const isSuburban = !isUrban && lat > 44.7 && lat < 45.2 && lng > -93.6 && lng < -92.9;
+    
+    if (isUrban) {
+      problems.push(
+        {
+          category: 'transportation',
+          severity: 'high',
+          description: 'Urban area likely faces traffic congestion and parking challenges',
+          relatedProblems: ['parking', 'walkability', 'accessibility']
+        },
+        {
+          category: 'community',
+          severity: 'medium',
+          description: 'Dense urban environment may lack community gathering spaces',
+          relatedProblems: ['gathering', 'isolation', 'children']
+        },
+        {
+          category: 'environment',
+          severity: 'high',
+          description: 'Urban setting typically needs more green space and air quality improvements',
+          relatedProblems: ['green_space', 'air_quality', 'pollution']
+        }
+      );
+    }
+    
+    if (isSuburban) {
+      problems.push(
+        {
+          category: 'accessibility',
+          severity: 'medium',
+          description: 'Suburban area may have limited walkability and transit access',
+          relatedProblems: ['transportation', 'walkability', 'elderly']
+        },
+        {
+          category: 'community',
+          severity: 'medium',
+          description: 'Suburban sprawl can create social isolation',
+          relatedProblems: ['isolation', 'gathering', 'children']
+        }
+      );
+    }
+    
+    // Analyze based on location name
+    const nameLower = name?.toLowerCase() || '';
+    if (nameLower.includes('river') || nameLower.includes('water')) {
+      problems.push({
+        category: 'accessibility',
+        severity: 'high',
+        description: 'Waterfront location needs safe pedestrian access and recreational opportunities',
+        relatedProblems: ['safety', 'walkability', 'environment']
+      });
+    }
+    
+    if (nameLower.includes('parking') || nameLower.includes('lot')) {
+      problems.push({
+        category: 'environment',
+        severity: 'high',
+        description: 'Large parking areas create heat islands and reduce green space',
+        relatedProblems: ['green_space', 'air_quality', 'walkability']
+      });
+    }
+    
+    if (nameLower.includes('school') || nameLower.includes('university')) {
+      problems.push({
+        category: 'safety',
+        severity: 'high',
+        description: 'Educational areas need enhanced safety and child-friendly design',
+        relatedProblems: ['children', 'accessibility', 'community']
+      });
+    }
+    
+    return problems.length > 0 ? problems : [
+      {
+        category: 'community',
+        severity: 'medium',
+        description: 'General location could benefit from enhanced community spaces',
+        relatedProblems: ['gathering', 'accessibility', 'environment']
+      }
+    ];
+  }
+
+  /**
+   * Calculates relevance score for contextual patterns
+   */
+  private calculateContextualRelevance(problemArea: any, pattern: Pattern, lat: number, lng: number): number {
+    let score = 0.5; // Base score
+    
+    // Pattern category alignment
+    if (problemArea.relatedProblems.some((problem: string) => 
+      this.problemPatternMap[problem]?.includes(pattern.number)
+    )) {
+      score += 0.3;
+    }
+    
+    // Geographic context boost
+    const isUrban = lat > 44.9 && lat < 45.1;
+    if (isUrban && pattern.category === 'Urban') score += 0.2;
+    if (!isUrban && pattern.category === 'Outdoor') score += 0.2;
+    
+    // Severity weighting
+    const severityBoost = problemArea.severity === 'high' ? 0.2 : problemArea.severity === 'medium' ? 0.1 : 0;
+    score += severityBoost;
+    
+    return Math.min(score, 1.0);
+  }
+
+  /**
+   * Generates reasoning for contextual pattern suggestions
+   */
+  private generateContextualReasoning(problemArea: any, pattern: Pattern, location: any): string {
+    const coordinates = `${parseFloat(location.latitude).toFixed(6)}, ${parseFloat(location.longitude).toFixed(6)}`;
+    
+    return `AI Analysis for ${location.name || 'this location'} (${coordinates}): ${problemArea.description}. ` +
+           `Pattern ${pattern.number} "${pattern.name}" directly addresses this by ${pattern.description.toLowerCase()}. ` +
+           `This contextual analysis identified ${problemArea.relatedProblems.join(', ')} as key areas for improvement. ` +
+           `Implementation would create ${this.getPatternBenefits(pattern)} specifically suited to this location's characteristics.`;
+  }
+
+  /**
+   * Determines implementation priority for contextual suggestions
+   */
+  private determineContextualPriority(severity: string, relevanceScore: number): string {
+    const urgencyScore = (severity === 'high' ? 3 : severity === 'medium' ? 2 : 1) * relevanceScore;
+    
+    if (urgencyScore >= 2.4) return 'short_term';
+    if (urgencyScore >= 1.5) return 'medium_term';
+    return 'long_term';
   }
 
   /**
