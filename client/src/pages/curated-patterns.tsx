@@ -237,10 +237,10 @@ export default function CuratedPatternsPage() {
                         </div>
                         
                         <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">AI Reasoning:</span>{' '}
-                          <span className="text-gray-600 dark:text-gray-400">
-                            "{pattern.contextReason.substring(0, 150)}{pattern.contextReason.length > 150 ? '...' : ''}"
-                          </span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Complete AI Analysis:</span>
+                          <div className="mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                            {pattern.contextReason}
+                          </div>
                         </div>
 
                         {/* Implementation Roadmap */}
@@ -307,15 +307,7 @@ export default function CuratedPatternsPage() {
                       {pattern.description}
                     </p>
                     
-                    {/* Full AI Analysis Section */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
-                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
-                        🤖 Complete AI Analysis:
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
-                        {pattern.contextReason}
-                      </p>
-                    </div>
+
 
                     {/* Bottom Actions */}
                     <div className="flex items-center justify-between">
@@ -326,10 +318,10 @@ export default function CuratedPatternsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(getPatternLink(pattern.number), '_blank')}
+                        onClick={() => navigate(`/patterns/${pattern.id}`)}
                         className="text-xs"
                       >
-                        Read More
+                        View in Pattern Library
                       </Button>
                     </div>
                   </CardContent>
