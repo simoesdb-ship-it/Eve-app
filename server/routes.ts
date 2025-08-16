@@ -376,12 +376,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get curated patterns for a specific location based on context
+  // Get curated patterns for a specific location based on intelligent AI analysis
   app.get("/api/locations/:locationId/curated-patterns", cacheMiddleware(cacheConfigs.locationPatterns), async (req, res) => {
     try {
       const locationId = parseInt(req.params.locationId);
-      const curatedPatterns = await contextualPatternCurator.getCuratedPatterns(locationId);
-      res.json(curatedPatterns);
+      
+      // Use intelligent pattern suggestions that analyze actual comments and descriptions
+      const intelligentSuggestions = await storage.getIntelligentSuggestionsForLocation(locationId);
+      
+      if (intelligentSuggestions && intelligentSuggestions.length > 0) {
+        // Format intelligent suggestions to match curated patterns structure
+        const formattedSuggestions = intelligentSuggestions.map(suggestion => ({
+          id: suggestion.patternId,
+          number: suggestion.pattern?.number || 0,
+          name: suggestion.pattern?.name || 'Unknown Pattern',
+          description: suggestion.pattern?.description || '',
+          relevanceScore: parseFloat(suggestion.relevanceScore) || 0,
+          contextReason: suggestion.reasoning,
+          category: suggestion.pattern?.category || 'General',
+          problemsAddressed: suggestion.problemsAddressed || [],
+          implementationPriority: suggestion.implementationPriority || 'medium'
+        }));
+        
+        res.json(formattedSuggestions);
+      } else {
+        // Fallback to contextual patterns if no intelligent suggestions
+        const curatedPatterns = await contextualPatternCurator.getCuratedPatterns(locationId);
+        res.json(curatedPatterns);
+      }
     } catch (error) {
       console.error("Error fetching curated patterns:", error);
       res.status(500).json({ message: "Failed to fetch curated patterns", error: String(error) });

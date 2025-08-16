@@ -550,8 +550,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getIntelligentSuggestionsForLocation(locationId: number): Promise<IntelligentSuggestion[]> {
-    return await db.select()
+    return await db.select({
+      id: intelligentSuggestions.id,
+      locationId: intelligentSuggestions.locationId,
+      commentId: intelligentSuggestions.commentId,
+      patternId: intelligentSuggestions.patternId,
+      reasoning: intelligentSuggestions.reasoning,
+      relevanceScore: intelligentSuggestions.relevanceScore,
+      problemsAddressed: intelligentSuggestions.problemsAddressed,
+      implementationPriority: intelligentSuggestions.implementationPriority,
+      communitySupport: intelligentSuggestions.communitySupport,
+      isImplemented: intelligentSuggestions.isImplemented,
+      implementationNotes: intelligentSuggestions.implementationNotes,
+      createdAt: intelligentSuggestions.createdAt,
+      updatedAt: intelligentSuggestions.updatedAt,
+      pattern: {
+        id: patterns.id,
+        number: patterns.number,
+        name: patterns.name,
+        description: patterns.description,
+        category: patterns.category,
+        moodColor: patterns.moodColor,
+        keywords: patterns.keywords
+      }
+    })
       .from(intelligentSuggestions)
+      .leftJoin(patterns, eq(intelligentSuggestions.patternId, patterns.id))
       .where(eq(intelligentSuggestions.locationId, locationId))
       .orderBy(desc(intelligentSuggestions.relevanceScore));
   }
