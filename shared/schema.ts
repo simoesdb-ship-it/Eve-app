@@ -159,13 +159,7 @@ export type InsertSharedPath = typeof sharedPaths.$inferInsert;
 export type PathAccess = typeof pathAccesses.$inferSelect;
 export type InsertPathAccess = typeof pathAccesses.$inferInsert;
 
-// User feedback and intelligent suggestion types
-export type UserComment = typeof userComments.$inferSelect;
-export type InsertUserComment = typeof userComments.$inferInsert;
-export type IntelligentSuggestion = typeof intelligentSuggestions.$inferSelect;
-export type InsertIntelligentSuggestion = typeof intelligentSuggestions.$inferInsert;
-export type ConsensusBuilding = typeof consensusBuilding.$inferSelect;
-export type InsertConsensusBuilding = typeof consensusBuilding.$inferInsert;
+// User feedback and intelligent suggestion types - defined at end of file to avoid duplicates
 
 // Note: Insert schemas for intelligent feedback system will be defined after table definitions
 
