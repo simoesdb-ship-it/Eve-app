@@ -93,7 +93,7 @@ export default function CuratedPatternsPage() {
       <MobileContainer>
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/insights')}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-lg font-semibold">Loading Patterns...</h1>
@@ -114,7 +114,7 @@ export default function CuratedPatternsPage() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/insights')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <h1 className="text-lg font-semibold">Curated Patterns</h1>

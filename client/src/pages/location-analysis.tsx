@@ -307,7 +307,7 @@ export default function LocationAnalysisPage() {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/insights')}
             className="p-2"
           >
             <ArrowLeft className="w-5 h-5" />
