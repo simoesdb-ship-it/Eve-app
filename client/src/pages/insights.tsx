@@ -222,151 +222,7 @@ export default function InsightsPage() {
               </Link>
             </div>
 
-            {/* Saved Locations */}
-            <Card>
-              <CardHeader>
-                <div className="text-left">
-                  <CardTitle>Your Saved Locations</CardTitle>
-                  <CardDescription>Places you've bookmarked for future analysis</CardDescription>
-                </div>
-              </CardHeader>
-                  <CardContent>
-                    {savedLocations.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                        <p>No saved locations yet</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Saved Locations Summary */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
-                            <div className="text-lg font-bold text-primary">
-                              {savedLocations.length}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Total Saved</div>
-                          </div>
-                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
-                            <div className="text-lg font-bold text-primary">
-                              {(() => {
-                                const today = new Date();
-                                const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                                return savedLocations.filter((location: any) => 
-                                  new Date(location.createdAt) >= oneWeekAgo
-                                ).length;
-                              })()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">This Week</div>
-                          </div>
-                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
-                            <div className="text-lg font-bold text-primary">
-                              {savedLocations.filter((location: any) => location.name && location.name !== 'Unknown Location').length}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Named Places</div>
-                          </div>
-                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
-                            <div className="text-lg font-bold text-primary">
-                              {(() => {
-                                const today = new Date();
-                                const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-                                return savedLocations.filter((location: any) => 
-                                  new Date(location.createdAt) >= oneMonthAgo
-                                ).length;
-                              })()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">This Month</div>
-                          </div>
-                        </div>
 
-                        {/* All Saved Locations - Enhanced with Activity Integration */}
-                        <div className="space-y-2">
-                          <button 
-                            onClick={() => setShowAllLocations(!showAllLocations)}
-                            className="flex items-center justify-between w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                          >
-                            <h4 className="text-sm font-medium text-muted-foreground">
-                              All Saved Locations ({savedLocations.length})
-                            </h4>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showAllLocations ? 'rotate-180' : ''}`} />
-                          </button>
-                          
-                          {showAllLocations && (
-                            <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-2 bg-gray-50/50 dark:bg-gray-800/50">
-                              {savedLocations.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No saved locations yet</p>
-                              ) : (
-                                savedLocations.map((location: any) => {
-                                  // Find related activities for this location
-                                  const relatedActivities = activity.filter((act: any) => 
-                                    act.locationId === location.id
-                                  );
-                                  const mostRecentActivity = relatedActivities.length > 0 ? 
-                                    relatedActivities.sort((a: any, b: any) => 
-                                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                                    )[0] : null;
-                                  
-                                  return (
-                                    <div key={location.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
-                                      <div className="flex items-start space-x-3">
-                                        <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                          <MapPin className="w-3 h-3 text-primary" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-start justify-between">
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium truncate">
-                                                {location.name || `Location ${location.id}`}
-                                              </p>
-                                              {location.description && (
-                                                <p className="text-xs text-muted-foreground truncate mt-1">
-                                                  {location.description}
-                                                </p>
-                                              )}
-                                              {mostRecentActivity && (
-                                                <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-                                                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                                    Recent: {formatActivityType(mostRecentActivity.type || mostRecentActivity.activityType)}
-                                                  </span>
-                                                  <span className="text-muted-foreground ml-1">
-                                                    • {new Date(mostRecentActivity.createdAt).toLocaleDateString()}
-                                                  </span>
-                                                  {relatedActivities.length > 1 && (
-                                                    <div className="mt-1 text-muted-foreground">
-                                                      +{relatedActivities.length - 1} more activities
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
-                                            </div>
-                                            <div className="ml-2 flex flex-col space-y-1">
-                                              <Button 
-                                                variant="ghost" 
-                                                size="sm"
-                                                onClick={() => navigate(`/curated-patterns/${location.id}`)}
-                                                className="text-xs h-auto p-1"
-                                              >
-                                                View Patterns
-                                              </Button>
-                                              <div className="text-xs text-muted-foreground text-center">
-                                                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                                                  {relatedActivities.length}
-                                                </Badge>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-              </Card>
 
             {/* Personal Activity Feed */}
             <Card>
@@ -482,7 +338,173 @@ export default function InsightsPage() {
                   </CardContent>
               </Card>
 
+            {/* Saved Locations */}
+            <Card>
+              <CardHeader>
+                <div className="text-left">
+                  <CardTitle>Your Saved Locations</CardTitle>
+                  <CardDescription>Places you've bookmarked for future analysis</CardDescription>
+                </div>
+              </CardHeader>
+                  <CardContent>
+                    {savedLocations.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p>No saved locations yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Saved Locations Summary */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {savedLocations.length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Saved</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {(() => {
+                                const today = new Date();
+                                const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                return savedLocations.filter((location: any) => 
+                                  new Date(location.createdAt) >= oneWeekAgo
+                                ).length;
+                              })()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">This Week</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {savedLocations.filter((location: any) => location.name && location.name !== 'Unknown Location').length}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Named Places</div>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center">
+                            <div className="text-lg font-bold text-primary">
+                              {(() => {
+                                const today = new Date();
+                                const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                                return savedLocations.filter((location: any) => 
+                                  new Date(location.createdAt) >= oneMonthAgo
+                                ).length;
+                              })()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">This Month</div>
+                          </div>
+                        </div>
 
+                        {/* All Saved Locations - Enhanced with Activity Integration */}
+                        <div className="space-y-2">
+                          <button 
+                            onClick={() => setShowAllLocations(!showAllLocations)}
+                            className="flex items-center justify-between w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          >
+                            <h4 className="text-sm font-medium text-muted-foreground">
+                              All Saved Locations ({savedLocations.length})
+                            </h4>
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showAllLocations ? 'rotate-180' : ''}`} />
+                          </button>
+                          
+                          {showAllLocations && (
+                            <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-2 bg-gray-50/50 dark:bg-gray-800/50">
+                              {savedLocations.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">No saved locations yet</p>
+                              ) : (
+                                savedLocations.map((location: any) => {
+                                  // Find related activities for this location
+                                  const relatedActivities = activity.filter((act: any) => 
+                                    act.locationId === location.id
+                                  );
+                                  const mostRecentActivity = relatedActivities.length > 0 ? 
+                                    relatedActivities.sort((a: any, b: any) => 
+                                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                                    )[0] : null;
+                                  
+                                  return (
+                                    <div key={location.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
+                                      <div className="flex items-start space-x-3">
+                                        <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                          <MapPin className="w-3 h-3 text-primary" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <p className="text-sm font-medium truncate">{location.name || 'Unknown Location'}</p>
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(location.createdAt).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground font-mono mb-2">
+                                            {location.latitude && location.longitude ? 
+                                              `${parseFloat(location.latitude).toFixed(4)}, ${parseFloat(location.longitude).toFixed(4)}` : 
+                                              'Coordinates unavailable'
+                                            }
+                                          </p>
+                                          
+                                          {/* Activity Integration - Show recent activity for this location */}
+                                          {mostRecentActivity && (
+                                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-2 border-blue-200">
+                                              <div className="flex items-center gap-1 mb-1">
+                                                {getActivityIcon(mostRecentActivity.type || mostRecentActivity.activityType)}
+                                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                                  Recent: {formatActivityType(mostRecentActivity.type || mostRecentActivity.activityType)}
+                                                </span>
+                                              </div>
+                                              <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                {relatedActivities.length > 1 ? 
+                                                  `${relatedActivities.length} activities at this location` :
+                                                  mostRecentActivity.description
+                                                }
+                                              </p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Comments/Description Section */}
+                                          {location.description ? (
+                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
+                                              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                {location.description}
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-200">
+                                              <p className="text-xs text-gray-400 italic">
+                                                No comments added for this location
+                                              </p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Action Buttons */}
+                                          <div className="mt-3 flex justify-between items-center">
+                                            <div className="flex gap-1">
+                                              {relatedActivities.length > 0 && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                  {relatedActivities.length} activities
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <Button 
+                                              variant="outline" 
+                                              size="sm"
+                                              onClick={() => navigate(`/curated-patterns/${location.id}`)}
+                                              className="text-xs"
+                                            >
+                                              View Patterns
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+              </Card>
           </TabsContent>
 
           {/* COMMUNITY INSIGHTS TAB */}
