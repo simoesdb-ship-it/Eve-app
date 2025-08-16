@@ -187,7 +187,8 @@ export class IntelligentPatternCurator {
     score += Math.min(categoryBonus, 0.4);
     
     // Severity weighting
-    score += (comment.severity / 5) * 0.2;
+    const severityNum = comment.severity ? (comment.severity === 'critical' ? 5 : comment.severity === 'high' ? 4 : comment.severity === 'medium' ? 3 : comment.severity === 'low' ? 2 : 1) : 3;
+    score += (severityNum / 5) * 0.2;
     
     return Math.min(score, 1.0);
   }
@@ -227,8 +228,9 @@ export class IntelligentPatternCurator {
   /**
    * Determines implementation priority based on severity and community impact
    */
-  private determinePriority(severity: number, relevanceScore: number): string {
-    const urgencyScore = severity * relevanceScore;
+  private determinePriority(severity: string | null, relevanceScore: number): string {
+    const severityNum = severity ? (severity === 'critical' ? 5 : severity === 'high' ? 4 : severity === 'medium' ? 3 : severity === 'low' ? 2 : 1) : 3;
+    const urgencyScore = severityNum * relevanceScore;
     
     if (urgencyScore >= 4.0) return 'immediate';
     if (urgencyScore >= 2.5) return 'short_term';

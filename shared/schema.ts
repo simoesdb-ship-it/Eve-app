@@ -217,14 +217,17 @@ export const userComments = pgTable("user_comments", {
   id: serial("id").primaryKey(),
   locationId: integer("location_id").references(() => locations.id).notNull(),
   sessionId: text("session_id").notNull(),
-  commentType: text("comment_type").notNull(), // 'problem', 'solution', 'observation', 'suggestion'
   content: text("content").notNull(),
-  problemCategories: text("problem_categories").array().default([]).notNull(), // ['safety', 'accessibility', 'community', 'environment', etc.]
-  severity: integer("severity").default(3).notNull(), // 1-5 scale
+  commentType: text("comment_type").notNull(), // 'problem', 'solution', 'observation', 'suggestion'
+  tokensEarned: integer("tokens_earned").default(1).notNull(),
+  isPremium: boolean("is_premium").default(false).notNull(),
+  viewCost: integer("view_cost").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  problemCategories: text("problem_categories").array().default("{}").notNull(), // ['safety', 'accessibility', 'community', 'environment', etc.]
   upvotes: integer("upvotes").default(0).notNull(),
   downvotes: integer("downvotes").default(0).notNull(),
   isValidated: boolean("is_validated").default(false).notNull(), // community validation
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  severity: text("severity").default("medium").notNull(), // 'low', 'medium', 'high', 'critical'
 });
 
 // AI-powered pattern recommendations based on user feedback
