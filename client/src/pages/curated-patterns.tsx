@@ -18,6 +18,8 @@ interface CuratedPattern {
   relevanceScore: number;
   contextReason: string;
   category: string;
+  problemsAddressed?: string[];
+  implementationPriority?: string;
 }
 
 interface SavedLocation {
@@ -66,6 +68,17 @@ export default function CuratedPatternsPage() {
       const response = await fetch(`/api/locations/${locationId}/curated-patterns`);
       if (!response.ok) throw new Error('Failed to fetch curated patterns');
       return response.json() as CuratedPattern[];
+    },
+    enabled: !!locationId
+  });
+
+  // Get comments for this location to show community feedback
+  const { data: comments = [] } = useQuery({
+    queryKey: [`/api/locations/${locationId}/comments`],
+    queryFn: async () => {
+      const response = await fetch(`/api/locations/${locationId}/comments`);
+      if (!response.ok) throw new Error('Failed to fetch comments');
+      return response.json();
     },
     enabled: !!locationId
   });
@@ -129,8 +142,31 @@ export default function CuratedPatternsPage() {
               <span className="font-medium">{location.name}</span>
             </div>
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              Patterns curated based on your location's characteristics
+              {comments.length > 0 
+                ? `AI-powered suggestions based on ${comments.length} community problem${comments.length > 1 ? 's' : ''} reported` 
+                : "AI-powered pattern suggestions based on location analysis"}
             </p>
+          </div>
+        )}
+
+        {/* Community Feedback Section */}
+        {comments.length > 0 && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+              💬 Community Problems Reported:
+            </h3>
+            <div className="space-y-2">
+              {comments.slice(0, 2).map((comment: any, index: number) => (
+                <div key={index} className="text-xs text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 p-2 rounded">
+                  "{comment.content.substring(0, 120)}{comment.content.length > 120 ? '...' : ''}"
+                </div>
+              ))}
+              {comments.length > 2 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  +{comments.length - 2} more problem{comments.length - 2 > 1 ? 's' : ''} reported
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -157,8 +193,18 @@ export default function CuratedPatternsPage() {
             <div className="p-4 space-y-4">
               <div className="mb-4">
                 <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Found {patterns.length} relevant patterns for this location
+                  Found {patterns.length} relevant pattern{patterns.length > 1 ? 's' : ''} for this location
                 </h2>
+                {comments.length > 0 && (
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                    <p className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
+                      ✨ AI Intelligence Active
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      These patterns were selected by analyzing community-reported problems and matching them to Christopher Alexander's architectural solutions. Each suggestion includes detailed reasoning and implementation guidance.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {patterns.map((pattern) => (
@@ -189,19 +235,61 @@ export default function CuratedPatternsPage() {
                       {pattern.description}
                     </p>
                     
+                    {/* AI Analysis Section */}
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
                       <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
-                        Why this pattern fits here:
+                        🤖 AI Analysis - Why this pattern fits here:
                       </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
                         {pattern.contextReason}
                       </p>
                     </div>
 
+                    {/* Problems Addressed */}
+                    {pattern.problemsAddressed && pattern.problemsAddressed.length > 0 && (
+                      <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg mb-3">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 font-medium mb-1">
+                          🎯 Problems This Pattern Addresses:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {pattern.problemsAddressed.map((problem, index) => (
+                            <Badge 
+                              key={index} 
+                              variant="outline" 
+                              className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300"
+                            >
+                              {problem.replace('_', ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Implementation Priority */}
+                    {pattern.implementationPriority && (
+                      <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg mb-3">
+                        <p className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
+                          ⏱️ Implementation Timeline:
+                        </p>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
+                        >
+                          {pattern.implementationPriority.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Bottom Actions */}
                     <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-xs">
-                        {pattern.category}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {pattern.category}
+                        </Badge>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Score: {(pattern.relevanceScore * 100).toFixed(0)}%
+                        </span>
+                      </div>
                       
                       <Button
                         variant="outline"
