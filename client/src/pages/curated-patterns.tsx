@@ -134,38 +134,23 @@ export default function CuratedPatternsPage() {
           <div className="w-8" />
         </div>
 
-        {/* Location Info */}
+        {/* Location Summary Header */}
         {location && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 mb-2">
               <MapPin className="w-4 h-4" />
-              <span className="font-medium">{location.name}</span>
+              <span className="font-bold">{location.name}</span>
             </div>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              {comments.length > 0 
-                ? `AI-powered suggestions based on ${comments.length} community problem${comments.length > 1 ? 's' : ''} reported` 
-                : "AI-powered pattern suggestions based on location analysis"}
-            </p>
-          </div>
-        )}
-
-        {/* Community Feedback Section */}
-        {comments.length > 0 && (
-          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
-              💬 Community Problems Reported:
-            </h3>
-            <div className="space-y-2">
-              {comments.slice(0, 2).map((comment: any, index: number) => (
-                <div key={index} className="text-xs text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 p-2 rounded">
-                  "{comment.content.substring(0, 120)}{comment.content.length > 120 ? '...' : ''}"
-                </div>
-              ))}
-              {comments.length > 2 && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  +{comments.length - 2} more problem{comments.length - 2 > 1 ? 's' : ''} reported
-                </p>
-              )}
+            <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+              <div>
+                <span className="font-medium">Coordinates:</span> {location.latitude}, {location.longitude}
+              </div>
+              <div>
+                <span className="font-medium">Analysis Type:</span>{' '}
+                {comments.length > 0 
+                  ? `🤖 AI Intelligence (${comments.length} problem${comments.length > 1 ? 's' : ''} analyzed)` 
+                  : "📍 Contextual Patterns"}
+              </div>
             </div>
           </div>
         )}
@@ -208,26 +193,80 @@ export default function CuratedPatternsPage() {
               </div>
 
               {patterns.map((pattern) => (
-                <Card key={pattern.id} className="hover:shadow-md transition-shadow">
+                <Card key={pattern.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            #{pattern.number}
-                          </Badge>
-                          <Badge 
-                            className={`text-xs ${getRelevanceColor(pattern.relevanceScore)}`}
-                          >
-                            <Star className="w-3 h-3 mr-1" />
-                            {getRelevanceLabel(pattern.relevanceScore)}
-                          </Badge>
+                    <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg mb-3">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        📊 Analysis Results
+                      </h3>
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Location:</span>{' '}
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {location?.latitude}, {location?.longitude} ({location?.name})
+                          </span>
                         </div>
-                        <CardTitle className="text-base leading-tight">
-                          {pattern.name}
-                        </CardTitle>
+                        
+                        {comments.length > 0 && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">User Problem:</span>{' '}
+                            <span className="text-gray-600 dark:text-gray-400 italic">
+                              "{comments[0]?.content.substring(0, 100)}{comments[0]?.content.length > 100 ? '...' : ''}"
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">AI Pattern Suggestion:</span>{' '}
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">
+                            Pattern {pattern.number} "{pattern.name}"
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Relevance Score:</span>{' '}
+                          <span className="text-purple-600 dark:text-purple-400 font-medium">
+                            {pattern.relevanceScore.toFixed(2)} ({(pattern.relevanceScore * 100).toFixed(0)}%)
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">AI Reasoning:</span>{' '}
+                          <span className="text-gray-600 dark:text-gray-400">
+                            "{pattern.contextReason.substring(0, 150)}{pattern.contextReason.length > 150 ? '...' : ''}"
+                          </span>
+                        </div>
+                        
+                        {pattern.problemsAddressed && pattern.problemsAddressed.length > 0 && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Problems Addressed:</span>{' '}
+                            <span className="text-orange-600 dark:text-orange-400">
+                              {pattern.problemsAddressed.join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        #{pattern.number}
+                      </Badge>
+                      <Badge 
+                        className={`text-xs ${getRelevanceColor(pattern.relevanceScore)}`}
+                      >
+                        <Star className="w-3 h-3 mr-1" />
+                        {getRelevanceLabel(pattern.relevanceScore)}
+                      </Badge>
+                      {pattern.implementationPriority && (
+                        <Badge variant="secondary" className="text-xs">
+                          {pattern.implementationPriority.replace('_', ' ')}
+                        </Badge>
+                      )}
+                    </div>
+                    <CardTitle className="text-base leading-tight">
+                      {pattern.name}
+                    </CardTitle>
                   </CardHeader>
                   
                   <CardContent className="pt-0">
@@ -235,61 +274,21 @@ export default function CuratedPatternsPage() {
                       {pattern.description}
                     </p>
                     
-                    {/* AI Analysis Section */}
+                    {/* Full AI Analysis Section */}
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
                       <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
-                        🤖 AI Analysis - Why this pattern fits here:
+                        🤖 Complete AI Analysis:
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
                         {pattern.contextReason}
                       </p>
                     </div>
 
-                    {/* Problems Addressed */}
-                    {pattern.problemsAddressed && pattern.problemsAddressed.length > 0 && (
-                      <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg mb-3">
-                        <p className="text-xs text-orange-700 dark:text-orange-300 font-medium mb-1">
-                          🎯 Problems This Pattern Addresses:
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {pattern.problemsAddressed.map((problem, index) => (
-                            <Badge 
-                              key={index} 
-                              variant="outline" 
-                              className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300"
-                            >
-                              {problem.replace('_', ' ')}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Implementation Priority */}
-                    {pattern.implementationPriority && (
-                      <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg mb-3">
-                        <p className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
-                          ⏱️ Implementation Timeline:
-                        </p>
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
-                        >
-                          {pattern.implementationPriority.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                      </div>
-                    )}
-
                     {/* Bottom Actions */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {pattern.category}
-                        </Badge>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Score: {(pattern.relevanceScore * 100).toFixed(0)}%
-                        </span>
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {pattern.category}
+                      </Badge>
                       
                       <Button
                         variant="outline"
