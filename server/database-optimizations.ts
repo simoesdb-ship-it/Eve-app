@@ -150,7 +150,7 @@ export class DatabaseOptimizations {
     `;
 
     const result = await db.execute(statsQuery);
-    return result[0] || {
+    return (result && result.length > 0 ? (result as any)[0] : null) || {
       suggested_patterns: 0,
       votes_contributed: 0,
       locations_tracked: 0,

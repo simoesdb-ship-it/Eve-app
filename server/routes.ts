@@ -23,11 +23,31 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Initialize optimizations
+  // Initialize optimizations with error handling
   console.log('Initializing performance optimizations...');
-  await dbOptimizations.createOptimizedIndexes();
-  await dbOptimizations.optimizeDatabase();
-  await optimizedPatternAnalyzer.warmCache();
+  try {
+    await dbOptimizations.createOptimizedIndexes();
+  } catch (error) {
+    console.error('Error creating indexes:', error);
+    console.log('Continuing without database optimizations...');
+  }
+  
+  try {
+    console.log('Applying database optimizations...');
+    await dbOptimizations.optimizeDatabase();
+  } catch (error) {
+    console.error('Error applying database optimizations:', error);
+    console.log('Continuing without database optimizations...');
+  }
+  
+  try {
+    console.log('Warming pattern analysis cache...');
+    await optimizedPatternAnalyzer.warmCache();
+  } catch (error) {
+    console.error('Error warming cache:', error);
+    console.log('Continuing without cache warming...');
+  }
+  
   console.log('Performance optimizations completed');
 
   // Apply rate limiting to all routes

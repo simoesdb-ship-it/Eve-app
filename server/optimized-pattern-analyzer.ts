@@ -127,9 +127,9 @@ class OptimizedPatternAnalyzer {
 
   private getIntersectionSize(set1: Set<string>, set2: Set<string>): number {
     let count = 0;
-    for (const item of set1) {
+    Array.from(set1).forEach(item => {
       if (set2.has(item)) count++;
-    }
+    });
     return count;
   }
 
