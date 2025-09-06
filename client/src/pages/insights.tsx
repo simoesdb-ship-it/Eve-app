@@ -169,14 +169,18 @@ export default function InsightsPage() {
 
       <div className="max-w-4xl mx-auto p-4 pb-24">
         <Tabs defaultValue="personal" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="personal" className="flex items-center space-x-2">
-              <Activity className="w-4 h-4" />
-              <span>Personal</span>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="personal" className="flex items-center space-x-1">
+              <Activity className="w-3 h-3" />
+              <span className="text-xs">Personal</span>
             </TabsTrigger>
-            <TabsTrigger value="community" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span>Community</span>
+            <TabsTrigger value="community" className="flex items-center space-x-1">
+              <Users className="w-3 h-3" />
+              <span className="text-xs">Community</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center space-x-1">
+              <BarChart3 className="w-3 h-3" />
+              <span className="text-xs">Analytics</span>
             </TabsTrigger>
           </TabsList>
 
@@ -654,6 +658,119 @@ export default function InsightsPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ANALYTICS TAB */}
+          <TabsContent value="analytics" className="space-y-4">
+            {/* Analytics Hub */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <span>Data Analytics</span>
+                </CardTitle>
+                <CardDescription>Advanced analysis tools and insights</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate('/location-analysis')}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="w-5 h-5 text-blue-600 mt-1" />
+                      <div className="text-left">
+                        <div className="font-medium">Location Analysis</div>
+                        <div className="text-sm text-muted-foreground">
+                          Detailed spatial and architectural pattern analysis
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate('/community-analysis')}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <Users className="w-5 h-5 text-green-600 mt-1" />
+                      <div className="text-left">
+                        <div className="font-medium">Community Analysis</div>
+                        <div className="text-sm text-muted-foreground">
+                          Aggregated community insights and voting patterns
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate('/real-world-analysis')}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <Globe className="w-5 h-5 text-purple-600 mt-1" />
+                      <div className="text-left">
+                        <div className="font-medium">Real-World Analysis</div>
+                        <div className="text-sm text-muted-foreground">
+                          Pattern conformance in real architectural spaces
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate('/time-tracking')}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <Clock className="w-5 h-5 text-orange-600 mt-1" />
+                      <div className="text-left">
+                        <div className="font-medium">Time Tracking</div>
+                        <div className="text-sm text-muted-foreground">
+                          Movement patterns and location duration analysis
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  <p>These analytics tools provide deep insights into architectural patterns, community behavior, and spatial relationships. Each tool offers specialized views of your data to help understand pattern effectiveness and community preferences.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Analytics Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <div className="text-lg font-bold text-blue-600">{savedLocations.length}</div>
+                  <div className="text-xs text-muted-foreground">Analyzed Locations</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <div className="text-lg font-bold text-green-600">{activity.length}</div>
+                  <div className="text-xs text-muted-foreground">Data Points</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <div className="text-lg font-bold text-purple-600">{trackingPoints.length}</div>
+                  <div className="text-xs text-muted-foreground">Tracking Points</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <div className="text-lg font-bold text-orange-600">{stats?.votesContributed || 0}</div>
+                  <div className="text-xs text-muted-foreground">Community Votes</div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
