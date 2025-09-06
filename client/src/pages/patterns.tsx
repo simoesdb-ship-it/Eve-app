@@ -38,7 +38,7 @@ export default function PatternsPage() {
     loadUsername();
   }, []);
 
-  const { data: patterns = [], isLoading } = useQuery({
+  const { data: patterns = [], isLoading } = useQuery<Pattern[]>({
     queryKey: ['/api/patterns'],
     queryFn: async () => {
       const response = await fetch('/api/patterns');
