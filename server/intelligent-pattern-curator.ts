@@ -174,23 +174,23 @@ export class IntelligentPatternCurator {
     const problemKeywords = this.extractProblemKeywords(comment.content);
     
     // Find relevant patterns based on problem categories and keywords
-    const relevantPatternIds = new Set<number>();
+    const relevantPatternNumbers = new Set<number>();
     
     // Add patterns based on explicit problem categories
     for (const category of comment.problemCategories) {
       const patterns = this.problemPatternMap[category] || [];
-      patterns.forEach(id => relevantPatternIds.add(id));
+      patterns.forEach(patternNumber => relevantPatternNumbers.add(patternNumber));
     }
     
     // Add patterns based on keyword analysis
     for (const keyword of problemKeywords) {
       const patterns = this.problemPatternMap[keyword] || [];
-      patterns.forEach(id => relevantPatternIds.add(id));
+      patterns.forEach(patternNumber => relevantPatternNumbers.add(patternNumber));
     }
 
     // Generate suggestions for each relevant pattern
-    for (const patternId of Array.from(relevantPatternIds)) {
-      const pattern = allPatterns.find(p => p.id === patternId);
+    for (const patternNumber of Array.from(relevantPatternNumbers)) {
+      const pattern = allPatterns.find(p => p.number === patternNumber);
       if (!pattern) continue;
 
       const suggestion = await this.createIntelligentSuggestion(
