@@ -83,7 +83,7 @@ class OptimizedPatternAnalyzer {
     for (const pattern of this.patterns) {
       const confidence = this.calculateOptimizedConfidence(pattern, context);
       
-      if (confidence > 0.5) {
+      if (confidence > 0.3) {
         suggestions.push({
           patternId: pattern.id,
           patternNumber: pattern.number,
@@ -106,7 +106,7 @@ class OptimizedPatternAnalyzer {
   }
 
   private calculateOptimizedConfidence(pattern: OptimizedPattern, context: LocationAnalysisContext): number {
-    let confidence = 0.25; // Base confidence
+    let confidence = 0.3; // Base confidence - increased for better pattern detection
 
     // Fast keyword intersection using Sets
     const keywordMatches = this.getIntersectionSize(pattern.compiled_keywords!, context.compiled_name!);
@@ -154,6 +154,14 @@ class OptimizedPatternAnalyzer {
 
   private calculateCategoryBoosts(pattern: OptimizedPattern, context: LocationAnalysisContext): number {
     let boost = 0;
+
+    // Handle generic location names by providing base community patterns
+    if (!context.name || context.name === 'Current Location' || context.name.trim() === '') {
+      // For generic locations, boost common community patterns
+      if (pattern.category === 'Community' || pattern.category === 'Buildings') {
+        boost += 0.15;
+      }
+    }
 
     // Transportation patterns
     if (pattern.category === 'Transportation' && 
