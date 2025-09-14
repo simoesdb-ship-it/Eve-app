@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Location Map - 1,473 Analyzed Locations</title>
+    <title>Location Map - 1,248 Analyzed Locations</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -13,9 +13,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>Pattern Discovery App: 1,473 Analyzed Locations</h1>
-        <p>Minnesota: 1,425 (96.7%) | International: 31 (2.1%) | Florida: 13 (0.9%) | California: 4 (0.3%)</p>
-        <p><strong>Updated September 2025</strong> | 21,751 Pattern Suggestions | 79 Saved Locations</p>
+        <h1>Pattern Discovery App: 1,248 Analyzed Locations</h1>
+        <p>Minnesota: 1,200 (96.2%) | International: 31 (2.5%) | Florida: 13 (1.0%) | California: 4 (0.3%)</p>
     </div>
     <div id="map"></div>
 
@@ -33,16 +32,15 @@
         }).addTo(map);
         console.log('Tile layer added');
 
-        // Location data - Updated September 2025
+        // Location data
         var locations = [
-            {lat: 44.9806, lng: -93.2905, name: 'Minneapolis Core', count: 420, color: '#22c55e'},
-            {lat: 44.9435, lng: -92.8903, name: 'The Edison District', count: 380, color: '#22c55e'},
-            {lat: 44.9438, lng: -92.8895, name: 'Eastern Suburbs', count: 165, color: '#22c55e'},
-            {lat: 44.9484, lng: -93.2196, name: 'South Minneapolis', count: 110, color: '#22c55e'},
-            {lat: 44.8825, lng: -93.2114, name: 'Southern Metro', count: 95, color: '#22c55e'},
-            {lat: 45.0872, lng: -93.1122, name: 'Northern Suburbs', count: 140, color: '#22c55e'},
-            {lat: 44.9884, lng: -93.3143, name: 'Willard-Hay District', count: 85, color: '#22c55e'},
-            {lat: -23.5453, lng: -46.6517, name: 'International Locations', count: 31, color: '#ef4444'},
+            {lat: 44.9806, lng: -93.2905, name: 'Minneapolis Core', count: 400, color: '#22c55e'},
+            {lat: 44.9800, lng: -93.2893, name: 'Default Location Hub', count: 350, color: '#22c55e'},
+            {lat: 44.9438, lng: -92.8895, name: 'Eastern Suburbs', count: 150, color: '#22c55e'},
+            {lat: 44.9484, lng: -93.2196, name: 'South Minneapolis', count: 100, color: '#22c55e'},
+            {lat: 44.8825, lng: -93.2114, name: 'Southern Metro', count: 75, color: '#22c55e'},
+            {lat: 45.0872, lng: -93.1122, name: 'Northern Suburbs', count: 125, color: '#22c55e'},
+            {lat: -23.5453, lng: -46.6517, name: 'São Paulo, Brazil', count: 31, color: '#ef4444'},
             {lat: 28.4264, lng: -81.2990, name: 'Orlando Area', count: 13, color: '#3b82f6'},
             {lat: 37.7749, lng: -122.4194, name: 'San Francisco', count: 4, color: '#f59e0b'}
         ];
@@ -61,12 +59,11 @@
                 fillOpacity: 0.7
             });
             
-            marker.bindPopup('<b>' + loc.name + '</b><br>Locations: ' + loc.count + '<br>Coordinates: ' + loc.lat + ', ' + loc.lng + '<br><em>Updated September 2025</em>');
+            marker.bindPopup('<b>' + loc.name + '</b><br>Locations: ' + loc.count + '<br>Coordinates: ' + loc.lat + ', ' + loc.lng);
             marker.addTo(map);
         });
 
         console.log('Map loaded successfully with ' + locations.length + ' locations');
-        console.log('Total analyzed: 1,473 locations with 21,751 pattern suggestions');
         
         // Add some debugging
         map.on('load', function() {

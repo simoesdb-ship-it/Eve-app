@@ -1,7 +1,5 @@
 import { cache } from './middleware/caching';
 import { storage } from './storage';
-import { IntelligentPatternCurator } from './intelligent-pattern-curator';
-import { ContextualPatternCurator } from './contextual-pattern-curator';
 
 interface OptimizedPattern {
   id: number;
@@ -26,8 +24,6 @@ class OptimizedPatternAnalyzer {
   private patterns: OptimizedPattern[] = [];
   private isInitialized = false;
   private initPromise?: Promise<void>;
-  private intelligentCurator?: IntelligentPatternCurator;
-  private contextualCurator?: ContextualPatternCurator;
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -80,78 +76,23 @@ class OptimizedPatternAnalyzer {
       return cached;
     }
 
-    console.log(`Analyzing location using sophisticated analysis systems: ${location.name}`);
+    const context = this.compileLocationContext(location);
     const suggestions = [];
     
-    try {
-      // Lazy initialization of curators to avoid circular imports
-      if (!this.intelligentCurator) {
-        this.intelligentCurator = new IntelligentPatternCurator();
-      }
-      if (!this.contextualCurator) {
-        this.contextualCurator = new ContextualPatternCurator();
-      }
-
-      // Use Intelligent Pattern Curator for problem-to-pattern mapping
-      const intelligentSuggestions = await this.intelligentCurator.generateContextualAnalysis(location);
+    // Use optimized matching algorithm
+    for (const pattern of this.patterns) {
+      const confidence = this.calculateOptimizedConfidence(pattern, context);
       
-      // Convert intelligent suggestions to optimized format
-      for (const suggestion of intelligentSuggestions) {
-        const pattern = await storage.getPattern(suggestion.patternId);
-        if (pattern) {
-          suggestions.push({
-            patternId: pattern.id,
-            patternNumber: pattern.number,
-            patternName: pattern.name,
-            confidence: parseFloat(suggestion.relevanceScore),
-            locationId: location.id,
-            reasoning: suggestion.reasoning,
-            problemsAddressed: suggestion.problemsAddressed,
-            implementationPriority: suggestion.implementationPriority,
-            implementationNotes: suggestion.implementationNotes,
-            mlAlgorithm: "intelligent_contextual_analysis"
-          });
-        }
+      if (confidence > 0.5) {
+        suggestions.push({
+          patternId: pattern.id,
+          patternNumber: pattern.number,
+          patternName: pattern.name,
+          confidence,
+          locationId: location.id,
+          mlAlgorithm: "optimized_keyword_spatial_matching"
+        });
       }
-
-      // If we have location ID, also use Contextual Pattern Curator for geographic analysis
-      if (location.id) {
-        try {
-          const curatedPatterns = await this.contextualCurator.getCuratedPatterns(location.id);
-          
-          // Add curated patterns not already included
-          for (const curated of curatedPatterns) {
-            const alreadyIncluded = suggestions.find(s => s.patternNumber === curated.number);
-            if (!alreadyIncluded) {
-              suggestions.push({
-                patternId: curated.id,
-                patternNumber: curated.number,
-                patternName: curated.name,
-                confidence: curated.relevanceScore,
-                locationId: location.id,
-                reasoning: curated.contextReason,
-                category: curated.category,
-                mlAlgorithm: "geographic_contextual_analysis"
-              });
-            }
-          }
-        } catch (error) {
-          console.log(`Contextual curator analysis not available for location ${location.id}, using intelligent analysis only`);
-        }
-      }
-
-      // Fallback to basic matching if no sophisticated suggestions found
-      if (suggestions.length === 0) {
-        console.log(`No sophisticated suggestions found, using basic pattern matching as fallback`);
-        const basicSuggestions = await this.generateBasicSuggestions(location);
-        suggestions.push(...basicSuggestions);
-      }
-
-    } catch (error) {
-      console.error('Error in sophisticated pattern analysis:', error);
-      // Fallback to basic matching on error
-      const basicSuggestions = await this.generateBasicSuggestions(location);
-      suggestions.push(...basicSuggestions);
     }
 
     // Sort by confidence descending
@@ -160,35 +101,12 @@ class OptimizedPatternAnalyzer {
     // Cache results for 5 minutes
     cache.set(cacheKey, suggestions, 300);
     
-    console.log(`Generated ${suggestions.length} pattern suggestions for location ${location.id} using sophisticated analysis`);
-    return suggestions;
-  }
-
-  private async generateBasicSuggestions(location: any): Promise<any[]> {
-    const context = this.compileLocationContext(location);
-    const suggestions = [];
-    
-    // Use basic matching algorithm as fallback
-    for (const pattern of this.patterns) {
-      const confidence = this.calculateOptimizedConfidence(pattern, context);
-      
-      if (confidence > 0.3) {
-        suggestions.push({
-          patternId: pattern.id,
-          patternNumber: pattern.number,
-          patternName: pattern.name,
-          confidence,
-          locationId: location.id,
-          mlAlgorithm: "basic_keyword_matching_fallback"
-        });
-      }
-    }
-
+    console.log(`Generated ${suggestions.length} optimized pattern suggestions for location ${location.id}`);
     return suggestions;
   }
 
   private calculateOptimizedConfidence(pattern: OptimizedPattern, context: LocationAnalysisContext): number {
-    let confidence = 0.3; // Base confidence - increased for better pattern detection
+    let confidence = 0.25; // Base confidence
 
     // Fast keyword intersection using Sets
     const keywordMatches = this.getIntersectionSize(pattern.compiled_keywords!, context.compiled_name!);
@@ -236,14 +154,6 @@ class OptimizedPatternAnalyzer {
 
   private calculateCategoryBoosts(pattern: OptimizedPattern, context: LocationAnalysisContext): number {
     let boost = 0;
-
-    // Handle generic location names by providing base community patterns
-    if (!context.name || context.name === 'Current Location' || context.name.trim() === '') {
-      // For generic locations, boost common community patterns
-      if (pattern.category === 'Community' || pattern.category === 'Buildings') {
-        boost += 0.15;
-      }
-    }
 
     // Transportation patterns
     if (pattern.category === 'Transportation' && 
