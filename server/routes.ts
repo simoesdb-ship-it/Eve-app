@@ -285,6 +285,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all pattern suggestions for a session
+  app.get("/api/pattern-suggestions", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      const suggestions = await storage.getAllPatternSuggestionsForSession(sessionId);
+      res.json(suggestions);
+    } catch (error: any) {
+      console.error("Error getting pattern suggestions:", error);
+      res.status(500).json({ message: "Failed to get pattern suggestions" });
+    }
+  });
+
   // Search patterns
   app.get("/api/patterns/search", async (req, res) => {
     try {

@@ -538,6 +538,52 @@ export class DatabaseStorage implements IStorage {
       .set({ lastSeenAt: new Date() })
       .where(eq(deviceRegistrations.deviceId, deviceId));
   }
+
+  async getAllPatternSuggestionsForSession(sessionId: string): Promise<any[]> {
+    const results = await db
+      .select({
+        id: patternSuggestions.id,
+        confidence: patternSuggestions.confidence,
+        mlAlgorithm: patternSuggestions.mlAlgorithm,
+        createdAt: patternSuggestions.createdAt,
+        patternId: patterns.id,
+        patternNumber: patterns.number,
+        patternName: patterns.name,
+        patternDescription: patterns.description,
+        patternCategory: patterns.category,
+        locationId: locations.id,
+        locationName: locations.name,
+        locationLatitude: locations.latitude,
+        locationLongitude: locations.longitude,
+        locationCreatedAt: locations.createdAt
+      })
+      .from(patternSuggestions)
+      .innerJoin(patterns, eq(patternSuggestions.patternId, patterns.id))
+      .innerJoin(locations, eq(patternSuggestions.locationId, locations.id))
+      .where(eq(locations.sessionId, sessionId))
+      .orderBy(desc(patternSuggestions.createdAt));
+
+    return results.map(result => ({
+      id: result.id,
+      confidence: parseFloat(result.confidence),
+      mlAlgorithm: result.mlAlgorithm,
+      createdAt: result.createdAt,
+      pattern: {
+        id: result.patternId,
+        number: result.patternNumber,
+        name: result.patternName,
+        description: result.patternDescription,
+        category: result.patternCategory
+      },
+      location: {
+        id: result.locationId,
+        name: result.locationName || 'Unknown Location',
+        latitude: result.locationLatitude,
+        longitude: result.locationLongitude,
+        createdAt: result.locationCreatedAt
+      }
+    }));
+  }
 }
 
 export const storage = new DatabaseStorage();
