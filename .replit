@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["watchman", "uwhoisd", "run", "jdk17"]
+packages = ["watchman", "uwhoisd", "run", "jdk17", "gradle", "android-tools"]
 
 [deployment]
 deploymentTarget = "autoscale"

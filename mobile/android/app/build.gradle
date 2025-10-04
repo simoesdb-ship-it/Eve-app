@@ -1,19 +1,6 @@
 apply plugin: "com.android.application"
-apply plugin: "com.facebook.react"
-
-def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
-
-react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
-    reactNativeDir = file("../node_modules/react-native")
-    hermesCommand = file("../node_modules/react-native/sdks/hermesc/%OS-BIN%/hermesc")
-    codegenDir = file("../node_modules/@react-native/codegen")
-    
-    debuggableVariants = ["liteDebug", "prodDebug"]
-}
 
 def enableProguardInReleaseBuilds = true
-def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -28,26 +15,6 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
-        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
-
-        if (isNewArchitectureEnabled()) {
-            externalNativeBuild {
-                cmake {
-                    arguments "-DPROJECT_BUILD_DIR=$buildDir",
-                        "-DREACT_ANDROID_DIR=$rootDir/../node_modules/react-native/ReactAndroid",
-                        "-DREACT_ANDROID_BUILD_DIR=$rootDir/../node_modules/react-native/ReactAndroid/build",
-                        "-DANDROID_STL=c++_shared"
-                }
-            }
-        }
-    }
-
-    if (isNewArchitectureEnabled()) {
-        externalNativeBuild {
-            cmake {
-                path "$projectDir/src/main/jni/CMakeLists.txt"
-            }
-        }
     }
 
     signingConfigs {
@@ -77,28 +44,16 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    
+    packagingOptions {
+        pickFirst 'lib/x86/libc++_shared.so'
+        pickFirst 'lib/x86_64/libc++_shared.so'
+        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+    }
 }
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-
-    implementation("com.facebook.react:react-android")
-    implementation("com.facebook.react:flipper-integration")
-
-    if (hermesEnabled.toBoolean()) {
-        implementation("com.facebook.react:hermes-android")
-    } else {
-        implementation jscFlavor
-    }
-
-    implementation project(':react-native-vector-icons')
-    implementation project(':@react-native-community_geolocation')
-    implementation project(':react-native-maps')
-    implementation project(':react-native-permissions')
-    implementation project(':react-native-encrypted-storage')
-    implementation project(':@react-native-async-storage_async-storage')
-    implementation project(':@react-native-community_netinfo')
-    implementation project(':react-native-svg')
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
-
-apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
