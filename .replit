@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["watchman", "uwhoisd", "run"]
+packages = ["watchman", "uwhoisd", "run", "jdk17"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -14,10 +14,6 @@ run = ["npm", "run", "start"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 46451
-externalPort = 3000
 
 [workflows]
 runButton = "Project"
