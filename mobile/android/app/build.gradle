@@ -22,7 +22,8 @@ android {
         versionName "1.0.0"
         
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            // Only include ARM architectures for real devices (x86/x86_64 are for emulators only)
+            abiFilters "armeabi-v7a", "arm64-v8a"
         }
     }
 
@@ -55,8 +56,7 @@ android {
     }
     
     packagingOptions {
-        pickFirst 'lib/x86/libc++_shared.so'
-        pickFirst 'lib/x86_64/libc++_shared.so'
+        // Only ARM architectures (real devices)
         pickFirst 'lib/armeabi-v7a/libc++_shared.so'
         pickFirst 'lib/arm64-v8a/libc++_shared.so'
     }
