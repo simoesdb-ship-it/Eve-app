@@ -45,10 +45,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // WebSocket server URL - in production, this would be your deployed backend
-  const WS_URL = __DEV__ 
-    ? 'ws://localhost:5000/communication'  // Development
-    : 'wss://your-app-domain.replit.app/communication'; // Production
+  // WebSocket server URL - your deployed Replit backend
+  const WS_URL = 'wss://106a07ad-ee14-4ed6-86d0-008170eb451f-00-1wec7c9yjava4.janeway.replit.dev/communication';
 
   const connectToNearbyUsers = (latitude: number, longitude: number) => {
     if (!user) return;

@@ -1,7 +1,5 @@
 // API service for communicating with the backend
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:5000/api'  // Development
-  : 'https://your-app-domain.replit.app/api'; // Production
+const API_BASE_URL = 'https://106a07ad-ee14-4ed6-86d0-008170eb451f-00-1wec7c9yjava4.janeway.replit.dev/api';
 
 export interface Location {
   id: number;
