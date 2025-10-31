@@ -34,7 +34,7 @@ jobs:
 
     - name: Install dependencies
       working-directory: ./mobile
-      run: npm ci
+      run: npm install --legacy-peer-deps
 
     - name: Decode Keystore
       env:
@@ -47,13 +47,12 @@ jobs:
       env:
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         cat >> gradle.properties << EOF
         MYAPP_UPLOAD_STORE_FILE=pattern-discovery-release-key.keystore
         MYAPP_UPLOAD_KEY_ALIAS=$KEY_ALIAS
         MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD
-        MYAPP_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD
+        MYAPP_UPLOAD_KEY_PASSWORD=$KEYSTORE_PASSWORD
         EOF
 
     - name: Make gradlew executable
