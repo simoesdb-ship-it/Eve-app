@@ -16,13 +16,17 @@ import { LocationTrackingProvider } from './services/LocationTrackingService';
 import { AuthProvider } from './services/AuthService';
 import { WebSocketProvider } from './services/WebSocketService';
 
+// Components
+import ErrorBoundary from './components/ErrorBoundary';
+
 const Tab = createBottomTabNavigator();
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <LocationTrackingProvider>
-        <WebSocketProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <LocationTrackingProvider>
+          <WebSocketProvider>
           <NavigationContainer>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <Tab.Navigator
@@ -104,6 +108,7 @@ const App: React.FC = () => {
         </WebSocketProvider>
       </LocationTrackingProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
