@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+    TODO: Before releasing your application, you need a Google Maps API key.
+    
+    To get one, follow the directions here:
+    https://developers.google.com/maps/documentation/android-sdk/get-api-key
+    
+    Once you have your key, replace "YOUR_API_KEY_HERE" below.
+    -->
+    <string name="google_maps_api_key" translatable="false">YOUR_API_KEY_HERE</string>
+</resources>

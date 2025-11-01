@@ -30,10 +30,10 @@
       android:requestLegacyExternalStorage="true"
       android:theme="@style/AppTheme">
       
-      <!-- Google Maps API Key (use your own key for production) -->
+      <!-- Google Maps API Key -->
       <meta-data
         android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyDEVELOPMENT_KEY_PLACEHOLDER"/>
+        android:value="@string/google_maps_api_key"/>
       
       <activity
         android:name=".MainActivity"

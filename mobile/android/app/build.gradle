@@ -74,13 +74,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     
-    // React Native Permissions
-    implementation project(':react-native-permissions')
-    
-    // React Native Geolocation
-    implementation project(':react-native-community-geolocation')
-    
-    // Google Play Services for Maps
+    // Google Play Services for Maps (react-native-maps)
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     implementation 'com.google.android.gms:play-services-location:21.1.0'
 }
