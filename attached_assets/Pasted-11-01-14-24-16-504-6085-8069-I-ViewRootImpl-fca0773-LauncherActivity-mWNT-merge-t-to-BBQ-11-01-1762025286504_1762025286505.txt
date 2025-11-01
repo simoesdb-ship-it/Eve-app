@@ -1,0 +1,84 @@
+11-01 14:24:16.504  6085  8069 I ViewRootImpl@fca0773[LauncherActivity]: mWNT: merge t to BBQ
+11-01 14:24:16.506 25428 25469 D ViewRootImpl@bfc82da[MainActivity]: Received frameDrawingCallback frameNum=1. Creating transactionCompleteCallback=false
+11-01 14:24:16.518 25428 25467 I gralloc : Arm Module v1.0
+11-01 14:24:16.518  4988  4988 I Layer   : id=83952 removeFromCurrentState Surface(name=9006f90 StatusBar)/@0xae8b818 - animation-leash of insets_animation#1 (142)
+11-01 14:24:16.518  4988  4988 I Layer   : id=83953 removeFromCurrentState Surface(name=5a40d4e NavigationBar0)/@0x877f0d7 - animation-leash of insets_animation#1 (142)
+11-01 14:24:16.518  4988  4988 E SurfaceFlinger: Attempt to update InputPolicyFlags without permission ACCESS_SURFACE_FLINGER
+11-01 14:24:16.518  4988  4988 I SurfaceFlinger: id=83952 Removed Surface(name=9006f90 StatusBar)/@0xae8b818 - animation-leash of insets_animation#1 (142)
+11-01 14:24:16.518  4988  4988 I SurfaceFlinger: id=83953 Removed Surface(name=5a40d4e NavigationBar0)/@0x877f0d7 - animation-leash of insets_animation#1 (142)
+11-01 14:24:16.519  4988  4988 I Layer   : id=83952 Destroyed Surface(name=9006f90 StatusBar)/@0xae8b818 - animation-leash of insets_animation#1
+11-01 14:24:16.519  4988  4988 I Layer   : id=83953 Destroyed Surface(name=5a40d4e NavigationBar0)/@0x877f0d7 - animation-leash of insets_animation#1
+11-01 14:24:16.519  4447  4447 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.allocator@4.0::IAllocator/default in either framework or device VINTF manifest.
+11-01 14:24:16.520 25428 25467 W Gralloc4: allocator 4.x is not supported
+11-01 14:24:16.520  4447  4447 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.allocator@3.0::IAllocator/default in either framework or device VINTF manifest.
+11-01 14:24:16.520  6085  8070 I ViewRootImpl@fca0773[LauncherActivity]: mWNT: t = android.view.SurfaceControl$Transaction@3544dce fN = 22 com.android.systemui.shared.system.ViewRootImplCompat.mergeWithNextTransaction:62 com.android.quickstep.util.SurfaceTransactionApplier.lambda$scheduleApply$0$SurfaceTransactionApplier:94 com.android.quickstep.util.-$$Lambda$SurfaceTransactionApplier$Xj9m0ayWHIr2xvQnKB4EJdxg8RU.accept:6 
+11-01 14:24:16.520  6085  8070 I ViewRootImpl@fca0773[LauncherActivity]: mWNT: merge t to BBQ
+11-01 14:24:16.520 25428 25467 W Gralloc3: allocator 3.x is not supported
+11-01 14:24:16.520  5110  7522 D InputDispatcher: Focus request (0): efb97d7 com.patterndiscoverymobile/com.patterndiscoverymobile.MainActivity but waiting because NOT_VISIBLE
+--------- beginning of crash
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: FATAL EXCEPTION: mqt_native_modules
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: Process: com.patterndiscoverymobile, PID: 25428
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: com.facebook.react.common.JavascriptException: Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found. Verify that a module by this name is registered in the native binary.Bridgeless mode: false. TurboModule interop: false. Modules loaded: {"NativeModules":["HeadlessJsTaskSupport","UIManager","PlatformConstants","DeviceInfo","DeviceEventManager"],"TurboModules":[],"NotFound":["NativePerformanceCxx","NativePerformanceObserverCxx","RedBox","BugReporting","RNVectorIcons","RNMapsAirModule"]}, js engine: hermes, stack:
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: invariant@1:40466
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: getEnforcing@1:48735
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:661480
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:658450
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:650448
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:647956
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:641452
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:633628
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23127
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: anonymous@1:29457
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: loadModuleImplementation@1:23603
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: guardedLoadModule@1:23084
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: metroRequire@1:22757
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: global@1:22285
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(SourceFile:76)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.react.bridge.JavaMethodWrapper.invoke(SourceFile:151)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.react.bridge.JavaModuleWrapper.invoke(SourceFile:20)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.jni.NativeRunnable.run(Native Method)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:938)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(SourceFile:1)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:226)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:313)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$4.run(SourceFile:38)
+11-01 14:24:16.522 25428 25464 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:1119)
+11-01 14:24:16.530  5110 25470 I DropBoxManagerService: add tag=data_app_crash isTagEnabled=true flags=0x2
+11-01 14:24:16.530  5110  7522 D Debug   : low && ship && 3rdparty app crash, do not dump
+11-01 14:24:16.531  5110  7522 W ActivityManager: crash : com.patterndiscoverymobile,10568
+11-01 14:24:16.534  4988  4988 E SurfaceFlinger: Attempt to update InputPolicyFlags without permission ACCESS_SURFACE_FLINGER
+11-01 14:24:16.535  5110 25470 W DropBoxManagerService: Dropping: data_app_crash (2333 > 0 bytes)
+11-01 14:24:16.536  5110  7522 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1242 com.android.server.am.AppErrors.crashApplicationInner:724 com.android.server.am.AppErrors.crashApplication:584 com.android.server.am.ActivityManagerService.handleApplicationCrashInner:9806 com.android.server.am.ActivityManagerService.handleApplicationCrash:9685 
+11-01 14:24:16.538  6085  8069 I ViewRootImpl@fca0773[LauncherActivity]: mWNT: t = android.view.SurfaceControl$Transaction@5ee14ef fN = 23 com.android.systemui.shared.system.ViewRootImplCompat.mergeWithNextTransaction:62 com.android.quickstep.util.SurfaceTransactionApplier.lambda$scheduleApply$0$SurfaceTransactionApplier:94 com.android.quickstep.util.-$$Lambda$SurfaceTransactionApplier$Xj9m0ayWHIr2xvQnKB4EJdxg8RU.accept:6 
+11-01 14:24:16.538  6085  8069 I ViewRootImpl@fca0773[LauncherActivity]: mWNT: merge t to BBQ
+11-01 14:24:16.539  5110  7522 W ActivityTaskManager:   Force finishing activity com.patterndiscoverymobile/.MainActivity
+11-01 14:24:16.539 25428 25451 D ViewRootImpl@bfc82da[MainActivity]: Received frameCompleteCallback  lastAcquiredFrameNum=1 lastAttemptedDrawFrameNum=1
+11-01 14:24:16.543  5110  7522 W WindowManager: Prepare app transition: mNextAppTransitionRequests=[TRANSIT_CLOSE], mNextAppTransitionFlags=TRANSIT_FLAG_APP_CRASHED, displayId: 0 Callers=com.android.server.wm.DisplayContent.prepareAppTransition:6369 com.android.server.wm.Task.finishTopCrashedActivityLocked:8916 com.android.server.wm.RootWindowContainer.lambda$finishTopCrashedActivities$20:2781 com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda30.accept:10 com.android.server.wm.Task.forAllTasks:5181 
+11-01 14:24:16.543  5110  7522 W WindowManager: Prepare app transition: mNextAppTransitionRequests=[TRANSIT_CLOSE, TRANSIT_CLOSE], mNextAppTransitionFlags=TRANSIT_FLAG_APP_CRASHED, displayId: 0 Callers=com.android.server.wm.DisplayContent.prepareAppTransition:6369 com.android.server.wm.DisplayContent.requestTransitionAndLegacyPrepare:6384 com.android.server.wm.Task.finishTopCrashedActivityLocked:8917 com.android.server.wm.RootWindowContainer.lambda$finishTopCrashedActivities$20:2781 com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda30.accept:10 
+11-01 14:24:16.545 25428 25428 I ViewRootImpl@bfc82da[MainActivity]: [DP] pdf(0) 1 android.view.ViewRootImpl.lambda$addFrameCompleteCallbackIfNeeded$3$ViewRootImpl:4995 android.view.ViewRootImpl$$ExternalSyntheticLambda16.run:6 android.os.Handler.handleCallback:938 
+11-01 14:24:16.545 25428 25428 I ViewRootImpl@bfc82da[MainActivity]: [DP] rdf()
+11-01 14:24:16.545 25428 25428 D ViewRootImpl@bfc82da[MainActivity]: reportDrawFinished (fn: -1) 
+11-01 14:24:16.545  5110  7522 D InputDispatcher: Focused application set to (0): 79f0d5a
+11-01 14:24:16.546 25428 25428 D InsetsSourceConsumer: ensureControlAlpha: for ITYPE_NAVIGATION_BAR on com.patterndiscoverymobile/com.patterndiscoverymobile.MainActivity
+11-01 14:24:16.547 25428 25428 D InsetsSourceConsumer: ensureControlAlpha: for ITYPE_STATUS_BAR on com.patterndiscoverymobile/com.patterndiscoverymobile.MainActivity
+11-01 14:24:16.547  5110  7522 V WindowManager: Changing focus from Window{efb97d7 u0 com.patterndiscoverymobile
