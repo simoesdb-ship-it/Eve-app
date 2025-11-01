@@ -7,6 +7,9 @@ react {
     bundleCommand = "bundle"
 }
 
+// Link react-native-vector-icons fonts
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
