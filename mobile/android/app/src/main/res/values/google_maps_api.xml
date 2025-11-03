@@ -8,5 +8,5 @@
     
     Once you have your key, replace "YOUR_API_KEY_HERE" below.
     -->
-    <string name="google_maps_api_key" translatable="false">YOUR_API_KEY_HERE</string>
+    <string name="google_maps_api_key" translatable="false">AIzaSyCDDSIVKdcjU3O-DZzivMMtTq4CsaUprYc</string>
 </resources>
