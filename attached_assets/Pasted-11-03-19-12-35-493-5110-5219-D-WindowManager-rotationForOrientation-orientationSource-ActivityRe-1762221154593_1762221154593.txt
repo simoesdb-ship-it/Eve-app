@@ -1,0 +1,47 @@
+11-03 19:12:35.493  5110  5219 D WindowManager: rotationForOrientation, orientationSource=ActivityRecord{6eb930d u0 com.patterndiscoverymobile/.MainActivity t1010}
+11-03 19:12:35.494  5110  5219 V WindowManager: Computed rotation=ROTATION_0 (0) for display id=0 based on lastOrientation=SCREEN_ORIENTATION_UNSPECIFIED (-1) and oldRotation=ROTATION_0 (0), caller=com.android.server.wm.DisplayContent.updateRotationUnchecked:2339 com.android.server.wm.WindowManagerService.updateRotationUnchecked:4535 com.android.server.wm.WindowManagerService.updateRotation:4516 com.android.server.wm.DisplayRotation$OrientationListener$UpdateRunnable.run:1834 android.os.Handler.handleCallback:938 android.os.Handler.dispatchMessage:99 
+11-03 19:12:35.540  5655  5795 D BtGatt.GattService: onScanResult to scannerId: 6- eventType=0x1b, addressType=1, address=D3E0F0_4, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-52, periodicAdvInt=0x0
+11-03 19:12:35.543  5636  5887 D PhoneInterfaceManager: setDataEnabledForReason() Reason=1 Pid=5110 App=system
+11-03 19:12:35.546  5110  7540 D CompatibilityChangeReporter: Compat change id reported: 168419799; UID 10569; state: DISABLED
+11-03 19:12:35.547  5110  7540 D InputTransport: Input channel constructed: '665a483', fd=840
+11-03 19:12:35.547  5110  7540 D InputTransport: Input channel constructed: '665a483', fd=1182
+11-03 19:12:35.547  5110  7540 D InputTransport: Input channel constructed: '665a483', fd=1183
+11-03 19:12:35.549  4988  5033 I SurfaceFlinger: id=94488 createSurf (0x0),-1 flag=80004, 665a483 com.patterndiscoverymobile/com.patterndiscoverymobile.MainActivity#0
+11-03 19:12:35.551  5110  7540 D RestrictionPolicy: isScreenCaptureEnabled : ret=true userId=0
+11-03 19:12:35.551  5110  7540 D InputTransport: Input channel destroyed: '665a483', fd=1183
+--------- beginning of crash
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: FATAL EXCEPTION: mqt_native_modules
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: Process: com.patterndiscoverymobile, PID: 6813
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: com.facebook.react.common.JavascriptException: Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found. Verify that a module by this name is registered in the native binary.Bridgeless mode: false. TurboModule interop: false. Modules loaded: {"NativeModules":["HeadlessJsTaskSupport","UIManager","PlatformConstants","DeviceInfo","DeviceEventManager"],"TurboModules":[],"NotFound":["NativePerformanceCxx","NativePerformanceObserverCxx","RedBox","BugReporting","RNVectorIcons","RNMapsAirModule"]}, js engine: hermes, stack:
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: invariant@1:40466
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: getEnforcing@1:48735
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:661480
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:658450
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:650448
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:647956
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:641452
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:633628
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23127
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: anonymous@1:29457
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: loadModuleImplementation@1:23603
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: guardedLoadModule@1:23084
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: metroRequire@1:22757
+11-03 19:12:35.553  6813  6909 E AndroidRuntime: global@1:22285
+11-03 19:12:35.553  6813  6909 E An
