@@ -1,10 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Require SESSION_SECRET in production to ensure session cookie integrity.
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  console.error("FATAL: SESSION_SECRET environment variable is required in production");
+  process.exit(1);
+}
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || "fallback-dev-secret-do-not-use-in-prod",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

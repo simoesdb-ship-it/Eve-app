@@ -66,6 +66,15 @@ export default function EconomyPage() {
   const [transferTokensOpen, setTransferTokensOpen] = useState(false);
   const [username, setUsername] = useState<string>('');
 
+  // Initialise the server-issued session identity on mount.  The server
+  // generates a stable opaque ID and stores it in a signed cookie; the
+  // client can only read it, never set it.  Sensitive endpoints derive the
+  // caller's identity exclusively from this cookie, preventing IDOR attacks.
+  useEffect(() => {
+    fetch('/api/session/me', { credentials: 'include' })
+      .catch((err) => console.warn('Session init failed:', err));
+  }, []);
+
   // Load username
   useEffect(() => {
     async function loadUsername() {

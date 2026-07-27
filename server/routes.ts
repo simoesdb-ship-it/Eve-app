@@ -50,6 +50,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   console.log('Performance optimizations completed');
 
+  // Server-issued identity: the server generates a stable opaque ID that is
+  // stored inside the signed HTTP session cookie.  The client can only READ
+  // this ID — it can never supply or overwrite it — so an attacker who knows
+  // a victim's device sessionId cannot impersonate the victim for financial
+  // operations (token transfer, path-access purchase).
+  app.get('/api/session/me', (req, res) => {
+    if (!(req.session as any).serverId) {
+      // Generate a random, opaque server-controlled identity on first visit.
+      // crypto.randomUUID() is available in Node 14.17+ / Node 18+.
+      const { randomUUID } = require('crypto');
+      (req.session as any).serverId = randomUUID();
+    }
+    res.json({ serverId: (req.session as any).serverId });
+  });
+
   // Apply rate limiting to all routes
   app.use('/api/', rateLimiters.general.middleware());
 
@@ -1105,9 +1120,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Direct token transfer between users
   app.post('/api/marketplace/transfer-tokens', async (req, res) => {
     try {
-      const { fromSessionId, toSessionId, amount, transferType, message } = req.body;
+      // fromSessionId must come from the server-issued session identity, not the request
+      // body, to prevent IDOR token theft by a caller supplying an arbitrary victim sessionId.
+      const fromSessionId = (req.session as any).serverId as string | undefined;
+      if (!fromSessionId) {
+        return res.status(401).json({ message: "No server session. Call GET /api/session/me first." });
+      }
+
+      const { toSessionId, amount, transferType, message } = req.body;
       
-      if (!fromSessionId || !toSessionId || !amount) {
+      if (!toSessionId || !amount) {
         return res.status(400).json({ message: "Missing required fields" });
       }
       
@@ -1227,7 +1249,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/communication/access-path/:pathId', async (req, res) => {
     try {
       const { pathId } = req.params;
-      const { userId } = req.body;
+
+      // userId must come from the server-issued session identity, not the request body,
+      // to prevent IDOR token deduction from an arbitrary victim's balance.
+      const userId = (req.session as any).serverId as string | undefined;
+      if (!userId) {
+        return res.status(401).json({ error: 'No server session. Call GET /api/session/me first.' });
+      }
       
       const sharedPath = await storage.getSharedPath(parseInt(pathId));
       if (!sharedPath) {
