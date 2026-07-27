@@ -1321,8 +1321,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { adminId, username, setupKey } = req.body;
       
-      // Simple setup key check (in production, use proper authentication)
-      if (setupKey !== process.env.ADMIN_SETUP_KEY && setupKey !== "admin_setup_2025") {
+      // Require ADMIN_SETUP_KEY environment variable — no hardcoded fallback
+      const expectedKey = process.env.ADMIN_SETUP_KEY;
+      if (!expectedKey || setupKey !== expectedKey) {
         return res.status(403).json({ message: "Invalid setup key" });
       }
 
