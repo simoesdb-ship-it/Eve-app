@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { randomUUID } from "crypto";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerIntelligentPatternRoutes } from "./routes-intelligent-patterns";
@@ -58,8 +59,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/session/me', (req, res) => {
     if (!(req.session as any).serverId) {
       // Generate a random, opaque server-controlled identity on first visit.
-      // crypto.randomUUID() is available in Node 14.17+ / Node 18+.
-      const { randomUUID } = require('crypto');
       (req.session as any).serverId = randomUUID();
     }
     res.json({ serverId: (req.session as any).serverId });
@@ -640,13 +639,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Award tokens for location data contribution
-  app.post('/api/tokens/award-location-data', async (req, res) => {
+  app.post('/api/tokens/award-location-data', rateLimiters.tokenAward.middleware(), async (req, res) => {
     try {
-      const { sessionId, coordinatesCount = 1, accuracyMeters = 10, trackingMinutes = 1 } = req.body;
-      
+      // Use server-side session ID; reject requests with no established session
+      const sessionId = (req.session as any).serverId;
       if (!sessionId) {
-        return res.status(400).json({ error: 'Missing session ID' });
+        return res.status(401).json({ error: 'No active session. Visit /api/session/me first.' });
       }
+
+      // Clamp caller-supplied counts to per-request maximums to prevent
+      // single-call token drains regardless of what the body contains.
+      const MAX_COORDINATES_PER_CALL = 500;
+      const MAX_MINUTES_PER_CALL = 60;
+
+      const rawCoordinates = Number(req.body.coordinatesCount ?? 1);
+      const rawMinutes = Number(req.body.trackingMinutes ?? 1);
+      const accuracyMeters = Number(req.body.accuracyMeters ?? 10);
+
+      const coordinatesCount = Math.min(Math.max(1, rawCoordinates), MAX_COORDINATES_PER_CALL);
+      const trackingMinutes = Math.min(Math.max(0, rawMinutes), MAX_MINUTES_PER_CALL);
 
       const tokensAwarded = await dataTokenService.awardLocationData(
         sessionId,

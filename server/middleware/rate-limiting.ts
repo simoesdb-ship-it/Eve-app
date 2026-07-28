@@ -129,5 +129,12 @@ export const rateLimiters = {
       const sessionId = req.body?.sessionId || req.query?.sessionId;
       return sessionId || req.ip || 'unknown';
     }
+  }),
+
+  // Token award for location data – strict limit to prevent farming
+  tokenAward: new RateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 5,
+    keyGenerator: (req) => req.ip || 'unknown'
   })
 };
