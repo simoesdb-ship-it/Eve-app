@@ -114,36 +114,38 @@ export class DatabaseOptimizations {
 
   // Efficient bulk stats calculation
   async calculateStatsOptimized(sessionId?: string): Promise<any> {
-    const statsQuery = sessionId ? sql`
-      WITH user_stats AS (
-        SELECT 
-          COUNT(DISTINCT ps.id) as suggested_patterns,
-          COUNT(DISTINCT v.id) as votes_contributed,
-          COUNT(DISTINCT l.id) as locations_tracked,
-          COUNT(DISTINCT CASE WHEN sp.type = 'offline' THEN sp.id END) as offline_patterns
-        FROM locations l
-        LEFT JOIN pattern_suggestions ps ON l.id = ps.location_id
-        LEFT JOIN votes v ON v.session_id = l.session_id
-        LEFT JOIN spatial_points sp ON sp.session_id = l.session_id
-        WHERE l.session_id = ${sessionId}
-      )
-      SELECT * FROM user_stats;
-    ` : sql`
-      WITH global_stats AS (
-        SELECT 
-          COUNT(DISTINCT ps.id) as suggested_patterns,
-          COUNT(DISTINCT v.id) as votes_contributed,
-          COUNT(DISTINCT l.id) as locations_tracked,
-          COUNT(DISTINCT CASE WHEN sp.type = 'offline' THEN sp.id END) as offline_patterns
-        FROM pattern_suggestions ps
-        FULL OUTER JOIN votes v ON true
-        FULL OUTER JOIN locations l ON true
-        FULL OUTER JOIN spatial_points sp ON true
-      )
-      SELECT * FROM global_stats;
-    `;
+    if (sessionId) {
+      const result = await db.execute(sql`
+        WITH user_stats AS (
+          SELECT 
+            COUNT(DISTINCT ps.id) as suggested_patterns,
+            COUNT(DISTINCT v.id) as votes_contributed,
+            COUNT(DISTINCT l.id) as locations_tracked,
+            COUNT(DISTINCT CASE WHEN sp.type = 'offline' THEN sp.id END) as offline_patterns
+          FROM locations l
+          LEFT JOIN pattern_suggestions ps ON l.id = ps.location_id
+          LEFT JOIN votes v ON v.session_id = l.session_id
+          LEFT JOIN spatial_points sp ON sp.session_id = l.session_id
+          WHERE l.session_id = ${sessionId}
+        )
+        SELECT * FROM user_stats;
+      `);
+      return (result && result.length > 0 ? (result as any)[0] : null) || {
+        suggested_patterns: 0,
+        votes_contributed: 0,
+        locations_tracked: 0,
+        offline_patterns: 0
+      };
+    }
 
-    const result = await db.execute(statsQuery);
+    // Global stats: count each table independently to avoid cross-joins
+    const result = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*) FROM pattern_suggestions) AS suggested_patterns,
+        (SELECT COUNT(*) FROM votes) AS votes_contributed,
+        (SELECT COUNT(*) FROM locations) AS locations_tracked,
+        (SELECT COUNT(*) FROM spatial_points WHERE type = 'offline') AS offline_patterns;
+    `);
     return (result && result.length > 0 ? (result as any)[0] : null) || {
       suggested_patterns: 0,
       votes_contributed: 0,
