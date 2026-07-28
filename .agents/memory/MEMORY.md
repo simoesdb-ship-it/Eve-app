@@ -1,0 +1,2 @@
+- [Overpass API mirrors](overpass-mirrors.md) — overpass-api.de 504s under load from Replit; use maps.mail.ru mirror first.
+- [DB optimizations stale tables](db-optimizations-table-names.md) — database-optimizations.ts had wrong table names and a PostGIS index; fixed to match actual schema.

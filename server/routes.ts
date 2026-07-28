@@ -792,34 +792,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const latitude = parseFloat(lat as string);
       const longitude = parseFloat(lng as string);
 
-      // Use Overpass API to get OpenStreetMap data for contextual analysis
+      // Use Overpass API to get OpenStreetMap data for contextual analysis.
+      // Use `out tags` (no geometry) to keep the response small and avoid timeouts.
       const overpassQuery = `
-        [out:json][timeout:25];
+        [out:json][timeout:20];
         (
-          way(around:500,${latitude},${longitude})[highway];
-          way(around:500,${latitude},${longitude})[building];
-          way(around:500,${latitude},${longitude})[amenity];
-          way(around:500,${latitude},${longitude})[shop];
-          way(around:500,${latitude},${longitude})[leisure];
-          way(around:500,${latitude},${longitude})[landuse];
-          node(around:500,${latitude},${longitude})[amenity];
-          node(around:500,${latitude},${longitude})[shop];
-          node(around:500,${latitude},${longitude})[public_transport];
+          way(around:400,${latitude},${longitude})[highway];
+          way(around:400,${latitude},${longitude})[building];
+          node(around:400,${latitude},${longitude})[amenity];
+          node(around:400,${latitude},${longitude})[shop];
+          node(around:400,${latitude},${longitude})[leisure];
+          node(around:400,${latitude},${longitude})[public_transport];
         );
-        out geom;
+        out tags;
       `;
 
-      const overpassUrl = 'https://overpass-api.de/api/interpreter';
-      const overpassResponse = await fetch(overpassUrl, {
-        method: 'POST',
-        body: overpassQuery,
-        headers: {
-          'Content-Type': 'text/plain'
-        }
-      });
+      // Try mirrors in order; the primary endpoint can 504 under load.
+      const overpassMirrors = [
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+        'https://overpass-api.de/api/interpreter',
+      ];
 
-      if (!overpassResponse.ok) {
-        throw new Error('Failed to fetch contextual data from Overpass API');
+      let overpassResponse: Response | null = null;
+      for (const url of overpassMirrors) {
+        try {
+          const resp = await fetch(url, {
+            method: 'POST',
+            body: overpassQuery,
+            headers: { 'Content-Type': 'text/plain' },
+            signal: AbortSignal.timeout(22000),
+          });
+          if (resp.ok) { overpassResponse = resp; break; }
+        } catch {
+          // Try next mirror
+        }
+      }
+
+      if (!overpassResponse) {
+        // All mirrors failed — return an empty-but-valid analysis so the UI
+        // can degrade gracefully rather than showing a hard error.
+        return res.json(analyzeContextualData([]));
       }
 
       const overpassData = await overpassResponse.json();

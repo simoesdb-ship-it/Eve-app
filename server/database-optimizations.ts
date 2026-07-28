@@ -19,15 +19,15 @@ export class DatabaseOptimizations {
         ON pattern_suggestions (pattern_id);
       `);
 
-      // Activities indexes
+      // Activity indexes
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_activities_session_created 
-        ON activities (session_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_activity_session_created 
+        ON activity (session_id, created_at DESC);
       `);
-      
+
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_activities_type_created 
-        ON activities (type, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_activity_type_created 
+        ON activity (type, created_at DESC);
       `);
 
       // Locations indexes
@@ -52,19 +52,13 @@ export class DatabaseOptimizations {
         ON votes (session_id, created_at DESC);
       `);
 
-      // Tracking points indexes
+      // Spatial points indexes
       await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_tracking_session_timestamp 
-        ON tracking_points (session_id, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_spatial_points_session_created 
+        ON spatial_points (session_id, created_at DESC);
       `);
 
-      // Spatial index for geographic queries
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_locations_spatial 
-        ON locations USING GIST (
-          ST_Point(CAST(longitude AS FLOAT), CAST(latitude AS FLOAT))
-        );
-      `);
+      // Note: PostGIS is not available on this database, so no GIST spatial index.
 
       console.log('Database indexes created successfully');
     } catch (error) {
@@ -126,11 +120,11 @@ export class DatabaseOptimizations {
           COUNT(DISTINCT ps.id) as suggested_patterns,
           COUNT(DISTINCT v.id) as votes_contributed,
           COUNT(DISTINCT l.id) as locations_tracked,
-          COUNT(DISTINCT CASE WHEN tp.type = 'offline' THEN tp.id END) as offline_patterns
+          COUNT(DISTINCT CASE WHEN sp.type = 'offline' THEN sp.id END) as offline_patterns
         FROM locations l
         LEFT JOIN pattern_suggestions ps ON l.id = ps.location_id
         LEFT JOIN votes v ON v.session_id = l.session_id
-        LEFT JOIN tracking_points tp ON tp.session_id = l.session_id
+        LEFT JOIN spatial_points sp ON sp.session_id = l.session_id
         WHERE l.session_id = ${sessionId}
       )
       SELECT * FROM user_stats;
@@ -140,11 +134,11 @@ export class DatabaseOptimizations {
           COUNT(DISTINCT ps.id) as suggested_patterns,
           COUNT(DISTINCT v.id) as votes_contributed,
           COUNT(DISTINCT l.id) as locations_tracked,
-          COUNT(DISTINCT CASE WHEN tp.type = 'offline' THEN tp.id END) as offline_patterns
+          COUNT(DISTINCT CASE WHEN sp.type = 'offline' THEN sp.id END) as offline_patterns
         FROM pattern_suggestions ps
         FULL OUTER JOIN votes v ON true
         FULL OUTER JOIN locations l ON true
-        FULL OUTER JOIN tracking_points tp ON true
+        FULL OUTER JOIN spatial_points sp ON true
       )
       SELECT * FROM global_stats;
     `;
@@ -163,15 +157,15 @@ export class DatabaseOptimizations {
     console.log('Cleaning up old data...');
     
     try {
-      // Remove tracking points older than 30 days
+      // Remove spatial points older than 30 days
       await db.execute(sql`
-        DELETE FROM tracking_points 
-        WHERE timestamp < NOW() - INTERVAL '30 days';
+        DELETE FROM spatial_points 
+        WHERE created_at < NOW() - INTERVAL '30 days';
       `);
 
-      // Remove activities older than 60 days
+      // Remove activity records older than 60 days
       await db.execute(sql`
-        DELETE FROM activities 
+        DELETE FROM activity 
         WHERE created_at < NOW() - INTERVAL '60 days';
       `);
 
