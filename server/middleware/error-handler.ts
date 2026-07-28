@@ -38,15 +38,21 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  // Log error details
+  // Log error details. IP address and User-Agent are personal data under GDPR/CCPA
+  // and must not be written to logs in production.  Stack traces are also omitted
+  // in production to avoid leaking internal implementation details.
+  const isDev = process.env.NODE_ENV !== 'production';
   console.error(`Error in ${req.method} ${req.path}:`, {
     message: error.message,
-    stack: error.stack,
+    ...(isDev && { stack: error.stack }),
     statusCode: error.statusCode,
     details: error.details,
     timestamp: new Date().toISOString(),
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
+    // PII fields (ip, userAgent) intentionally excluded from production logs
+    ...(isDev && {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+    }),
   });
 
   // Determine status code

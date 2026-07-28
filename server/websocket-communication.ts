@@ -110,7 +110,8 @@ export class CommunicationServer {
     // Broadcast updated peer list
     this.broadcastPeerList();
     
-    console.log(`User ${username} (${userId}) connected with key fingerprint: ${this.generateKeyFingerprint(publicKey)}`);
+    // Log connection event without linking username to userId to preserve anonymity.
+    console.log(`User connected with key fingerprint: ${this.generateKeyFingerprint(publicKey)}`);
   }
 
   private async handlePeerDiscovery(ws: WebSocket, message: CommunicationMessage) {
@@ -333,7 +334,8 @@ export class CommunicationServer {
     for (const [userId, user] of this.connectedUsers.entries()) {
       if (user.ws === ws) {
         user.isActive = false;
-        console.log(`User ${user.username} (${userId}) disconnected`);
+        // Log disconnection without linking username to userId to preserve anonymity.
+        console.log(`User disconnected`);
         this.connectedUsers.delete(userId);
         this.broadcastPeerList();
         break;
