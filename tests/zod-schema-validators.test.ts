@@ -17,6 +17,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { fromZodError, fromError, isValidationError } from "zod-validation-error";
 import {
   insertUserSchema,
   insertMessageSchema,
@@ -459,5 +460,134 @@ describe("ZodError shape — zod 3.25 regression guard", () => {
     expect(formatted.sessionId._errors.length).toBeGreaterThan(0);
     expect(Array.isArray(formatted.amount?._errors)).toBe(true);
     expect(formatted.amount._errors.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// zod-validation-error adapter (zod 3.25 readability guard)
+// ---------------------------------------------------------------------------
+
+describe("zod-validation-error — fromZodError() produces readable messages", () => {
+  it("returns a non-empty message string for a missing-username error", () => {
+    try {
+      insertUserSchema.parse({ password: "secret" });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromZodError(e as Parameters<typeof fromZodError>[0]);
+      expect(typeof validationError.message).toBe("string");
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("username");
+    }
+  });
+
+  it("returns a non-empty message string for a missing-password error", () => {
+    try {
+      insertUserSchema.parse({ username: "alice" });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromZodError(e as Parameters<typeof fromZodError>[0]);
+      expect(typeof validationError.message).toBe("string");
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("password");
+    }
+  });
+
+  it("message mentions all missing fields when both username and password are absent", () => {
+    try {
+      insertUserSchema.parse({});
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromZodError(e as Parameters<typeof fromZodError>[0]);
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("username");
+      expect(validationError.message.toLowerCase()).toContain("password");
+    }
+  });
+
+  it("message mentions senderId when senderId is missing from insertMessageSchema", () => {
+    try {
+      insertMessageSchema.parse({
+        recipientId: "user-2",
+        encryptedContent: "blob",
+        messageHash: "hash",
+      });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromZodError(e as Parameters<typeof fromZodError>[0]);
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("senderid");
+    }
+  });
+
+  it("message mentions amount when amount is missing from insertTokenTransactionSchema", () => {
+    try {
+      insertTokenTransactionSchema.parse({
+        sessionId: "sess-abc",
+        transactionType: "earn",
+        reason: "test",
+      });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromZodError(e as Parameters<typeof fromZodError>[0]);
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("amount");
+    }
+  });
+});
+
+describe("zod-validation-error — fromError() produces readable messages", () => {
+  // fromError() is designed for catch-block usage where the thrown value is `unknown`.
+  // We use .parse() throws here because that mirrors the real call-site pattern.
+
+  it("returns a non-empty message string from a thrown ZodError via fromError()", () => {
+    try {
+      insertUserSchema.parse({ password: "secret" });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromError(e);
+      expect(typeof validationError.message).toBe("string");
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("username");
+    }
+  });
+
+  it("fromError() message mentions the offending field for insertMessageSchema", () => {
+    try {
+      insertMessageSchema.parse({
+        senderId: "user-1",
+        recipientId: "user-2",
+        encryptedContent: "blob",
+        // messageHash intentionally omitted
+      });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromError(e);
+      expect(validationError.message.length).toBeGreaterThan(0);
+      expect(validationError.message.toLowerCase()).toContain("messagehash");
+    }
+  });
+
+  it("fromError() message mentions missing fields for insertTokenTransactionSchema", () => {
+    try {
+      insertTokenTransactionSchema.parse({ amount: "not-a-number" });
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromError(e);
+      expect(validationError.message.length).toBeGreaterThan(0);
+      // sessionId and reason are missing; amount has wrong type
+      expect(validationError.message.toLowerCase()).toMatch(
+        /sessionid|amount|reason/
+      );
+    }
+  });
+
+  it("fromError() result satisfies isValidationError check", () => {
+    try {
+      insertUserSchema.parse({});
+      expect.fail("should have thrown");
+    } catch (e) {
+      const validationError = fromError(e);
+      expect(isValidationError(validationError)).toBe(true);
+    }
   });
 });
