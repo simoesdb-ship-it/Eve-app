@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -13,7 +15,15 @@ if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
+const PgSession = connectPgSimple(session);
+
 app.use(session({
+  store: new PgSession({
+    pool: pool as any,          // shared Neon pool from db.ts
+    tableName: "session",       // default table name used by connect-pg-simple
+    createTableIfMissing: true, // auto-create the session table on first boot
+    ttl: 30 * 24 * 60 * 60,    // match cookie maxAge (seconds, not ms)
+  }),
   secret: process.env.SESSION_SECRET || "fallback-dev-secret-do-not-use-in-prod",
   resave: false,
   saveUninitialized: false,
