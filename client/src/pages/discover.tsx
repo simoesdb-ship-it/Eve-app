@@ -190,8 +190,10 @@ export default function DiscoverPage() {
         
         const { latitude, longitude, accuracy } = position.coords;
         
-        // Require reasonable GPS accuracy - reject if over 100 meters
-        if (accuracy && accuracy > 100) {
+        // Require reasonable GPS accuracy - reject only very coarse readings (>500m).
+        // Desktop browsers and proxied iframes often report 200-400m; that is still
+        // useful for pattern discovery.
+        if (accuracy && accuracy > 500) {
           console.warn(`GPS accuracy insufficient (${accuracy}m), need better precision`);
           throw new Error(`GPS accuracy too low: ${accuracy}m`);
         }
