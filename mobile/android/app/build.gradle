@@ -3,6 +3,14 @@ apply plugin: "com.facebook.react"
 
 def enableProguardInReleaseBuilds = true
 
+// Load Google Maps API key from local.properties (never commit the key to source control)
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader -> localProperties.load(reader) }
+}
+def googleMapsApiKey = localProperties.getProperty("GOOGLE_MAPS_API_KEY", "")
+
 react {
     bundleCommand = "bundle"
 }
@@ -23,6 +31,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+
+        // Inject the Maps API key at build time; overrides the placeholder in google_maps_api.xml
+        resValue "string", "google_maps_api_key", googleMapsApiKey
         
         ndk {
             // Only include ARM architectures for real devices (x86/x86_64 are for emulators only)

@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 
-    TODO: Before releasing your application, you need a Google Maps API key.
-    
-    To get one, follow the directions here:
-    https://developers.google.com/maps/documentation/android-sdk/get-api-key
-    
-    Once you have your key, replace "YOUR_API_KEY_HERE" below.
+    <!--
+    The Google Maps API key is injected at build time from local.properties.
+    Do NOT hardcode the key here — this file is committed to source control.
+
+    To build locally:
+      1. Copy local.properties.example to local.properties
+      2. Set GOOGLE_MAPS_API_KEY=<your key> in local.properties
+      3. local.properties is gitignored and will not be committed
+
+    See: https://developers.google.com/maps/documentation/android-sdk/get-api-key
     -->
-    <string name="google_maps_api_key" translatable="false">AIzaSyCDDSIVKdcjU3O-DZzivMMtTq4CsaUprYc</string>
+    <string name="google_maps_api_key" translatable="false">YOUR_API_KEY_HERE</string>
 </resources>
