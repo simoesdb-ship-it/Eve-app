@@ -21,8 +21,9 @@ app.use(session({
   store: new PgSession({
     pool: pool as any,          // shared Neon pool from db.ts
     tableName: "session",       // default table name used by connect-pg-simple
-    createTableIfMissing: true, // auto-create the session table on first boot
-    ttl: 30 * 24 * 60 * 60,    // match cookie maxAge (seconds, not ms)
+    createTableIfMissing: true,        // auto-create the session table on first boot
+    ttl: 30 * 24 * 60 * 60,           // match cookie maxAge (seconds, not ms)
+    pruneSessionInterval: 60 * 60,     // prune expired rows every hour
   }),
   secret: process.env.SESSION_SECRET || "fallback-dev-secret-do-not-use-in-prod",
   resave: false,
