@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Wifi, WifiOff, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Wifi, WifiOff, Shield, ChevronDown, ChevronUp, Users } from "lucide-react";
 import type { PatternWithVotes } from "@shared/schema";
 
 export default function DiscoverPage() {
@@ -445,6 +445,29 @@ export default function DiscoverPage() {
         sessionId={sessionId}
         onLocationUpdate={handleLocationUpdate}
       />
+
+      {/* Neighborhood Formation entry point */}
+      <div className="mx-4 mt-3">
+        <Link href="/neighborhoods">
+          <div
+            className="p-3 bg-white border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer hover:border-primary/40 transition-colors"
+            data-testid="link-neighborhoods"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-neutral-800">Neighborhood Formation</h3>
+                <p className="text-xs text-neutral-400">
+                  See your clusters' progress toward a 500-person democratic neighborhood
+                </p>
+              </div>
+            </div>
+            <ChevronDown className="w-4 h-4 -rotate-90 text-neutral-400" />
+          </div>
+        </Link>
+      </div>
 
       {/* Quick Stats */}
       {stats && (

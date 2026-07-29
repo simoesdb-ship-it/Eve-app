@@ -20,6 +20,8 @@ import { dbOptimizations } from "./database-optimizations";
 import { performanceMonitor } from "./performance-monitor";
 import { contextualPatternCurator } from "./contextual-pattern-curator";
 import { intelligentPatternCurator } from "./intelligent-pattern-curator";
+import { neighborhoodEvaluator } from "./neighborhood-evaluator";
+import { focusPatternProfiles, isFocusPattern, getFocusPatternProfile } from "./neighborhood-patterns";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -127,7 +129,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use optimized pattern analyzer
       console.log(`Analyzing location using optimized analyzer: ${location.name}`);
-      const suggestions = await optimizedPatternAnalyzer.generateOptimizedSuggestions(location);
+      let suggestions = await optimizedPatternAnalyzer.generateOptimizedSuggestions(location);
+
+      // Focused suggestion pipeline: if this location falls inside a candidate
+      // neighborhood, prioritize Alexander's neighborhood-formation patterns
+      // and reference the cluster's current formation state.
+      try {
+        const candidate = await neighborhoodEvaluator.findCandidateForPoint(
+          parseFloat(location.latitude),
+          parseFloat(location.longitude)
+        );
+        if (candidate) {
+          const allPatterns = await storage.getAllPatterns();
+          const existingNumbers = new Set(suggestions.map((s: any) => s.patternNumber));
+
+          // Boost confidence of focus patterns already suggested
+          suggestions = suggestions.map((s: any) =>
+            isFocusPattern(s.patternNumber)
+              ? { ...s, confidence: Math.min(Number(s.confidence) + 0.2, 1), mlAlgorithm: "neighborhood_formation_boost" }
+              : s
+          );
+
+          // Ensure the neighborhood-scale focus patterns are present
+          for (const focusNumber of [14, 15, 12, 8]) {
+            if (existingNumbers.has(focusNumber)) continue;
+            const pattern = allPatterns.find(p => p.number === focusNumber);
+            if (!pattern) continue;
+            const profile = getFocusPatternProfile(focusNumber);
+            suggestions.push({
+              patternId: pattern.id,
+              patternNumber: pattern.number,
+              patternName: pattern.name,
+              confidence: 0.55 + candidate.formationScore * 0.25,
+              locationId: location.id,
+              mlAlgorithm: "neighborhood_formation_context",
+              formationContext: profile
+                ? `This location is inside candidate neighborhood ${candidate.clusterId} (formation ${Math.round(candidate.formationScore * 100)}%, ~${candidate.estimatedPopulation} of ${candidate.populationTarget} people). ${profile.solution}`
+                : undefined,
+            });
+          }
+          suggestions.sort((a: any, b: any) => Number(b.confidence) - Number(a.confidence));
+          console.log(`Location ${location.id} is inside candidate neighborhood ${candidate.clusterId}; focus patterns prioritized`);
+        }
+      } catch (neighborhoodError) {
+        console.error('Neighborhood context enrichment failed (continuing with base suggestions):', neighborhoodError);
+      }
 
       // Batch store the suggestions for better performance
       if (suggestions.length > 0) {
@@ -859,6 +905,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in contextual analysis:', error);
       res.status(500).json({ error: 'Failed to analyze contextual data' });
+    }
+  });
+
+  // Candidate neighborhoods: clusters evaluated against Alexander's
+  // neighborhood-formation patterns (#1, #2, #8, #12, #13, #14, #15)
+  app.get('/api/neighborhoods', async (req, res) => {
+    try {
+      const candidates = await neighborhoodEvaluator.evaluateAllClusters();
+      res.json({
+        target: { population: 500, maxExtentMeters: 300 },
+        focusPatterns: focusPatternProfiles,
+        candidates,
+      });
+    } catch (error) {
+      console.error('Error evaluating candidate neighborhoods:', error);
+      res.status(500).json({ error: 'Failed to evaluate candidate neighborhoods' });
     }
   });
 

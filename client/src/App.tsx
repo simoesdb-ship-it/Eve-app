@@ -32,6 +32,7 @@ import Communication from "@/pages/communication";
 import CuratedPatternsPage from "@/pages/curated-patterns";
 import AdminDashboard from "@/pages/admin-dashboard";
 import IntelligentPatterns from "@/pages/intelligent-patterns";
+import NeighborhoodsPage from "@/pages/neighborhoods";
 
 function Router() {
   return (
@@ -74,6 +75,7 @@ function Router() {
       {/* Admin */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/intelligent-patterns" component={IntelligentPatterns} />
+      <Route path="/neighborhoods" component={NeighborhoodsPage} />
       
       <Route component={NotFound} />
     </Switch>
