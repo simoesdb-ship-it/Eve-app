@@ -11,10 +11,12 @@
  *      (currently: the connect-pg-simple `session` table).
  *
  *   2. Integration — connects to the live database, lists every table in the
- *      public schema, and asserts that every untracked table is covered by a
- *      "!tableName" negation filter.  A table that is (a) present in the
- *      database, (b) absent from the Drizzle schema, and (c) NOT excluded by
- *      tablesFilter would be a candidate for DROP TABLE on the next db:push.
+ *      public schema AND in any non-public schema referenced by a
+ *      schema-qualified exclusion pattern in tablesFilter (e.g. "!auth.*"),
+ *      and asserts that every untracked table is covered by a negation filter.
+ *      A table that is (a) present in the database, (b) absent from the
+ *      Drizzle schema, and (c) NOT excluded by tablesFilter would be a
+ *      candidate for DROP TABLE on the next db:push.
  */
 
 import { describe, it, expect } from "vitest";
@@ -54,7 +56,7 @@ function drizzleManagedTables(): Set<string> {
 
 /**
  * Parse the tablesFilter array out of drizzle.config.ts source text.
- * Returns the raw filter strings, e.g. ["!session"].
+ * Returns the raw filter strings, e.g. ["!session", "!auth.*"].
  */
 function readTablesFilter(): string[] {
   const configPath = resolve(__dirname, "../drizzle.config.ts");
@@ -71,6 +73,8 @@ function readTablesFilter(): string[] {
  * Returns true when `name` matches `pattern`.
  * Supports a single wildcard character `*` that matches any sequence of
  * characters (zero or more), as used by drizzle-kit tablesFilter globs.
+ * Schema-qualified patterns (e.g. "auth.*") are matched against
+ * schema-qualified names (e.g. "auth.users").
  */
 function matchesGlob(pattern: string, name: string): boolean {
   // Escape all regex metacharacters except '*', then replace '*' with '.*'
@@ -83,8 +87,14 @@ function matchesGlob(pattern: string, name: string): boolean {
 /**
  * Given the tablesFilter entries from drizzle.config.ts, return a predicate
  * that is true for any table name EXCLUDED by a "!" negation filter.
- * Supports exact names (e.g. "!session") as well as glob patterns
- * (e.g. "!_*", "!pg_*").
+ *
+ * The predicate accepts either:
+ *   - a plain table name (e.g. "session") for tables in the public schema, or
+ *   - a schema-qualified name (e.g. "auth.users") for tables in other schemas.
+ *
+ * Supports exact names (e.g. "!session"), plain glob patterns
+ * (e.g. "!_*", "!pg_*"), and schema-qualified glob patterns
+ * (e.g. "!auth.*", "!extensions.*").
  */
 function excludedByFilter(filters: string[]): (tableName: string) => boolean {
   const patterns = filters
@@ -92,6 +102,31 @@ function excludedByFilter(filters: string[]): (tableName: string) => boolean {
     .map((f) => f.slice(1));
   return (tableName: string) =>
     patterns.some((p) => matchesGlob(p, tableName));
+}
+
+/**
+ * Extract the unique non-public schema names referenced by schema-qualified
+ * exclusion patterns in tablesFilter.
+ *
+ * For example, given ["!session", "!auth.*", "!extensions.*"] this returns
+ * Set { "auth", "extensions" }.  These are schemas whose tables the test
+ * should also inspect in the integration suite.
+ */
+function nonPublicSchemasFromFilter(filters: string[]): Set<string> {
+  const schemas = new Set<string>();
+  for (const f of filters) {
+    if (!f.startsWith("!")) continue;
+    const pattern = f.slice(1); // strip leading "!"
+    const dotIdx = pattern.indexOf(".");
+    if (dotIdx !== -1) {
+      const schemaName = pattern.slice(0, dotIdx);
+      // Skip wildcards in the schema position (e.g. "!*.*") — not actionable.
+      if (schemaName && schemaName !== "public" && !schemaName.includes("*")) {
+        schemas.add(schemaName);
+      }
+    }
+  }
+  return schemas;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +167,43 @@ describe("drizzle.config.ts — tablesFilter safety", () => {
     // unmatched names are NOT excluded
     expect(isExcluded("users")).toBe(false);
     expect(isExcluded("locations")).toBe(false);
+  });
+
+  it("excludedByFilter matches schema-qualified glob patterns (e.g. !auth.*, !extensions.*)", () => {
+    const isExcluded = excludedByFilter(["!session", "!auth.*", "!extensions.*"]);
+    // plain name still works
+    expect(isExcluded("session")).toBe(true);
+    // schema-qualified names covered by schema glob
+    expect(isExcluded("auth.users")).toBe(true);
+    expect(isExcluded("auth.refresh_tokens")).toBe(true);
+    expect(isExcluded("extensions.pg_stat_statements")).toBe(true);
+    // plain name NOT matched by a schema-qualified pattern
+    expect(isExcluded("users")).toBe(false);
+    // wrong schema NOT matched
+    expect(isExcluded("public.users")).toBe(false);
+  });
+
+  it("nonPublicSchemasFromFilter extracts schema names from schema-qualified exclusion patterns", () => {
+    const schemas = nonPublicSchemasFromFilter([
+      "!session",
+      "!auth.*",
+      "!extensions.*",
+      "public",
+    ]);
+    expect(schemas).toEqual(new Set(["auth", "extensions"]));
+  });
+
+  it("nonPublicSchemasFromFilter ignores plain patterns and the public schema", () => {
+    const schemas = nonPublicSchemasFromFilter([
+      "!session",
+      "!_*",
+      "!public.*",
+    ]);
+    // "public" schema is intentionally excluded from the set — it is handled
+    // by the main public-schema integration query.
+    expect(schemas.has("public")).toBe(false);
+    // plain patterns with no dot contribute nothing
+    expect(schemas.size).toBe(0);
   });
 });
 
@@ -184,6 +256,56 @@ describe.skipIf(!DATABASE_URL)(
               `DROP TABLE for each of them:\n\n${tableList}\n\n` +
               `Fix: add a "!<tableName>" entry to the tablesFilter array in ` +
               `drizzle.config.ts for every table Drizzle should not manage.`
+          );
+        }
+
+        expect(unsafe).toHaveLength(0);
+      }
+    );
+
+    it(
+      "every table in non-public schemas referenced by tablesFilter is excluded by a schema-qualified pattern",
+      { timeout: 30_000 },
+      async () => {
+        const filters = readTablesFilter();
+        const extraSchemas = nonPublicSchemasFromFilter(filters);
+
+        // Nothing to check if no schema-qualified exclusion patterns exist.
+        if (extraSchemas.size === 0) return;
+
+        const { neon } = await import("@neondatabase/serverless");
+        const sql = neon(DATABASE_URL);
+
+        const schemaList = [...extraSchemas];
+
+        // Query all base tables in the referenced non-public schemas.
+        const rows = await sql`
+          SELECT table_schema, table_name
+          FROM information_schema.tables
+          WHERE table_schema = ANY(${schemaList})
+            AND table_type = 'BASE TABLE'
+          ORDER BY table_schema, table_name
+        `;
+
+        const excluded = excludedByFilter(filters);
+
+        // For non-public schemas every table must be covered by a
+        // schema-qualified exclusion pattern such as "!auth.*".
+        // We check using the qualified name "schema.tableName".
+        const unsafe = rows
+          .map((r) => `${r.table_schema as string}.${r.table_name as string}`)
+          .filter((qualifiedName) => !excluded(qualifiedName));
+
+        if (unsafe.length > 0) {
+          const tableList = unsafe.map((t) => `  - ${t}`).join("\n");
+          throw new Error(
+            `SAFETY CHECK FAILED: The following table(s) exist in a non-public ` +
+              `schema that is referenced in tablesFilter but are not covered by ` +
+              `a schema-qualified exclusion pattern (e.g. "!auth.*").\n\n` +
+              `A 'drizzle-kit push' could propose DROP TABLE for each of them:\n\n` +
+              `${tableList}\n\n` +
+              `Fix: ensure drizzle.config.ts tablesFilter includes a pattern ` +
+              `like "!<schema>.*" that covers every table in that schema.`
           );
         }
 
