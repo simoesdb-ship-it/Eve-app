@@ -114,6 +114,26 @@ export class DatabaseOptimizations {
 
   // Efficient bulk stats calculation
   async calculateStatsOptimized(sessionId?: string): Promise<any> {
+    const fallback = {
+      suggested_patterns: 0,
+      votes_contributed: 0,
+      locations_tracked: 0,
+      offline_patterns: 0,
+    };
+
+    /** drizzle-orm/neon-serverless returns a pg QueryResult object whose data
+     *  lives in `.rows`, not at the top-level array position.  This helper
+     *  extracts the first row regardless of which shape is returned. */
+    const firstRow = (result: unknown): Record<string, unknown> | null => {
+      if (!result) return null;
+      // QueryResult shape: { rows: [...] }
+      const rows = (result as any).rows;
+      if (Array.isArray(rows)) return rows[0] ?? null;
+      // Fallback: plain array
+      if (Array.isArray(result)) return (result as any[])[0] ?? null;
+      return null;
+    };
+
     if (sessionId) {
       const result = await db.execute(sql`
         WITH user_stats AS (
@@ -130,12 +150,7 @@ export class DatabaseOptimizations {
         )
         SELECT * FROM user_stats;
       `);
-      return (result && result.length > 0 ? (result as any)[0] : null) || {
-        suggested_patterns: 0,
-        votes_contributed: 0,
-        locations_tracked: 0,
-        offline_patterns: 0
-      };
+      return firstRow(result) ?? fallback;
     }
 
     // Global stats: count each table independently to avoid cross-joins
@@ -146,12 +161,7 @@ export class DatabaseOptimizations {
         (SELECT COUNT(*) FROM locations) AS locations_tracked,
         (SELECT COUNT(*) FROM spatial_points WHERE type = 'offline') AS offline_patterns;
     `);
-    return (result && result.length > 0 ? (result as any)[0] : null) || {
-      suggested_patterns: 0,
-      votes_contributed: 0,
-      locations_tracked: 0,
-      offline_patterns: 0
-    };
+    return firstRow(result) ?? fallback;
   }
 
   // Clean up old data to maintain performance
