@@ -11,8 +11,9 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
-  // Exclude the connect-pg-simple session store — it is managed by the
-  // express-session middleware, not by Drizzle, and must never be dropped
-  // or altered by migrations.
-  tablesFilter: ["!session"],
+  // Exclude tables that exist in the database but are not managed by Drizzle:
+  //   - session: managed by connect-pg-simple (express-session middleware)
+  //   - activities: orphaned legacy table (renamed to "activity" in schema);
+  //     retained in the DB for historical record but not touched by migrations.
+  tablesFilter: ["!session", "!activities"],
 });

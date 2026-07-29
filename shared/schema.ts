@@ -69,6 +69,10 @@ export const spatialPoints = pgTable("spatial_points", {
   sessionId: text("session_id").notNull(),
   metadata: text("metadata").default('{}').notNull(), // JSON string for patterns, analysis, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Columns that exist in the database from earlier tracking features
+  movementType: text("movement_type").default("stationary").notNull(),
+  speed: decimal("speed", { precision: 12, scale: 8 }),
+  accuracy: decimal("accuracy", { precision: 12, scale: 8 }),
 });
 
 // Communication infrastructure tables
