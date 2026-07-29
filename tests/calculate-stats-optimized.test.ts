@@ -74,7 +74,8 @@ describe.skipIf(!DATABASE_URL)(
       async () => {
         const sessionId = RUN_TAG + "-global-delta";
 
-        // Snapshot counts before seeding.
+        // Snapshot counts before seeding (clear cache so we get a fresh DB read).
+        dbOptimizations.clearGlobalStatsCache();
         const before = await dbOptimizations.calculateStatsOptimized();
 
         // Seed 2 locations, 1 spatial_point (offline) using drizzle inserts.
@@ -92,7 +93,8 @@ describe.skipIf(!DATABASE_URL)(
           },
         ]);
 
-        // Snapshot counts after seeding.
+        // Snapshot counts after seeding (clear cache so we get a fresh DB read).
+        dbOptimizations.clearGlobalStatsCache();
         const after = await dbOptimizations.calculateStatsOptimized();
 
         expect(Number(after.locations_tracked) - Number(before.locations_tracked)).toBe(2);
@@ -110,6 +112,7 @@ describe.skipIf(!DATABASE_URL)(
       async () => {
         const sessionId = RUN_TAG + "-non-offline";
 
+        dbOptimizations.clearGlobalStatsCache();
         const before = await dbOptimizations.calculateStatsOptimized();
 
         // Insert two spatial_points with type !== 'offline'.
@@ -130,6 +133,8 @@ describe.skipIf(!DATABASE_URL)(
           },
         ]);
 
+        // Clear cache so we read the actual post-insert DB state.
+        dbOptimizations.clearGlobalStatsCache();
         const after = await dbOptimizations.calculateStatsOptimized();
 
         // offline_patterns must NOT have increased.

@@ -135,8 +135,12 @@ export const cacheConfigs = {
   },
   
   stats: {
-    ttl: 60, // 1 minute - stats change frequently
-    key: (req: Request) => `stats:${req.query.sessionId || req.query.userId || 'global'}`
+    ttl: 60, // 1 minute - per-session stats
+    key: (req: Request) => `stats:${req.query.sessionId || req.query.userId}`,
+    // Global requests (no identifier) bypass HTTP caching entirely so they always
+    // reach calculateStatsOptimized(), which owns the 30 s in-process TTL and the
+    // stale-on-failure fallback for that path.
+    condition: (req: Request) => !!(req.query.sessionId || req.query.userId),
   },
   
   activity: {

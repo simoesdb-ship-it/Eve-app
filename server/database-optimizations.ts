@@ -1,8 +1,31 @@
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 
+/** Shape of the cached global stats entry. */
+interface GlobalStatsCache {
+  data: Record<string, unknown>;
+  cachedAt: number;
+  expiresAt: number;
+}
+
 export class DatabaseOptimizations {
-  
+  /** TTL for the global stats cache in milliseconds (default 30 s). */
+  private readonly globalStatsTtlMs: number;
+  /** Maximum time to wait for the DB query before falling back to stale data (default 5 s). */
+  private readonly globalStatsQueryTimeoutMs: number;
+  /** Cached global stats (null = cache is cold). */
+  private globalStatsCache: GlobalStatsCache | null = null;
+
+  constructor(ttlSeconds: number = 30, queryTimeoutSeconds: number = 5) {
+    this.globalStatsTtlMs = ttlSeconds * 1000;
+    this.globalStatsQueryTimeoutMs = queryTimeoutSeconds * 1000;
+  }
+
+  /** Invalidate the global stats cache (used by tests and post-write paths). */
+  clearGlobalStatsCache(): void {
+    this.globalStatsCache = null;
+  }
+
   // Create database indexes for better query performance
   async createOptimizedIndexes(): Promise<void> {
     console.log('Creating optimized database indexes...');
@@ -153,15 +176,58 @@ export class DatabaseOptimizations {
       return firstRow(result) ?? fallback;
     }
 
-    // Global stats: count each table independently to avoid cross-joins
-    const result = await db.execute(sql`
+    // Global stats: serve from cache when fresh.
+    const now = Date.now();
+    const cached = this.globalStatsCache;
+
+    if (cached && now < cached.expiresAt) {
+      return cached.data;
+    }
+
+    // Cache is cold or stale — attempt a fresh DB read with a bounded timeout so a
+    // slow database does not block the caller indefinitely.
+    const queryPromise = db.execute(sql`
       SELECT
         (SELECT COUNT(*) FROM pattern_suggestions) AS suggested_patterns,
         (SELECT COUNT(*) FROM votes) AS votes_contributed,
         (SELECT COUNT(*) FROM locations) AS locations_tracked,
         (SELECT COUNT(*) FROM spatial_points WHERE type = 'offline') AS offline_patterns;
     `);
-    return firstRow(result) ?? fallback;
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new Error(`Global stats query timed out after ${this.globalStatsQueryTimeoutMs} ms`)),
+        this.globalStatsQueryTimeoutMs
+      );
+    });
+
+    try {
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
+      const fresh = firstRow(result) ?? fallback;
+      this.globalStatsCache = {
+        data: fresh,
+        cachedAt: now,
+        expiresAt: now + this.globalStatsTtlMs,
+      };
+      return fresh;
+    } catch (err) {
+      clearTimeout(timeoutHandle);
+      if (cached) {
+        // Stale cache available — serve it rather than blocking or returning zeros.
+        console.warn(
+          '[calculateStatsOptimized] DB query failed or timed out; serving stale global stats ' +
+          `(cached ${Math.round((now - cached.cachedAt) / 1000)}s ago). Error:`,
+          err
+        );
+        return cached.data;
+      }
+      // No stale data to fall back to — surface the error so the route can return a
+      // meaningful HTTP error rather than silently serving zeros.
+      console.error('[calculateStatsOptimized] DB query failed and no cached data available:', err);
+      throw err;
+    }
   }
 
   // Clean up old data to maintain performance

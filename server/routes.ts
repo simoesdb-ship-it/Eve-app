@@ -280,22 +280,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user statistics (cached)
+  // Get statistics — global or per-session
+  //
+  // • No identifier supplied  → global aggregate counts (30 s in-memory cache,
+  //   5 s query timeout; stale data served on DB hiccup with a logged warning).
+  // • sessionId / userId supplied → per-session counts, always fresh (not cached).
+  //
+  // HTTP-level caching via cacheMiddleware is kept for per-session responses only
+  // (different cache key per identifier).  Global stats rely on the internal cache
+  // inside calculateStatsOptimized() so the TTL semantics are consistent.
   app.get("/api/stats", cacheMiddleware(cacheConfigs.stats), async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string;
       const userId = req.query.userId as string;
-      
-      if (!sessionId && !userId) {
-        return res.status(400).json({ message: "Session ID or User ID is required" });
-      }
 
-      // Use userId if provided (persistent tracking), fallback to sessionId
-      const identifier = userId || sessionId;
-      const stats = await storage.getStats(identifier);
-      res.json(stats);
+      // Use userId if provided (persistent tracking), fallback to sessionId.
+      // When neither is present, return global aggregate stats.
+      const identifier = userId || sessionId || undefined;
+      const raw = await dbOptimizations.calculateStatsOptimized(identifier);
+
+      // Normalise snake_case DB column names to the camelCase shape the client
+      // already depends on, and coerce bigint/string counts to plain numbers.
+      res.json({
+        suggestedPatterns:  Number(raw.suggested_patterns),
+        votesContributed:   Number(raw.votes_contributed),
+        locationsTracked:   Number(raw.locations_tracked),
+        offlinePatterns:    Number(raw.offline_patterns),
+      });
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch statistics" });
+      // calculateStatsOptimized only throws when the cache is cold AND the DB
+      // query fails/times out — surface this as a 503 so callers can retry.
+      console.error("Stats endpoint: DB unavailable and no cached data:", error);
+      res.status(503).json({ message: "Statistics temporarily unavailable, please retry" });
     }
   });
 
