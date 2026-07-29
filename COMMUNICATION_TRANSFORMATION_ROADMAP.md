@@ -3,7 +3,8 @@
 
 ## Executive Summary
 
-This roadmap outlines the transformation of our Christopher Alexander pattern discovery app into a decentralized communication platform that enables users to exchange location-based insights and path information through encrypted Bluetooth messaging, secured by Bitcoin-like tokenization processes.
+This roadmap outlines the transformation of our Christopher Alexander pattern discovery app into a decentralized communication platform that enables users to exchange location-based insights and path information through encrypted Bluetooth messaging, secured by Bitcoin-like tokenization processes with the end goal of reaching concensus and creating democratic participation.
+
 
 ## Current App Analysis
 
