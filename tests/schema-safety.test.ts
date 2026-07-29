@@ -68,15 +68,30 @@ function readTablesFilter(): string[] {
 }
 
 /**
- * Given the tablesFilter entries from drizzle.config.ts, return the set of
- * table names that are EXCLUDED (i.e. prefixed with "!").
+ * Returns true when `name` matches `pattern`.
+ * Supports a single wildcard character `*` that matches any sequence of
+ * characters (zero or more), as used by drizzle-kit tablesFilter globs.
  */
-function excludedByFilter(filters: string[]): Set<string> {
-  const excluded = new Set<string>();
-  for (const f of filters) {
-    if (f.startsWith("!")) excluded.add(f.slice(1));
-  }
-  return excluded;
+function matchesGlob(pattern: string, name: string): boolean {
+  // Escape all regex metacharacters except '*', then replace '*' with '.*'
+  const regexSrc = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*");
+  return new RegExp(`^${regexSrc}$`).test(name);
+}
+
+/**
+ * Given the tablesFilter entries from drizzle.config.ts, return a predicate
+ * that is true for any table name EXCLUDED by a "!" negation filter.
+ * Supports exact names (e.g. "!session") as well as glob patterns
+ * (e.g. "!_*", "!pg_*").
+ */
+function excludedByFilter(filters: string[]): (tableName: string) => boolean {
+  const patterns = filters
+    .filter((f) => f.startsWith("!"))
+    .map((f) => f.slice(1));
+  return (tableName: string) =>
+    patterns.some((p) => matchesGlob(p, tableName));
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +112,26 @@ describe("drizzle.config.ts — tablesFilter safety", () => {
   it("drizzle schema exports at least one table", () => {
     const tables = drizzleManagedTables();
     expect(tables.size).toBeGreaterThan(0);
+  });
+
+  it("excludedByFilter matches exact names", () => {
+    const isExcluded = excludedByFilter(["!session", "public"]);
+    expect(isExcluded("session")).toBe(true);
+    expect(isExcluded("users")).toBe(false);
+  });
+
+  it("excludedByFilter matches glob wildcard patterns (e.g. !_*, !pg_*)", () => {
+    const isExcluded = excludedByFilter(["!session", "!_*", "!pg_*"]);
+    // exact match still works
+    expect(isExcluded("session")).toBe(true);
+    // underscore-prefix glob
+    expect(isExcluded("_drizzle_migrations")).toBe(true);
+    expect(isExcluded("_anything")).toBe(true);
+    // pg_ prefix glob
+    expect(isExcluded("pg_stat_user_tables")).toBe(true);
+    // unmatched names are NOT excluded
+    expect(isExcluded("users")).toBe(false);
+    expect(isExcluded("locations")).toBe(false);
   });
 });
 
@@ -136,7 +171,7 @@ describe.skipIf(!DATABASE_URL)(
         // Tables that Drizzle does not manage and are NOT excluded by the filter
         // would be candidates for an implicit DROP TABLE on the next db:push.
         const unsafe = [...dbTables].filter(
-          (t) => !managed.has(t) && !excluded.has(t)
+          (t) => !managed.has(t) && !excluded(t)
         );
 
         if (unsafe.length > 0) {
