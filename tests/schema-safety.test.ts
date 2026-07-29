@@ -205,6 +205,42 @@ describe("drizzle.config.ts — tablesFilter safety", () => {
     // plain patterns with no dot contribute nothing
     expect(schemas.size).toBe(0);
   });
+
+  it("no exclusion pattern in tablesFilter accidentally covers a Drizzle-managed table", () => {
+    const filters = readTablesFilter();
+    const managed = drizzleManagedTables();
+
+    // Collect every exclusion pattern and check it against each managed table.
+    const exclusionPatterns = filters
+      .filter((f) => f.startsWith("!"))
+      .map((f) => f.slice(1));
+
+    const violations: Array<{ table: string; pattern: string }> = [];
+
+    for (const table of managed) {
+      for (const pattern of exclusionPatterns) {
+        if (matchesGlob(pattern, table)) {
+          violations.push({ table, pattern: `!${pattern}` });
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      const detail = violations
+        .map((v) => `  - table "${v.table}" is matched by pattern "${v.pattern}"`)
+        .join("\n");
+      throw new Error(
+        `SAFETY CHECK FAILED: One or more exclusion patterns in tablesFilter ` +
+          `accidentally match a Drizzle-managed table.\n\n` +
+          `drizzle-kit would silently ignore schema drift on these tables:\n\n` +
+          `${detail}\n\n` +
+          `Fix: narrow the offending pattern in drizzle.config.ts so it does ` +
+          `not cover any table exported from shared/schema.ts.`
+      );
+    }
+
+    expect(violations).toHaveLength(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
